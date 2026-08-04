@@ -150,17 +150,17 @@
     bind = $mainMod, E, exec, $fileManager
     bind = $mainMod, O, exec, obsidian
     bind = $mainMod, P, exec, 1password
-    bind = $mainMod SHIFT, D, exec, vesktop
+    bind = $mainMod, D, exec, vesktop
 
     # System
     bind = $mainMod SHIFT, Escape, exec, hyprlock
     bind = $mainMod SHIFT, H, exec, hypr-cheatsheet
     bind = $mainMod, Slash, exec, hypr-cheatsheet
-    bind = $mainMod, C, exec, hyprpicker -a
+    bind = $mainMod, C, exec, grimblast --notify copysave area
+    bind = $mainMod CTRL, C, exec, grimblast --notify copysave screen
+    bind = $mainMod SHIFT, C, exec, hyprpicker -a
     bind = $mainMod SHIFT, V, exec, cliphist list | fuzzel --dmenu | cliphist decode | wl-copy
     bind = $mainMod SHIFT, R, exec, hyprctl reload
-    bind = , Print, exec, grimblast --notify copysave area
-    bind = $mainMod, Print, exec, grimblast --notify copysave screen
 
     # Workspaces
     bind = $mainMod, 1, workspace, 1
