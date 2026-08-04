@@ -37,7 +37,11 @@
     # Catppuccin Mocha - clean & ruhig
 
     ### Monitor ###
-    monitor = ,preferred,auto,1
+    # 2x BenQ EL2870U (28" 4k). scale 1.25 -> logisch 3072x1728 pro Schirm
+    # (teilt 3840/2160 sauber, kein Fractional-Blur). HDMI links, DP rechts daneben.
+    monitor = HDMI-A-1, 3840x2160@60, 0x0, 1.25
+    monitor = DP-1,     3840x2160@60, 3072x0, 1.25
+    monitor = ,preferred,auto,1.25
 
     ### Programme ###
     $terminal    = kitty
