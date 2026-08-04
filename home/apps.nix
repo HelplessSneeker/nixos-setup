@@ -4,7 +4,10 @@
   home.packages = with pkgs; [
     brave
     obsidian
+    vesktop        # Discord-Client, nativ Wayland (Screenshare + Themes)
     wl-clipboard   # Clipboard-Bridge fuer nvim/Terminal unter Wayland
+    cliphist       # Clipboard-History (SUPER+SHIFT+V)
+    hyprpicker     # Farb-Picker (SUPER+C)
   ];
 
   # Neovim erstmal nur lauffaehig als Default-Editor.

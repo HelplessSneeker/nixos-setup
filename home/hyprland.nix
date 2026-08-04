@@ -51,6 +51,7 @@
     #exec-once = mako
     exec-once = noctalia
     exec-once = 1password --silent
+    exec-once = wl-paste --watch cliphist store   # Clipboard-History mitschreiben
 
     ### Look ###
     general {
@@ -123,7 +124,7 @@
     # Fenster & Session
     bind = $mainMod, Return, exec, $terminal
     bind = $mainMod, Space, exec, $menu
-    bind = $mainMod, Q, killactive
+    bind = $mainMod, W, killactive
     bind = $mainMod SHIFT, Q, exit
     bind = $mainMod, F, fullscreen
     bind = $mainMod, V, togglefloating
@@ -135,8 +136,7 @@
     bind = $mainMod, K, movefocus, u
     bind = $mainMod, L, movefocus, r
 
-    # Fenster verschieben
-    bind = $mainMod SHIFT, H, movewindow, l
+    # Fenster verschieben (SHIFT+H frei fuer Help-Menue -> links per Maus-Drag)
     bind = $mainMod SHIFT, J, movewindow, d
     bind = $mainMod SHIFT, K, movewindow, u
     bind = $mainMod SHIFT, L, movewindow, r
@@ -146,10 +146,15 @@
     bind = $mainMod, E, exec, $fileManager
     bind = $mainMod, O, exec, obsidian
     bind = $mainMod, P, exec, 1password
+    bind = $mainMod SHIFT, D, exec, vesktop
 
     # System
     bind = $mainMod SHIFT, Escape, exec, hyprlock
+    bind = $mainMod SHIFT, H, exec, hypr-cheatsheet
     bind = $mainMod, Slash, exec, hypr-cheatsheet
+    bind = $mainMod, C, exec, hyprpicker -a
+    bind = $mainMod SHIFT, V, exec, cliphist list | fuzzel --dmenu | cliphist decode | wl-copy
+    bind = $mainMod SHIFT, R, exec, hyprctl reload
     bind = , Print, exec, grimblast --notify copysave area
     bind = $mainMod, Print, exec, grimblast --notify copysave screen
 
@@ -178,6 +183,8 @@
 
     bind = $mainMod, mouse_down, workspace, e+1
     bind = $mainMod, mouse_up, workspace, e-1
+    bind = $mainMod, Tab, workspace, e+1
+    bind = $mainMod SHIFT, Tab, workspace, e-1
 
     # Scratchpad
     bind = $mainMod, S, togglespecialworkspace, magic

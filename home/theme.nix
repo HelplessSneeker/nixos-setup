@@ -9,6 +9,16 @@
     papirus-icon-theme  # Icons fuer fuzzel
   ];
 
+  # Cursor-Theme (statt Default-Adwaita). Setzt XCursor + GTK + hyprcursor in einem.
+  home.pointerCursor = {
+    name = "Bibata-Modern-Classic";
+    package = pkgs.bibata-cursors;
+    size = 24;
+    gtk.enable = true;
+    x11.enable = true;
+    hyprcursor.enable = true;
+  };
+
   # --- Filemanager: yazi (terminal, HJKL-gesteuert) ---
   programs.yazi.enable = true;
 
