@@ -8,11 +8,6 @@
 
   networking.hostName = "fabricus";
   networking.networkmanager.enable = true;
-
-  time.timeZone = "Europe/Vienna";
-  i18n.defaultLocale = "de_AT.UTF-8";
-  i18n.extraLocaleSettings.LC_MESSAGES = "en_US.UTF-8";
-  console.keyMap = "de";
   services.xserver.xkb.layout = "de";
 
   # NVIDIA
@@ -27,10 +22,9 @@
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
-  # Hyprland + Wayland/NVIDIA-Env
+  # Hyprland + Wayland/NVIDIA-Env (NIXOS_OZONE_WL kommt aus modules/desktop-apps.nix)
   programs.hyprland.enable = true;
   environment.sessionVariables = {
-    NIXOS_OZONE_WL = "1";
     LIBVA_DRIVER_NAME = "nvidia";
     GBM_BACKEND = "nvidia-drm";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
@@ -46,35 +40,25 @@
     };
   };
 
-  # Audio
-  security.rtkit.enable = true;
-  services.pipewire = { enable = true; alsa.enable = true; pulse.enable = true; };
-
-  # User (Passwort nach erstem Login mit `passwd` ändern!)
+  # User. initialPassword entfernt (Account existiert; Passwort ist per `passwd` gesetzt).
+  # Fuer einen NEUEN Host hier wieder `initialPassword` oder `hashedPasswordFile` setzen.
+  # Login-Shell: fish (System-Enable in modules/system-base.nix).
   users.users.bfn = {
     isNormalUser = true;
     description = "Benjamin Nößler";
     extraGroups = [ "wheel" "networkmanager" "docker" "video" ];
-    shell = pkgs.zsh;
-    initialPassword = "changeme";
+    shell = pkgs.fish;
   };
   programs.zsh.enable = true;
 
-  services.tailscale.enable = true;
   virtualisation.docker.enable = true;
   services.openssh.enable = true;
 
-  fonts.packages = with pkgs; [
-    noto-fonts noto-fonts-emoji
-    nerd-fonts.jetbrains-mono
-    nerd-fonts.fira-code
-  ];
+  # Nur der Host-Extra-Font; noto + jetbrains-mono kommen aus modules/system-base.nix (Liste merged).
+  fonts.packages = with pkgs; [ nerd-fonts.fira-code ];
 
-  environment.systemPackages = with pkgs; [ git vim wget curl ];
-
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
-  nix.settings.auto-optimise-store = true;
-  nix.gc = { automatic = true; dates = "weekly"; options = "--delete-older-than 30d"; };
+  # System-Editor für root/TTY (neovim ist home-only für bfn).
+  environment.systemPackages = with pkgs; [ vim ];
 
   zramSwap.enable = true;
 

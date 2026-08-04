@@ -7,25 +7,46 @@
       url = "github:nix-community/home-manager/release-25.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # Bewusst KEIN follows: noctalia braucht sein eigenes nixpkgs-unstable
+    # (C++23-Deps), sonst bricht der Build gegen 25.05.
+    noctalia.url = "github:noctalia-dev/noctalia";
+
+    # Nur fuer einzelne Bleeding-Edge-Pakete (godot 4.7): 25.05 liefert nur
+    # godot ~4.4. Bewusst KEIN follows -> eigene, aktuelle nixpkgs-Instanz.
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs:
-  let
-    system = "x86_64-linux";
-  in {
-    nixosConfigurations.desktop = nixpkgs.lib.nixosSystem {
-      inherit system;
-      specialArgs = { inherit inputs; };
-      modules = [
-        ./hosts/desktop/configuration.nix
-        home-manager.nixosModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit inputs; };
-          home-manager.users.bfn = import ./home/bfn.nix;
-        }
-      ];
+    let
+      system = "x86_64-linux";
+
+      # Gemeinsamer Modul-Stack fuer jeden Host. Host-spezifisches
+      # (NVIDIA, hardware-config, hostName) lebt im jeweiligen hostModule.
+      mkHost = hostModule: nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = { inherit inputs; };
+        modules = [
+          hostModule
+          ./modules/system-base.nix
+          ./modules/tailscale.nix
+          ./modules/desktop-apps.nix
+          ./modules/ssh-access.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = { inherit inputs; };
+            home-manager.users.bfn = import ./home/bfn.nix;
+          }
+        ];
+      };
+    in
+    {
+      nixosConfigurations = {
+        desktop = mkHost ./hosts/desktop/configuration.nix;
+        # laptop = mkHost ./hosts/laptop/configuration.nix;   # wenn cachus-rex dran ist
+      };
+
+      formatter.${system} = nixpkgs.legacyPackages.${system}.nixpkgs-fmt;
     };
-  };
 }
