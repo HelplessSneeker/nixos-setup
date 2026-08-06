@@ -22,7 +22,7 @@ in
 
     matchBlocks = {
       # SSH nutzt den 1Password-Agent statt eines Keys auf der Platte.
-      # Der Socket kommt vom System-Modul (modules/desktop-apps.nix,
+      # Der Socket kommt vom System-Modul (modules/gui-apps.nix,
       # programs._1password-gui); hier zeigt nur ~/.ssh/config drauf. WICHTIG:
       # in der 1Password-GUI einmalig Settings -> Developer -> "Use the SSH
       # agent" aktivieren, sonst existiert der Socket nicht.

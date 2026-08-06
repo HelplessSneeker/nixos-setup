@@ -54,8 +54,8 @@
       gco = "git checkout";
       gb  = "git branch";
       # nixos-rebuild (dein haeufigster Flow gerade)
-      nrs = "sudo nixos-rebuild switch --flake /etc/nixos#desktop";
-      nrb = "sudo nixos-rebuild build --flake /etc/nixos#desktop";
+      nrs = "sudo nixos-rebuild switch --flake /etc/nixos";
+      nrb = "sudo nixos-rebuild build --flake /etc/nixos";
     };
 
     functions = {

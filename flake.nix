@@ -39,7 +39,7 @@
           hostModule
           ./modules/system-base.nix
           ./modules/tailscale.nix
-          ./modules/desktop-apps.nix
+          ./modules/gui-apps.nix
           ./modules/ssh-access.nix
           home-manager.nixosModules.home-manager
           {
@@ -57,9 +57,13 @@
       };
     in
     {
+      # Output-Namen sind bewusst IDENTISCH mit dem jeweiligen networking.hostName.
+      # Damit findet `nixos-rebuild --flake /etc/nixos` ohne #attribut von selbst
+      # den richtigen Host (es faellt auf nixosConfigurations.<hostname> zurueck)
+      # -- die fish-Abbrevs nrs/nrb funktionieren so auf jeder Maschine gleich.
       nixosConfigurations = {
-        desktop = mkHost ./hosts/desktop/configuration.nix;
-        # laptop = mkHost ./hosts/laptop/configuration.nix;   # wenn cachus-rex dran ist
+        fabricus = mkHost ./hosts/fabricus/configuration.nix;
+        # fabricus-itinerans = mkHost ./hosts/fabricus-itinerans/configuration.nix;   # wenn cachus-rex dran ist
       };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixpkgs-fmt;

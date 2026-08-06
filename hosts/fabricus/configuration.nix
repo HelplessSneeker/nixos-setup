@@ -22,7 +22,7 @@
     package = config.boot.kernelPackages.nvidiaPackages.stable;
   };
 
-  # Hyprland + Wayland/NVIDIA-Env (NIXOS_OZONE_WL kommt aus modules/desktop-apps.nix)
+  # Hyprland + Wayland/NVIDIA-Env (NIXOS_OZONE_WL kommt aus modules/gui-apps.nix)
   programs.hyprland.enable = true;
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "nvidia";

@@ -101,7 +101,7 @@
   # ueber die fragen Firefox, Thunderbird und alle Electron-Apps (Obsidian,
   # vesktop, 1Password) unter Wayland ihr prefers-color-scheme ab. Ein blosses
   # GTK-Theme reicht dafuer NICHT.
-  # Braucht `programs.dconf.enable = true` auf System-Ebene (modules/desktop-apps.nix),
+  # Braucht `programs.dconf.enable = true` auf System-Ebene (modules/gui-apps.nix),
   # sonst existiert die dconf-Datenbank nicht und der Wert verpufft.
   dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
 
