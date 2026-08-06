@@ -3,8 +3,8 @@
 
   imports = [
     ./apps.nix
+    ./ssh.nix
     ./control-ui.nix
-    ./gamedev.nix
     ./hyprland.nix
     ./theme.nix
     ./fish.nix

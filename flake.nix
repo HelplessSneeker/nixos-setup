@@ -11,8 +11,9 @@
     # (C++23-Deps), sonst bricht der Build gegen 25.05.
     noctalia.url = "github:noctalia-dev/noctalia";
 
-    # Nur fuer einzelne Bleeding-Edge-Pakete (godot 4.7): 25.05 liefert nur
-    # godot ~4.4. Bewusst KEIN follows -> eigene, aktuelle nixpkgs-Instanz.
+    # Nur fuer einzelne Bleeding-Edge-Pakete (godot 4.7, claude-code): 25.05
+    # liefert nur godot ~4.4 / claude-code 1.0.85. Bewusst KEIN follows -> eigene,
+    # aktuelle nixpkgs-Instanz.
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
@@ -20,11 +21,20 @@
     let
       system = "x86_64-linux";
 
+      # Eine einzige unstable-Instanz fuer alle Module, die daraus ziehen.
+      # WICHTIG: als `import` mit config, nicht als `legacyPackages` --
+      # legacyPackages traegt keine config, damit scheitert jedes unfree Paket
+      # (z.B. claude-code) an "Package ... has an unfree license".
+      pkgsUnstable = import inputs.nixpkgs-unstable {
+        inherit system;
+        config.allowUnfree = true;
+      };
+
       # Gemeinsamer Modul-Stack fuer jeden Host. Host-spezifisches
       # (NVIDIA, hardware-config, hostName) lebt im jeweiligen hostModule.
       mkHost = hostModule: nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit inputs; };
+        specialArgs = { inherit inputs pkgsUnstable; };
         modules = [
           hostModule
           ./modules/system-base.nix
@@ -35,7 +45,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = { inherit inputs; };
+            home-manager.extraSpecialArgs = { inherit inputs pkgsUnstable; };
             home-manager.users.bfn = import ./home/bfn.nix;
           }
         ];
