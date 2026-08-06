@@ -1,6 +1,13 @@
-# Gaming: Steam/Proton, GameMode, Gamescope, MangoHud. Shared -- bewusst
-# hardware-agnostisch, damit fabricus-itinerans (Laptop) das gleiche Modul
-# ziehen kann. Host-spezifisches (NVIDIA, 32-Bit-Grafik) bleibt im Host.
+# Gaming: Steam/Proton, GameMode, Gamescope, MangoHud.
+#
+# NICHT im shared mkHost-Stack -- Gaming ist reine Stand-PC-Sache und wird
+# ausschliesslich von hosts/fabricus/configuration.nix importiert. Ein
+# Laptop-Host (fabricus-itinerans) bekommt davon bewusst nichts.
+#
+# Das Modul zieht seinen home-manager-Teil (MangoHud-Overlay) am Ende der
+# Datei selbst nach. Damit ist der Host-Import der EINZIGE Schalter -- es gibt
+# keinen zweiten, den man vergessen kann. Setzt voraus, dass home-manager im
+# Host-Stack geladen ist (macht mkHost in flake.nix fuer jeden Host).
 #
 # VORAUSSETZUNG: nixpkgs.config.allowUnfree = true im Host -- Steam und
 # proton-ge-bin sind unfree. Steht auf fabricus schon in der Host-Config;
@@ -58,8 +65,7 @@
   # GameMode: setzt waehrend des Spiels CPU-Governor auf performance und
   # renict den Spielprozess. Aktiv wird es NUR, wenn ein Spiel es anfordert
   # -- entweder nativ (viele Titel koennen das) oder per Launch-Option
-  # `gamemoderun %command%`. Im Leerlauf kostet es nichts, deshalb auch auf
-  # dem Laptop unbedenklich.
+  # `gamemoderun %command%`. Im Leerlauf kostet es nichts.
   programs.gamemode = {
     enable = true;
     settings = {
@@ -112,4 +118,10 @@
   # * Steam-Bibliothek auf der Windows-NTFS-Platte (nvme0n1p2) ist moeglich,
   #   aber Proton mag NTFS nicht (Case-Sensitivity, fehlende Symlinks, kaputte
   #   Permissions). Empfehlung: Bibliothek auf ext4 unter /home.
+
+  # User-Teil (MangoHud-Overlay). Bewusst hier statt in home/bfn.nix:
+  # home/bfn.nix ist shared, das Overlay soll aber nur auf dem Gaming-Host
+  # existieren. home-manager.users.bfn wird in flake.nix schon definiert --
+  # diese zweite Definition wird dazugemerged, nicht ueberschrieben.
+  home-manager.users.bfn.imports = [ ../home/gaming.nix ];
 }
