@@ -7,6 +7,7 @@
     ./hyprland.nix
     ./theme.nix
     ./fish.nix
+    ./gaming.nix
     ./noctalia.nix
     inputs.noctalia.homeModules.default
   ];

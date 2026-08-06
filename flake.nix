@@ -41,6 +41,13 @@
           ./modules/tailscale.nix
           ./modules/gui-apps.nix
           ./modules/ssh-access.nix
+          # Gaming ist bewusst im SHARED Stack, nicht nur im Desktop-Host:
+          # das Modul ist hardware-agnostisch, der einzige Preis auf einem
+          # zweiten Host ist Store-Platz (~3 GB Steam + Proton-GE).
+          # Soll der Laptop es spaeter NICHT bekommen: diese Zeile hier raus
+          # und stattdessen `../../modules/gaming.nix` in
+          # hosts/fabricus/configuration.nix importieren.
+          ./modules/gaming.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
