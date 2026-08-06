@@ -11,6 +11,10 @@
     polkitPolicyOwners = [ "bfn" ];           # erlaubt bfn System-Auth/Unlock
   };
 
+  # dconf-Datenbank. Ohne das laufen home-manager's dconf.settings ins Leere
+  # (u.a. der Dark-Mode-Schalter color-scheme=prefer-dark aus home/theme.nix).
+  programs.dconf.enable = true;
+
   # Electron/Chromium nativ auf Wayland (Brave, Obsidian, 1Password-GUI).
   # Ohne das laufen die Apps ueber XWayland -> unscharf, schlechtes Scaling.
   environment.sessionVariables.NIXOS_OZONE_WL = "1";

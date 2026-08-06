@@ -4,7 +4,6 @@
   imports = [
     ./apps.nix
     ./ssh.nix
-    ./control-ui.nix
     ./hyprland.nix
     ./theme.nix
     ./fish.nix
@@ -63,6 +62,6 @@
     waybar hyprpaper hyprlock hypridle   # mako raus: noctalia macht die Notifications
     grim slurp wl-clipboard brightnessctl playerctl pavucontrol
     networkmanagerapplet
-    firefox
+    # firefox lebt jetzt bei den uebrigen GUI-Apps in home/apps.nix
   ];
 }

@@ -45,6 +45,11 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
+            # Bestehende, nicht von HM verwaltete Dotfiles nicht als Fehler
+            # behandeln, sondern zur Seite legen (z.B. die alte, per GUI
+            # gepflegte ~/.config/mimeapps.list). Ohne das bricht die
+            # Aktivierung mit "Existing file ... is in the way" ab.
+            home-manager.backupFileExtension = "hm-bak";
             home-manager.extraSpecialArgs = { inherit inputs pkgsUnstable; };
             home-manager.users.bfn = import ./home/bfn.nix;
           }

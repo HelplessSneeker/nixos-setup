@@ -3,7 +3,8 @@
 { config, pkgs, pkgsUnstable, lib, ... }:
 {
   home.packages = with pkgs; [
-    brave
+    firefox        # Default-Browser (SUPER+B). Brave am 06.08.2026 rausgeworfen:
+                   # bfn will die transparentere Datenschutz-Story.
     obsidian
     vesktop        # Discord-Client, nativ Wayland (Screenshare + Themes)
     thunderbird    # Mail. Accounts werden in der GUI eingerichtet, nicht deklarativ
@@ -36,6 +37,32 @@
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
+  };
+
+  # --- Default-Anwendungen (xdg-open / Link-Klicks aus anderen Apps) ---
+  # Muss deklarativ sein, seit Brave raus ist: die alte, per GUI gepflegte
+  # ~/.config/mimeapps.list zeigte http/https noch auf brave-browser.desktop --
+  # das Paket existiert nicht mehr, Links waeren also ins Leere gelaufen.
+  # mailto zeigte auf ein von Thunderbird selbst erzeugtes userapp-*.desktop;
+  # hier jetzt sauber auf thunderbird.desktop.
+  # ACHTUNG: home-manager macht daraus einen Store-Symlink -> "Als Standard
+  # setzen"-Buttons in GUIs koennen die Datei nicht mehr schreiben. Aenderungen
+  # ab jetzt hier in der Config.
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "text/html"                = "firefox.desktop";
+      "x-scheme-handler/http"    = "firefox.desktop";
+      "x-scheme-handler/https"   = "firefox.desktop";
+      "x-scheme-handler/about"   = "firefox.desktop";
+      "x-scheme-handler/unknown" = "firefox.desktop";
+
+      "x-scheme-handler/mailto"  = "thunderbird.desktop";
+      "message/rfc822"           = "thunderbird.desktop";
+      "x-scheme-handler/mid"     = "thunderbird.desktop";
+
+      "x-scheme-handler/discord" = "vesktop.desktop";
+    };
   };
 
   # SSH-Client-Config (1Password-Agent, Tailnet-Hosts) lebt in ./ssh.nix.

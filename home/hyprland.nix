@@ -46,7 +46,8 @@
     ### Programme ###
     $terminal    = kitty
     $menu        = fuzzel
-    $browser     = brave
+    $browser     = firefox
+    $mail        = thunderbird
     $fileManager = kitty -e yazi
     $mainMod     = SUPER
 
@@ -147,6 +148,7 @@
 
     # Apps
     bind = $mainMod, B, exec, $browser
+    bind = $mainMod, M, exec, $mail
     bind = $mainMod, E, exec, $fileManager
     bind = $mainMod, O, exec, obsidian
     bind = $mainMod, P, exec, 1password

@@ -94,4 +94,38 @@
   # oben, sobald noctalia die Datei gerendert hat. Fehlt sie, warnt kitty nur und
   # behaelt die Catppuccin-Basis.
   programs.kitty.extraConfig = "include themes/noctalia.conf";
+
+  # --- Dark Mode als Systemvorgabe ---
+  # Der eigentliche Schalter ist die dconf-Key color-scheme=prefer-dark. Den liest
+  # xdg-desktop-portal-gtk aus und beantwortet damit die Portal-Settings-API --
+  # ueber die fragen Firefox, Thunderbird und alle Electron-Apps (Obsidian,
+  # vesktop, 1Password) unter Wayland ihr prefers-color-scheme ab. Ein blosses
+  # GTK-Theme reicht dafuer NICHT.
+  # Braucht `programs.dconf.enable = true` auf System-Ebene (modules/desktop-apps.nix),
+  # sonst existiert die dconf-Datenbank nicht und der Wert verpufft.
+  dconf.settings."org/gnome/desktop/interface".color-scheme = "prefer-dark";
+
+  # GTK selbst: dark-Variante fuer GTK3/GTK4-Apps (Datei-Dialoge, nm-applet,
+  # pavucontrol). gtk-application-prefer-dark-theme deckt die Apps ab, die kein
+  # eigenes -dark-Theme laden, aber die Hint auswerten.
+  gtk = {
+    enable = true;
+    theme = {
+      name = "Adwaita-dark";
+      package = pkgs.gnome-themes-extra;
+    };
+    iconTheme = {
+      name = "Papirus-Dark";
+      package = pkgs.papirus-icon-theme;
+    };
+    gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
+    gtk4.extraConfig.gtk-application-prefer-dark-theme = 1;
+  };
+
+  # Qt-Apps (z.B. qbittorrent-GUI, VLC) an die GTK-Einstellung koppeln, damit
+  # nicht die Haelfte des Desktops hell bleibt.
+  qt = {
+    enable = true;
+    platformTheme.name = "gtk3";
+  };
 }
