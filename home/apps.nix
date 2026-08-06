@@ -7,9 +7,6 @@
                    # bfn will die transparentere Datenschutz-Story.
     obsidian
     vesktop        # Discord-Client, nativ Wayland (Screenshare + Themes)
-    thunderbird    # Mail. Accounts werden in der GUI eingerichtet, nicht deklarativ
-                   # -- programs.thunderbird bringt zwar Profile/Accounts als Nix-
-                   # Optionen, die Passwoerter muessen trotzdem manuell rein.
     wl-clipboard   # Clipboard-Bridge fuer nvim/Terminal unter Wayland
     cliphist       # Clipboard-History (SUPER+SHIFT+V)
     hyprpicker     # Farb-Picker (SUPER+C)
@@ -28,6 +25,30 @@
     # auf der Maschine pruefen -> `nix search nixpkgs-unstable godot`
     # (Kandidaten: godot_4, godot, godot_4-mono).
     pkgsUnstable.godot_4
+
+    # Mail. Accounts werden in der GUI eingerichtet, nicht deklarativ --
+    # programs.thunderbird bringt zwar Profile/Accounts als Nix-Optionen, die
+    # Passwoerter muessen trotzdem manuell rein.
+    #
+    # Aus unstable (153.0.1) statt 25.05 (146.0.1, Build vom 16.12.2025), weil
+    # 146 unter Wayland beim Senden reproduzierbar abstuerzt. Crash-Signatur aus
+    # bp-b28f2271-99be-4016-8331-bc57a0260806: Endlos-Rekursion in
+    # AppWindow::Center (AppWindow.cpp:824) -> Stack Overflow -> SIGSEGV.
+    # Ursache: unter Wayland darf ein Client sein Fenster nicht selbst
+    # positionieren. TB zentriert den Sende-Fortschrittsdialog, der Compositor
+    # meldet eine andere Position zurueck, TB zentriert erneut -> Schleife.
+    # Vgl. Mozilla-Bug 1724656 ("phantom window is created when sending (wayland)").
+    pkgsUnstable.thunderbird
+
+    # FALLBACK, falls 153 unter Wayland immer noch crasht: Thunderbird ueber
+    # XWayland zwingen. Zuverlaessig, aber auf 4k@1.25 sichtbar unschaerfer.
+    # Dann die Zeile oben auskommentieren und diese hier aktivieren:
+    # (pkgs.symlinkJoin {
+    #   name = "thunderbird-xwayland";
+    #   paths = [ pkgsUnstable.thunderbird ];
+    #   nativeBuildInputs = [ pkgs.makeWrapper ];
+    #   postBuild = "wrapProgram $out/bin/thunderbird --set MOZ_ENABLE_WAYLAND 0";
+    # })
   ];
 
   # Neovim erstmal nur lauffaehig als Default-Editor.
