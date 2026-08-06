@@ -22,10 +22,14 @@
   # XDG-Portal fuer Hyprland: Datei-Dialoge (Upload/Anhaenge) + Screen-Sharing.
   # ACHTUNG: Falls dein Hyprland-Modul xdg.portal schon setzt -> hier weglassen,
   # sonst "attribute already defined". Erst pruefen: grep -rn 'xdg.portal' .
+  # xdg-desktop-portal-hyprland steht hier bewusst NICHT drin: das
+  # programs.hyprland-Modul traegt sein eigenes portalPackage schon selbst in
+  # extraPortals ein. Beides zusammen ergab bisher eine Dublette -- und sobald
+  # der Compositor aus nixpkgs-unstable kommt, waeren es zwei VERSCHIEDENE
+  # Portal-Versionen nebeneinander. Portal und Compositor muessen zusammenpassen.
   xdg.portal = {
     enable = true;
     extraPortals = [
-      pkgs.xdg-desktop-portal-hyprland
       pkgs.xdg-desktop-portal-gtk
     ];
   };

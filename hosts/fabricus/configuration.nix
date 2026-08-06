@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, inputs, pkgsUnstable, ... }:
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -23,7 +23,24 @@
   };
 
   # Hyprland + Wayland/NVIDIA-Env (NIXOS_OZONE_WL kommt aus modules/gui-apps.nix)
-  programs.hyprland.enable = true;
+  #
+  # Hyprland kommt bewusst aus nixpkgs-unstable (0.56.1), nicht aus 25.05 (0.49.0).
+  # Grund: noctalia 5.0.0 ist gegen einen ~14 Monate neueren Compositor gebaut.
+  # Unter 0.49 wird der Focus-Grab jedes Panels sofort gecleart -- Panels leben
+  # 15-20 ms und schliessen wieder. Damit ist in der Bar alles tot, was
+  # aufklappen muss (Launcher, Kalender, Media, Notifications, Clipboard,
+  # Netzwerk, Control-Center, Session). Gegenprobe: `settings-open` ist ein
+  # normales Fenster und geht sauber auf -> es liegt am Grab, nicht am Klick.
+  #
+  # Rueckweg, falls Hyprland nicht startet: alte NixOS-Generation im Bootloader.
+  #
+  # portalPackage MUSS mitgezogen werden -- ein 25.05-Portal neben einem
+  # 0.56-Compositor bricht Screen-Sharing und Datei-Dialoge.
+  programs.hyprland = {
+    enable = true;
+    package = pkgsUnstable.hyprland;
+    portalPackage = pkgsUnstable.xdg-desktop-portal-hyprland;
+  };
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "nvidia";
     GBM_BACKEND = "nvidia-drm";
@@ -35,7 +52,13 @@
   services.greetd = {
     enable = true;
     settings.default_session = {
-      command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd Hyprland";
+      # start-hyprland statt Hyprland: seit 0.5x will der Compositor ueber diesen
+      # Wrapper gestartet werden (setzt systemd-User-Session + dbus sauber auf).
+      # Direktstart erzeugt sonst bei jedem Login das Warn-Overlay
+      # "Hyprland is being launched without start-hyprland".
+      # Der Wrapper liegt im hyprland-Paket (/run/current-system/sw/bin/start-hyprland).
+      # Rueckweg bei kaputtem Login: alte NixOS-Generation im Bootloader.
+      command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd start-hyprland";
       user = "greeter";
     };
   };

@@ -7,6 +7,7 @@
     ./hyprland.nix
     ./theme.nix
     ./fish.nix
+    ./noctalia.nix
     inputs.noctalia.homeModules.default
   ];
 
@@ -21,35 +22,7 @@
     userEmail = "benjamin@noessler.at";
   };
 
-  programs.noctalia = {
-    enable = true;
-    settings = {
-      shell.font_family = "JetBrainsMono Nerd Font";
-      theme = {
-        mode = "dark";
-        source = "wallpaper";
-        wallpaper_scheme = "m3-tonal-spot";
-        # Adaptive App-Theming: noctalia rendert seine Wallpaper-Palette in die
-        # App-Configs (kitty-Farben + Hyprland-Border) bei jedem Palette-Wechsel.
-        # Aktiviert die mitgelieferten Templates; Liste: `noctalia theme --list-templates`.
-        templates = {
-          enable_builtin_templates = true;
-          builtin_ids = [ "kitty" "hyprland" ];
-        };
-      };
-      wallpaper = {
-  	enabled = true;
-  	directory = "~/Pictures/Wallpapers";
-  	transition_on_startup = true;   # setzt Wallpaper beim Boot, nicht erst nach Intervall
-  	automation = {
-    		enabled = true;
-    		order = "random";
-    		interval_seconds = 1800;
-    		recursive = true;
-	};
-      };
-    };
-  };
+  # programs.noctalia (Theming, Wallpaper, Bar-Layout) lebt jetzt in ./noctalia.nix
 
   programs.zsh.enable = true;
   programs.starship.enable = true;

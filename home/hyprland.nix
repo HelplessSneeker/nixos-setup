@@ -98,7 +98,9 @@
     }
 
     dwindle {
-        pseudotile = true
+        # pseudotile: in Hyprland 0.56 als Config-Option entfernt (weder unter
+        # dwindle:, general: noch misc: -- per --verify-config geprueft).
+        # Pseudotiling gibt es weiter als Dispatcher `pseudo`, siehe Keybinds.
         preserve_split = true
     }
 
@@ -115,6 +117,25 @@
             natural_scroll = true
         }
     }
+
+    ### Color Management: wp-cm-v1 auf Version 1 begrenzen ###
+    # Hyprland 0.56 bietet wp-color-management-v1 in Version 2 an. Firefox 146
+    # implementiert nur v1 -- dort hat wp_image_description_v1 exakt zwei Events
+    # (failed, ready). Hyprland schickt ein v2-Event, Firefox kennt Opcode 2 nicht
+    # -> "Wayland protocol error: interface 'wp_image_description_v1' has no
+    # event 2" -> Wayland killt den Client hart (rc=11, Minidump).
+    # Verifiziert 06.08.2026: unter Wayland rc=11 reproduzierbar (auch mit frischem
+    # Profil), mit MOZ_ENABLE_WAYLAND=0 rc=0. Also compositor-seitig, nicht Firefox.
+    # Diese Option laesst Color Management AN, deckelt nur die Protokoll-Version.
+    # Greift NUR nach Compositor-Neustart (Globals werden beim Start advertised) --
+    # `hyprctl keyword` reicht nicht.
+    experimental {
+        wp_cm_1_2 = false
+    }
+    # Fallback, falls das nicht reicht: Color Management ganz aus (kostet HDR).
+    # render {
+    #     cm_enabled = false
+    # }
 
     ### Adaptive Theming (noctalia) ###
     # noctalia rendert seine Material-Palette nach ~/.config/hypr/noctalia.conf und
@@ -133,7 +154,10 @@
     bind = $mainMod SHIFT, Q, exit
     bind = $mainMod, F, fullscreen
     bind = $mainMod, V, togglefloating
-    bind = $mainMod, T, togglesplit
+    # togglesplit ist seit 0.56 kein eigener Dispatcher mehr, sondern eine
+    # Layout-Message. P = pseudotile, ersetzt die weggefallene dwindle-Option.
+    bind = $mainMod, T, layoutmsg, togglesplit
+    bind = $mainMod, P, pseudo
 
     # Fokus (vim HJKL)
     bind = $mainMod, H, movefocus, l
