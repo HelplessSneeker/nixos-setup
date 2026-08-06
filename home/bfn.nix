@@ -38,7 +38,17 @@
           builtin_ids = [ "kitty" "hyprland" ];
         };
       };
-      wallpaper = { enabled = true; directory = "~/Pictures/Wallpapers"; };
+      wallpaper = {
+  	enabled = true;
+  	directory = "~/Pictures/Wallpapers";
+  	transition_on_startup = true;   # setzt Wallpaper beim Boot, nicht erst nach Intervall
+  	automation = {
+    		enabled = true;
+    		order = "random";
+    		interval_seconds = 1800;
+    		recursive = true;
+	};
+      };
     };
   };
 
