@@ -41,6 +41,9 @@
           ./modules/tailscale.nix
           ./modules/gui-apps.nix
           ./modules/ssh-access.nix
+          # Eigener, rechtloser Account fuer den OpenClaw-Agent. Bewusst im
+          # shared Stack: der Laptop-Host soll dieselbe Policy erben.
+          ./modules/agent-user.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
