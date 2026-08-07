@@ -50,8 +50,19 @@
   '';
 
   # --- 4. Nix-Daemon nicht fuer jeden ----------------------------------------
-  # Stand vorher auf `*`: der Agent konnte beliebige Derivations bauen und in
-  # den Store ziehen. Kein root (trusted-users bleibt korrekt nur root), aber
-  # CPU, Plattenplatz und fremder Code im Store ohne Not.
-  nix.settings.allowed-users = [ "bfn" "root" ];
+  # Stand urspruenglich auf `*` (Default) -- also jeder Account auf der Kiste.
+  #
+  # `skitarii` stand hier am 07.08.2026 kurzzeitig NICHT drin. Folge: der Agent
+  # konnte `nix eval` nicht mehr ausfuehren und damit keine Config mehr pruefen,
+  # bevor bfn sie aktiviert -- der tealdeer-Commit ging ungetestet raus.
+  # Deshalb bewusst wieder aufgenommen: lieber geprueft als sparsam.
+  #
+  # Was das gibt: evaluieren und bauen (`nixos-rebuild build`).
+  # Was das NICHT gibt: `trusted-users` bleibt ausschliesslich root, der Agent
+  # kann also weder eigene Substituter setzen noch fertige Store-Pfade
+  # unterschieben -- alles muss lokal aus der Quelle gebaut werden. Aktivieren
+  # (`switch`) scheitert ohnehin an sudo und am root-eigenen System-Profil.
+  # Verbleibendes Risiko ist damit Ressourcenverbrauch (CPU/Disk), nicht
+  # Integritaet. Vgl. modules/agent-user.nix fuer die uebrige Agent-Policy.
+  nix.settings.allowed-users = [ "bfn" "root" "skitarii" ];
 }
