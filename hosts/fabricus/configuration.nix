@@ -89,6 +89,27 @@
   # System-Editor für root/TTY (neovim ist home-only für bfn).
   environment.systemPackages = with pkgs; [ vim ];
 
+  # --- Board-Sensoren: Gigabyte B450 AORUS M (Super-I/O ITE IT8686E) ---
+  #
+  # Board-spezifisch, deshalb hier und nicht in modules/hardware-monitoring.nix.
+  # Liefert Vcore, +12V, +5V, 3.3V und Luefter-RPM -- also genau die Werte, mit
+  # denen sich ein Netzteil-/VRM-Verdacht bei den MCE-Abstuerzen (08.08.2026)
+  # belegen oder ausschliessen laesst. k10temp allein zeigt nur die Die-Temp.
+  #
+  # ignore_resource_conflict: Gigabyte-ACPI reklamiert den I/O-Bereich des
+  # Super-I/O fuer sich, der Treiber weigert sich dann zu binden. Der Parameter
+  # ist der uebliche Weg drumherum.
+  #
+  # NICHT GARANTIERT: ob der Mainline-it87 das IT8686E auf genau diesem Board
+  # sauber erkennt, weiss ich erst nach dem Rebuild. Verifikation:
+  #   lsmod | grep it87   und   sensors
+  # Bindet er nicht, bleibt es folgenlos (Modul laedt einfach nicht) -- dann
+  # diese vier Zeilen wieder rauswerfen.
+  boot.kernelModules = [ "it87" ];
+  boot.extraModprobeConfig = ''
+    options it87 ignore_resource_conflict=1
+  '';
+
   zramSwap.enable = true;
 
   system.stateVersion = "25.05";

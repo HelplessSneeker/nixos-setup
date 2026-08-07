@@ -40,6 +40,9 @@
           ./modules/system-base.nix
           ./modules/tailscale.nix
           ./modules/gui-apps.nix
+          # rasdaemon + lm_sensors. Shared, weil "Hardware meldet Fehler und
+          # keiner sieht es" auf jeder Maschine gleich schlecht ist.
+          ./modules/hardware-monitoring.nix
           # Eigener, rechtloser Account fuer den OpenClaw-Agent. Bewusst im
           # shared Stack: der Laptop-Host soll dieselbe Policy erben.
           ./modules/agent-user.nix
