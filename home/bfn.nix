@@ -29,6 +29,22 @@
   programs.direnv = { enable = true; nix-direnv.enable = true; };
   programs.kitty.enable = true;
 
+  # tldr-Client: tealdeer (Rust). Von den drei Kandidaten in 25.05 -- tldr
+  # (C), tlrc (offizieller Rust-Client), tealdeer -- der einzige mit
+  # home-manager-Modul; Binary heisst bei allen `tldr`. Passt ausserdem zum
+  # Rest des CLI-Stacks (ripgrep/fd/bat/eza).
+  #
+  # `enableAutoUpdates` steht per Default auf true und legt einen systemd-
+  # user-Timer `tldr-update` an (weekly, Persistent=true -> holt einen
+  # verpassten Lauf nach dem Boot nach). Deshalb bewusst KEIN
+  # settings.updates.auto_update: das waere ein zweiter, konkurrierender
+  # Update-Pfad, der die Cache-Aktualisierung in einen beliebigen
+  # `tldr`-Aufruf haengt statt in den Timer.
+  #
+  # settings bleibt ungesetzt -> home-manager schreibt gar keine config.toml,
+  # der Cache unter ~/.cache/tealdeer bleibt normal beschreibbar.
+  programs.tealdeer.enable = true;
+
   # pnpm legt global installierte Pakete unter $PNPM_HOME ab. Ohne die Variable
   # verweigert `pnpm add -g` den Dienst ("Unable to find the global bin
   # directory") und will stattdessen `pnpm setup` laufen lassen -- das schreibt
