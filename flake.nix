@@ -43,6 +43,7 @@
           # Eigener, rechtloser Account fuer den OpenClaw-Agent. Bewusst im
           # shared Stack: der Laptop-Host soll dieselbe Policy erben.
           ./modules/agent-user.nix
+          ./modules/ssh-hardening.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
