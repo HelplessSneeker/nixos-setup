@@ -1,59 +1,127 @@
-# Gaming-Stack: Steam + Proton. Shared geschrieben, aktuell nur von
-# hosts/fabricus importiert -- der Laptop entscheidet spaeter selbst.
+# Gaming: Steam/Proton, GameMode, Gamescope, MangoHud.
 #
-# Voraussetzungen, die NICHT hier stehen, weil sie schon woanders leben:
-#   hardware.graphics.enable32Bit        (hosts/fabricus)      -> 32-bit Vulkan/GL fuer Proton
-#   services.pipewire.alsa.support32Bit  (modules/system-base) -> Ton in aelteren Titeln
-# Fehlt eins davon auf einem neuen Host, startet Steam zwar, aber Proton-Titel
-# nicht (bzw. stumm). Vor dem Import auf einem anderen Host also pruefen.
+# NICHT im shared mkHost-Stack -- Gaming ist reine Stand-PC-Sache und wird
+# ausschliesslich von hosts/fabricus/configuration.nix importiert. Ein
+# Laptop-Host (fabricus-itinerans) bekommt davon bewusst nichts.
+#
+# Das Modul zieht seinen home-manager-Teil (MangoHud-Overlay) am Ende der
+# Datei selbst nach. Damit ist der Host-Import der EINZIGE Schalter -- es gibt
+# keinen zweiten, den man vergessen kann. Setzt voraus, dass home-manager im
+# Host-Stack geladen ist (macht mkHost in flake.nix fuer jeden Host).
+#
+# VORAUSSETZUNG: nixpkgs.config.allowUnfree = true im Host -- Steam und
+# proton-ge-bin sind unfree. Steht auf fabricus schon in der Host-Config;
+# fuer einen NEUEN Host nicht vergessen, sonst bricht die Eval.
+#
+# Was programs.steam AUTOMATISCH mitbringt (also hier bewusst NICHT nochmal):
+#   - hardware.graphics.enable32Bit = true   (32-Bit-Vulkan/GL fuer Proton)
+#   - hardware.steam-hardware.enable = true  (udev-Regeln: Controller, Index, Deck)
+#   - services.pipewire.alsa.support32Bit    (32-Bit-Audio)
+# Beides ist auf fabricus schon anderweitig gesetzt -- gleicher Wert, also
+# kein Options-Konflikt.
 { config, pkgs, lib, ... }:
 {
   programs.steam = {
     enable = true;
 
-    # Proton-GE als zusaetzliches Compat-Tool. Taucht in Steam unter
-    # Eigenschaften -> Kompatibilitaet als waehlbare Proton-Version auf.
-    # Deckt Titel ab, bei denen Valves Proton an Codecs/Anti-Cheat scheitert.
-    # Weitere Versionen kann man spaeter mit protonup-qt nachziehen (siehe unten),
-    # die landen dann in ~/.steam -- diese hier ist die deklarative Grundlage.
+    # Proton-GE deklarativ als Compat-Tool. Erscheint in Steam unter
+    # Spiel -> Eigenschaften -> Kompatibilitaet als "GE-Proton...".
+    # Damit ist protonup-qt ueberfluessig: Updates kommen ueber
+    # `nix flake update` + rebuild, nicht ueber einen GUI-Downloader.
     extraCompatPackages = [ pkgs.proton-ge-bin ];
 
-    # Eigene gamescope-Session: Steam Big Picture laeuft in einem eigenen
-    # Micro-Compositor statt in Hyprland. Damit sind Aufloesungswechsel,
-    # Skalierung und Tearing das Problem von gamescope, nicht des Desktops --
-    # unter Wayland/NVIDIA der ruhigere Weg fuer Fullscreen.
-    #
-    # ACHTUNG: greetd startet in hosts/fabricus tuigreet mit fixem
-    # `--cmd start-hyprland` und zeigt deshalb GAR KEINE Session-Auswahl.
-    # Diese Session ist also erst sichtbar, wenn tuigreet auf `--sessions`
-    # umgestellt wird. Ohne das bleibt sie ungenutzt -- Steam laeuft dann
-    # einfach als normales Fenster unter Hyprland (voellig brauchbar).
-    gamescopeSession.enable = true;
+    # Steam laeuft in einer FHS-Sandbox: Tools, die per Launch-Option davor
+    # gehaengt werden (`mangohud %command%`, `gamemoderun %command%`), muessen
+    # INNERHALB dieser Env liegen. environment.systemPackages reicht dafuer
+    # nicht -- die FHS-Env baut ihr /usr/bin nur aus diesen Paketen.
+    extraPackages = with pkgs; [
+      mangohud
+      gamemode
+    ];
+
+    # Steam Input unter Wayland. Der Steam-Client verteilt Controller-Events
+    # ueber X11-Input; unter Hyprland ohne XWayland-Client kommen sie nicht an.
+    # extest uebersetzt sie auf uinput. Kostet nichts, wenn kein Controller da ist.
+    extest.enable = true;
+
+    # winetricks-Wrapper fuer Proton-Prefixes (fehlende DLLs, dxvk-Tweaks,
+    # .NET-Installer). Braucht man frueher oder spaeter bei jedem zickigen Titel.
+    protontricks.enable = true;
+
+    # --- BEWUSST AUS: oeffnet Ports in der NixOS-Firewall ---
+    # Erst aktivieren, wenn du die Funktion wirklich nutzt:
+    # remotePlay.openFirewall = true;                # Remote Play, TCP/UDP 27031-27036
+    # localNetworkGameTransfers.openFirewall = true; # Spiele-Kopie aus dem LAN, TCP 27040
+    # dedicatedServer.openFirewall = true;           # SRCDS, TCP/UDP 27015
+
+    # --- BEWUSST AUS: Big-Picture-Session direkt aus greetd ---
+    # gamescopeSession + proprietaerer NVIDIA-Treiber + Wayland ist die
+    # fragilste Kombination im ganzen Stack (und setzt zusaetzlich bwrap
+    # setuid, wenn capSysNice an ist). Erst testen, wenn der normale
+    # Desktop-Betrieb stabil laeuft.
+    # gamescopeSession.enable = true;
   };
 
-  # udev-Regeln fuer Steam-Controller/-Deck-Peripherie. bfn hat aktuell keinen
-  # Controller (07.08.2026), das Modul kostet aber nichts ausser ein paar
-  # udev-Regeln -- und erspart die Sucherei, falls doch mal einer dazukommt.
-  hardware.steam-hardware.enable = true;
+  # GameMode: setzt waehrend des Spiels CPU-Governor auf performance und
+  # renict den Spielprozess. Aktiv wird es NUR, wenn ein Spiel es anfordert
+  # -- entweder nativ (viele Titel koennen das) oder per Launch-Option
+  # `gamemoderun %command%`. Im Leerlauf kostet es nichts.
+  programs.gamemode = {
+    enable = true;
+    settings = {
+      general.renice = 10;
+      # GPU-Optimierungen (apply_gpu_optimisations) bleiben bewusst aus:
+      # das ist Uebertakten per Config, upstream warnt explizit vor
+      # Hardware-Schaeden. Wer das will, macht es bewusst und einzeln.
+    };
+  };
 
-  # gamemode: hebt beim Spielstart CPU-Governor auf performance, priorisiert
-  # den Prozess und drosselt Hintergrund-Kram. Greift nur, wenn das Spiel
-  # ueber den Wrapper startet -- Steam-Launch-Option:  gamemoderun %command%
-  programs.gamemode.enable = true;
+  # Gamescope: Micro-Compositor fuer Spiele (feste Aufloesung, FSR-Upscaling,
+  # eigenes Fenster). Nuetzlich fuer Titel, die mit 4k/Wayland-Skalierung oder
+  # Alt-Tab zicken -- Aufruf per Launch-Option, z.B.
+  #   gamescope -W 2560 -H 1440 -f -- %command%
+  programs.gamescope = {
+    enable = true;
+    # capSysNice bleibt aus: das setcap-Wrapping ist der haeufigste Grund,
+    # warum gamescope auf NVIDIA gar nicht erst startet. Nur einschalten,
+    # wenn Ruckler durch Scheduling nachweisbar sind.
+    # capSysNice = true;
+  };
 
+  # Diagnose-Werkzeug: `vulkaninfo --summary` zeigt, welchen Treiber/GPU
+  # Vulkan tatsaechlich sieht -- erste Frage bei "Spiel startet nicht".
   environment.systemPackages = with pkgs; [
-    # Auch einzeln nutzbar als Launch-Option, z.B. fuer einen Titel, der
-    # unter Hyprland Skalierungsprobleme macht:
-    #   gamescope -f -w 1920 -h 1080 -- %command%
-    gamescope
-
-    # FPS/Frametime/Temperatur-Overlay. Launch-Option:  mangohud %command%
-    # Wichtig zur Beurteilung, ob die RTX 2060 (6 GB VRAM) limitiert oder
-    # ob es an Proton liegt -- Frametime-Graph statt Bauchgefuehl.
-    mangohud
-
-    # GUI zum Nachziehen weiterer Proton-GE-/Wine-Builds ins User-Verzeichnis.
-    # Ergaenzt das deklarative proton-ge-bin oben, ersetzt es nicht.
-    protonup-qt
+    vulkan-tools
   ];
+
+  # --- 32-Bit-Overlay (optional) ---
+  # MangoHud ist ein Vulkan-Implicit-Layer. Bei 32-Bit-Titeln (aeltere Spiele,
+  # einige Source-Engine-Games) braucht es die 32-Bit-Variante der Layer,
+  # sonst bleibt das Overlay dort schwarz/leer. Erst aktivieren, wenn das
+  # konkret auftritt -- der i686-Build kann lokal kompilieren muessen.
+  # hardware.graphics.extraPackages32 = with pkgs.pkgsi686Linux; [ mangohud ];
+
+  # --- Controller ueber Bluetooth (optional) ---
+  # Auf fabricus ist bluetooth.service aktuell inaktiv. Fuer einen kabellosen
+  # Xbox-Controller braucht es beides:
+  # hardware.bluetooth.enable = true;
+  # hardware.xpadneo.enable = true;   # Kernel-Modul mit korrektem Rumble/Mapping
+  # Xbox-USB-Dongle statt Bluetooth waere stattdessen: hardware.xone.enable = true;
+  # Per Kabel funktioniert jeder Xbox-/PS-Controller ohne Zusatz (xpad ist im Kernel).
+
+  # --- Hinweise, die keine Option sind ---
+  # * vm.max_map_count: auf Kernel 6.12 bereits 1048576 (geprueft auf fabricus
+  #   am 06.08.2026). Der frueher uebliche sysctl-Workaround fuer Star Citizen &
+  #   Co. ist damit obsolet.
+  # * DLSS/Raytracing unter Proton sind PRO SPIEL Launch-Optionen, nichts
+  #   Systemweites: PROTON_ENABLE_NVAPI=1 (DLSS), VKD3D_CONFIG=dxr (DX12-RT).
+  # * Steam-Bibliothek auf der Windows-NTFS-Platte (nvme0n1p2) ist moeglich,
+  #   aber Proton mag NTFS nicht (Case-Sensitivity, fehlende Symlinks, kaputte
+  #   Permissions). Empfehlung: Bibliothek auf ext4 unter /home.
+
+  # User-Teil (MangoHud-Overlay). Bewusst hier statt in home/bfn.nix:
+  # home/bfn.nix ist shared, das Overlay soll aber nur auf dem Gaming-Host
+  # existieren. home-manager.users.bfn wird in flake.nix schon definiert --
+  # diese zweite Definition wird dazugemerged, nicht ueberschrieben.
+  home-manager.users.bfn.imports = [ ../home/gaming.nix ];
 }

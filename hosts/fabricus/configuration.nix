@@ -1,9 +1,10 @@
 { config, pkgs, lib, inputs, pkgsUnstable, ... }:
 {
-  # gaming.nix steht bewusst HIER und nicht im shared Stack in flake.nix:
-  # der Laptop-Host (fabricus-itinerans) soll Steam nicht automatisch erben.
   imports = [
     ./hardware-configuration.nix
+    # Gaming (Steam/Proton, GameMode, Gamescope, MangoHud). Nur hier, nicht im
+    # shared Stack in flake.nix -- der Laptop-Host soll das nicht bekommen.
+    # Der home-manager-Teil haengt am Modul selbst und kommt automatisch mit.
     ../../modules/gaming.nix
   ];
 
