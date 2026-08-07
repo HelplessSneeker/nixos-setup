@@ -1,6 +1,11 @@
 { config, pkgs, lib, inputs, pkgsUnstable, ... }:
 {
-  imports = [ ./hardware-configuration.nix ];
+  # gaming.nix steht bewusst HIER und nicht im shared Stack in flake.nix:
+  # der Laptop-Host (fabricus-itinerans) soll Steam nicht automatisch erben.
+  imports = [
+    ./hardware-configuration.nix
+    ../../modules/gaming.nix
+  ];
 
   # Boot: eigener systemd-boot auf unserer EFI (sda3). Windows-EFI (sda1) bleibt unberührt.
   boot.loader.systemd-boot.enable = true;
