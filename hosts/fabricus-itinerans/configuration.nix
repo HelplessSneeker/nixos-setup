@@ -11,6 +11,18 @@
   imports = [
     ./hardware-configuration.nix
     inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t480
+
+    # Citrix Workspace -- ABSICHTLICH AUS bis nach dem ersten Boot.
+    #
+    # Das Modul zieht seinen Tarball ueber `requireFile`, die Datei muss also im
+    # Store DIESER Maschine liegen. Waehrend `nixos-install` ist der Ziel-Store
+    # /mnt und dort liegt sie garantiert nicht -- mit aktivem Import scheitert
+    # die Installation, nicht erst irgendein spaeterer Rebuild.
+    #
+    # Phase 2, nach dem ersten Boot: Tarball laden + `nix-prefetch-url` (die
+    # Schritte stehen oben in modules/citrix.nix), dann diese Zeile
+    # einkommentieren und `nixos-rebuild switch`.
+    # ../../modules/citrix.nix
   ];
 
   # --- Boot ------------------------------------------------------------------
