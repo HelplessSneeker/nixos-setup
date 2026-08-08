@@ -77,6 +77,17 @@
     description = "Benjamin Nößler";
     extraGroups = [ "wheel" "networkmanager" "docker" "video" ];
     shell = pkgs.fish;
+
+    # bfns eigener SSH-Zugang. Seit der Haertung vom 07.08.2026 liest sshd nur
+    # noch /etc/ssh/authorized_keys.d/%u (modules/ssh-hardening.nix) und
+    # Passwort-Auth ist aus -- ein von Hand nach ~/.ssh/authorized_keys gelegter
+    # Key zieht also NICHT mehr. Deklarativ ist ab jetzt der einzige Weg rein,
+    # und ohne diesen Eintrag kaeme bfn vom Laptop gar nicht auf den Desktop
+    # (dort stand bislang ausschliesslich der Agent-Key).
+    # Ein PUBLIC key gehoert nicht zu den Secrets und darf im Repo stehen.
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFdHqQP/7i5iIK4hBcLnjzvvQKFiD7xHH9+o7x95i58a openclaw-lab"
+    ];
   };
   programs.zsh.enable = true;
 

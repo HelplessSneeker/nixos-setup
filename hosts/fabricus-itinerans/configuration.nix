@@ -122,6 +122,12 @@
     description = "Benjamin Nößler";
     extraGroups = [ "wheel" "networkmanager" "docker" "video" ];
     shell = pkgs.fish;
+
+    # Siehe hosts/fabricus/configuration.nix -- derselbe Key, damit der Weg
+    # Laptop <-> Desktop in beide Richtungen offen ist.
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFdHqQP/7i5iIK4hBcLnjzvvQKFiD7xHH9+o7x95i58a openclaw-lab"
+    ];
   };
   programs.zsh.enable = true;
 
