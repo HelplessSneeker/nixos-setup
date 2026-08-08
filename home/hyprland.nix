@@ -202,17 +202,12 @@
 
     # System
     bind = $mainMod SHIFT, Escape, exec, hyprlock
-    # Hilfe auf der ss-Taste. Versuch 1 (`$mainMod SHIFT, question`) war im Test
-    # am 08.08.2026 tot: auf de-Layout ist ? = Shift+ss, und bei gesetztem
-    # SHIFT-Modmask matcht Hyprland den Keysym der BASIS-Ebene -- der heisst
-    # `ssharp`, nicht `question`. Der Bind existierte also, feuerte aber nie.
-    #
-    # Absichtlich zwei Binds: der erste ist der gewollte (SUPER+ss), der zweite
-    # faengt den Fall ab, dass Hyprland hier doch die Shift-Ebene will. Sie
-    # stoeren sich nicht. Nach dem Test steht fest, welcher greift -- den toten
-    # dann rauswerfen.
+    # Hilfe auf SUPER+ss. Voraus gingen zwei tote Varianten: `SHIFT, question`
+    # und `SHIFT, ssharp`. Gelernt (verifiziert im Test 09.08.2026): auf
+    # de-Layout ist ? = Shift+ss, aber Hyprland matcht hier den Keysym der
+    # BASIS-Ebene -- also `ssharp` OHNE SHIFT im Modifier-Feld. Ein Bind auf den
+    # geshifteten Keysym feuert nie, und zwar kommentarlos.
     bind = $mainMod, ssharp, exec, hypr-cheatsheet
-    bind = $mainMod SHIFT, ssharp, exec, hypr-cheatsheet
     bind = $mainMod, C, exec, grimblast --notify copysave area
     bind = $mainMod CTRL, C, exec, grimblast --notify copysave screen
     bind = $mainMod SHIFT, C, exec, hyprpicker -a
