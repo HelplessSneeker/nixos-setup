@@ -175,9 +175,15 @@ in
     bind = $mainMod, F, fullscreen
     bind = $mainMod, V, togglefloating
     # togglesplit ist seit 0.56 kein eigener Dispatcher mehr, sondern eine
-    # Layout-Message. P = pseudotile, ersetzt die weggefallene dwindle-Option.
+    # Layout-Message. SHIFT+P = pseudotile, ersetzt die weggefallene dwindle-Option.
+    #
+    # Pseudotile lag bis 08.08.2026 auf SUPER+P und kollidierte dort mit dem
+    # 1Password-Bind weiter unten. Hyprland nimmt bei doppelt belegter Taste den
+    # ERSTEN Treffer -- der 1Password-Bind war damit wirkungslos, ohne dass es
+    # eine Fehlermeldung gegeben haette. Pseudotile ist der deutlich seltenere
+    # Griff und zieht deshalb um; P bleibt bei Password.
     bind = $mainMod, T, layoutmsg, togglesplit
-    bind = $mainMod, P, pseudo
+    bind = $mainMod SHIFT, P, pseudo
 
     # Fokus (vim HJKL)
     bind = $mainMod, H, movefocus, l
@@ -245,7 +251,9 @@ in
     bindm = $mainMod, mouse:273, resizewindow
 
     # Media & Helligkeit
-    bind = SUPER ALT SPACE, W, exec, noctalia msg wallpaper-next	
+    # SPACE stand hier im Modifier-Feld, ist aber kein Modifier -- der Bind war
+    # damit ungueltig und hat nie ausgeloest. 08.08.2026 auf SUPER ALT korrigiert.
+    bind = SUPER ALT, W, exec, noctalia msg wallpaper-next
     bindel = ,XF86AudioRaiseVolume,  exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+
     bindel = ,XF86AudioLowerVolume,  exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
     bindel = ,XF86AudioMute,         exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
