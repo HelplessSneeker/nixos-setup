@@ -83,6 +83,13 @@
       "x-scheme-handler/mid"     = "thunderbird.desktop";
 
       "x-scheme-handler/discord" = "vesktop.desktop";
+
+      # Citrix: die aus dem Firmen-Portal geladene .ica-Datei an den
+      # ICA-Adapter uebergeben, statt sie nur im Download-Ordner abzulegen.
+      # wfica.desktop kommt aus dem Paket (Exec zeigt dort auf bin/adapter, der
+      # startet wfica). Greift nur auf Hosts, die modules/citrix.nix
+      # importieren -- ein Eintrag ohne passende .desktop-Datei ist folgenlos.
+      "application/x-ica" = "wfica.desktop";
     };
   };
 

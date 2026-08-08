@@ -6,6 +6,10 @@
     # shared Stack in flake.nix -- der Laptop-Host soll das nicht bekommen.
     # Der home-manager-Teil haengt am Modul selbst und kommt automatisch mit.
     ../../modules/gaming.nix
+    # Citrix Workspace. Ebenfalls per-Host statt shared -- das Modul erklaert
+    # warum (requireFile: Tarball muss vorher von Hand in den Store).
+    # OHNE den Prefetch-Schritt scheitert jeder Rebuild dieses Hosts.
+    ../../modules/citrix.nix
   ];
 
   # Boot: eigener systemd-boot auf unserer EFI (sda3). Windows-EFI (sda1) bleibt unberührt.
