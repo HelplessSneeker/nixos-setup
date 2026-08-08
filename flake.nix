@@ -15,6 +15,15 @@
     # liefert nur godot ~4.4 / claude-code 1.0.85. Bewusst KEIN follows -> eigene,
     # aktuelle nixpkgs-Instanz.
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    # UNVERIFIZIERT (08.08.2026) -- Hardware-Quirks fuer den ThinkPad T480.
+    # Bringt: services.throttled (gegen Lenovos Power-Limit-Drosselung),
+    # TrackPoint + emulateWheel, fstrim, Kaby-Lake-Defaults.
+    # RISIKO: das Modul setzt hardware.intelgpu.vaapiDriver -- ob 25.05 diese
+    # Option schon kennt, ist NICHT geprueft. Der Eval-Test dazu ist
+    # abgebrochen, weil fabricus mittendrin ausgefallen ist.
+    # Solange der Laptop-Output unten auskommentiert bleibt, ist das hier inert.
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs:
@@ -69,7 +78,10 @@
       # -- die fish-Abbrevs nrs/nrb funktionieren so auf jeder Maschine gleich.
       nixosConfigurations = {
         fabricus = mkHost ./hosts/fabricus/configuration.nix;
-        # fabricus-itinerans = mkHost ./hosts/fabricus-itinerans/configuration.nix;   # wenn cachus-rex dran ist
+        # Bleibt aus, bis hosts/fabricus-itinerans/hardware-configuration.nix
+        # existiert (kommt bei der Installation aus nixos-generate-config).
+        # Vorher wuerde jedes `nix flake check` auf diesem Branch scheitern.
+        # fabricus-itinerans = mkHost ./hosts/fabricus-itinerans/configuration.nix;
       };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixpkgs-fmt;

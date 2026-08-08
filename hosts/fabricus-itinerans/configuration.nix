@@ -8,7 +8,10 @@
 # UHD 620 waere Selbstbetrug -- das Modul bleibt desktop-only (siehe den
 # Import-Block in hosts/fabricus/configuration.nix).
 {
-  imports = [ ./hardware-configuration.nix ];
+  imports = [
+    ./hardware-configuration.nix
+    inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t480
+  ];
 
   # --- Boot ------------------------------------------------------------------
   # systemd-boot auf der EFI-Partition, LUKS-Root analog fabricus. Die
