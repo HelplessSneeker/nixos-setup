@@ -2,7 +2,31 @@
 # Catppuccin Mocha, clean & ruhig: dezente Gaps, keine Fenster-Transparenz,
 # kurze/snappy Animationen. Bindings sind ein frischer Aufbau (nicht 1:1 aus den
 # alten dotfiles portiert), aber vim-HJKL + 10 Workspaces bleiben.
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, osConfig, ... }:
+
+# Der Monitor-Block ist das einzige host-spezifische Stueck hier drin, deshalb
+# dieselbe isLaptop-Weiche wie in home/noctalia.nix (osConfig = die NixOS-Config
+# des Hosts, den home-manager gerade baut).
+let
+  isLaptop = osConfig.networking.hostName == "fabricus-itinerans";
+
+  monitorBlock =
+    if isLaptop then ''
+      # cachus-rex-Hardware, internes Panel. `preferred` statt fester Werte:
+      # Mode und Name (eDP-1) sind erst nach dem ersten Boot verifizierbar.
+      # scale 1, KEIN 1.25 wie am Desktop -- die 1.25 dort teilen 4k sauber auf,
+      # auf einem 1080p-Panel waere derselbe Faktor fractional und damit unscharf.
+      monitor = eDP-1, preferred, 0x0, 1
+      # Externer Schirm (Vortrag/Dock): rechts daneben, native Skalierung.
+      monitor = , preferred, auto, 1
+    '' else ''
+      # 2x BenQ EL2870U (28" 4k). scale 1.25 -> logisch 3072x1728 pro Schirm
+      # (teilt 3840/2160 sauber, kein Fractional-Blur). HDMI links, DP rechts daneben.
+      monitor = HDMI-A-1, 3840x2160@60, 0x0, 1.25
+      monitor = DP-1,     3840x2160@60, 3072x0, 1.25
+      monitor = ,preferred,auto,1.25
+    '';
+in
 {
   home.packages = with pkgs; [
     fuzzel     # App-Launcher (SUPER+Space)
@@ -37,11 +61,7 @@
     # Catppuccin Mocha - clean & ruhig
 
     ### Monitor ###
-    # 2x BenQ EL2870U (28" 4k). scale 1.25 -> logisch 3072x1728 pro Schirm
-    # (teilt 3840/2160 sauber, kein Fractional-Blur). HDMI links, DP rechts daneben.
-    monitor = HDMI-A-1, 3840x2160@60, 0x0, 1.25
-    monitor = DP-1,     3840x2160@60, 3072x0, 1.25
-    monitor = ,preferred,auto,1.25
+    ${monitorBlock}
 
     ### Programme ###
     $terminal    = kitty
