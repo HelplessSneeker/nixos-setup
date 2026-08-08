@@ -140,11 +140,28 @@
   # System-Editor fuer root/TTY (neovim ist home-only fuer bfn).
   environment.systemPackages = with pkgs; [ vim ];
 
-  # Swap ausschliesslich ueber zram, exakt wie fabricus -> KEIN Hibernate.
-  # Suspend-to-RAM funktioniert normal. Wer Suspend-to-Disk will, braucht eine
-  # echte Swap-Partition >= RAM (innerhalb des LUKS-Containers) plus
-  # boot.resumeDevice -- bewusst nicht gemacht, siehe Runbook.
+  # --- Swap: zwei Ebenen, zwei Aufgaben ---------------------------------------
+  # Anders als fabricus (nur zram, kein Hibernate), weil das hier ein Laptop ist.
+  #
+  # 1. zram  -- komprimierter Swap IM RAM. Faengt den Alltags-Ueberlauf ab und
+  #    ist dabei um Groessenordnungen schneller als die NVMe. Prioritaet 5
+  #    (NixOS-Default) und damit hoeher als die der Platten-Swap -> wird zuerst
+  #    benutzt. Fuer Hibernate prinzipiell unbrauchbar: liegt selbst im RAM.
+  # 2. lv-swap auf der Platte -- 20 GB, also >= den 16 GB RAM. Existiert
+  #    ausschliesslich als Ablage fuer das Hibernate-Abbild und laeuft im
+  #    Alltag wegen der niedrigeren Prioritaet praktisch leer mit.
+  #
+  # Der swapDevices-Eintrag selbst kommt aus hardware-configuration.nix
+  # (nixos-generate-config findet die aktive Swap beim Installieren).
   zramSwap.enable = true;
+
+  # Ohne resumeDevice weiss der Kernel beim Booten nicht, WO das Abbild liegt --
+  # er bootet dann einfach frisch durch und die Sitzung ist still weg. Bewusst
+  # der LVM-Pfad und keine UUID: VG und LV benennen wir beim Partitionieren
+  # selbst, der Pfad steht damit schon vor der Installation fest. Eine UUID
+  # gaebe es erst nach dem mkswap.
+  # Beides liegt im LUKS-Container -> das Hibernate-Abbild ist mitverschluesselt.
+  boot.resumeDevice = "/dev/vg0/swap";
 
   system.stateVersion = "25.05";
 }
