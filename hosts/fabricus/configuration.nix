@@ -56,6 +56,29 @@
     GBM_BACKEND = "nvidia-drm";
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
     WLR_NO_HARDWARE_CURSORS = "1";
+
+    # --- Screen-Sharing-Versuch 1 von 3 (08.08.2026) ---
+    # Symptom: Discord-Screenshare bricht beim Bestaetigen der Quelle ab. Der
+    # Portal-Log zeigt, dass es NICHT am Client liegt -- die Kette laeuft bis zum
+    # Stream-Start und stirbt dann im Buffer-Handshake:
+    #   [pw] Building modifiers for dma
+    #   [screencopy] Sharing initialized
+    #   [screencopy/pipewire] Out of buffers
+    #   [ERR]  [pw] DMA-BUF fixation failed after 2 attempts, falling back to SHM
+    #   [WARN] [pipewire] Asked for a wl_shm buffer which is legacy.
+    #   [screencopy] Stream destroyed
+    # Die DMA-BUF-Allokation scheitert, der SHM-Fallback wird abgelehnt.
+    # Passend dazu: xdg-desktop-portal-hyprland ist am 06.08.2026 zweimal von
+    # selbst mit SIGSEGV gestorben (coredumpctl, Versionen 1.3.9 und 1.4.1).
+    #
+    # AQ_NO_MODIFIERS laesst Aquamarine (Hyprlands Backend) Buffer OHNE Modifier
+    # aushandeln -- genau der Schritt, der oben als "fixation" scheitert.
+    # Rein additiv und folgenlos, falls es nicht hilft: dann Versuch 2
+    # (hardware.nvidia.open = true, Turing wird unterstuetzt) und erst danach
+    # Versuch 3 (Treiber von 570.195.03 auf die 580er-Serie hochziehen).
+    # Reihenfolge einhalten -- Versuch 3 bringt auf einer Maschine mit
+    # ungeklaerten MCE-Abstuerzen zusaetzliche Variablen ins Spiel.
+    AQ_NO_MODIFIERS = "1";
   };
 
   # Login-Manager

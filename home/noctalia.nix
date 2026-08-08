@@ -36,6 +36,14 @@ in
     settings = {
       shell.font_family = "JetBrainsMono Nerd Font";
 
+      # Clipboard-History. Lief bisher nebenher (das Bar-Widget war da), ist seit
+      # 08.08.2026 aber die EINZIGE -- cliphist ist raus, siehe home/hyprland.nix.
+      # Deshalb hier explizit statt auf den Default zu vertrauen.
+      # `clipboard_history_max_entries` bewusst NICHT gesetzt: der Default ist
+      # unbekannt und funktioniert, ein geratener Wert waere eine Verhaltens-
+      # aenderung ohne Anlass. Zum Nachjustieren: SUPER+SHIFT+E -> Einstellungen.
+      shell.clipboard_enabled = true;
+
       theme = {
         mode = "dark";
         source = "wallpaper";

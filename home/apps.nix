@@ -8,7 +8,8 @@
     obsidian
     vesktop        # Discord-Client, nativ Wayland (Screenshare + Themes)
     wl-clipboard   # Clipboard-Bridge fuer nvim/Terminal unter Wayland
-    cliphist       # Clipboard-History (SUPER+SHIFT+V)
+                   # (bleibt! nvim/Terminal brauchen wl-copy/wl-paste direkt --
+                   #  unabhaengig davon, wer die History fuehrt)
     hyprpicker     # Farb-Picker (SUPER+C)
   ] ++ [
     # --- Pakete aus nixpkgs-unstable ---
@@ -60,6 +61,27 @@
     vimAlias = true;
   };
 
+  # --- Dateimanager-Eintrag fuer yazi ---
+  # yazi ist ein TUI und bringt selbst keine .desktop-Datei mit. Ohne die kann
+  # xdg-open Verzeichnisse nicht zuordnen -- "Ordner oeffnen" aus Firefox &Co
+  # lief deshalb bisher ins Leere. Das Paket selbst kommt aus home/theme.nix
+  # (programs.yazi.enable).
+  #
+  # terminal = false ist Absicht: kitty IST hier schon das Terminal. Mit true
+  # wuerde der Launcher noch ein zweites drumherum starten.
+  # %f statt %u ist ebenfalls Absicht: yazi will einen Pfad, keine file://-URI --
+  # %f laesst den Aufrufer die URI vorher aufloesen.
+  xdg.desktopEntries.yazi-filemanager = {
+    name = "Dateien (yazi)";
+    genericName = "Dateimanager";
+    comment = "Verzeichnis in yazi oeffnen";
+    exec = "kitty -e yazi %f";
+    icon = "system-file-manager";
+    terminal = false;
+    categories = [ "System" "FileTools" "FileManager" ];
+    mimeType = [ "inode/directory" ];
+  };
+
   # --- Default-Anwendungen (xdg-open / Link-Klicks aus anderen Apps) ---
   # Muss deklarativ sein, seit Brave raus ist: die alte, per GUI gepflegte
   # ~/.config/mimeapps.list zeigte http/https noch auf brave-browser.desktop --
@@ -83,6 +105,14 @@
       "x-scheme-handler/mid"     = "thunderbird.desktop";
 
       "x-scheme-handler/discord" = "vesktop.desktop";
+
+      # Verzeichnisse in yazi (Eintrag oben). Deckt den xdg-open-Weg ab, also
+      # Klicks auf Verzeichnis-Links. Firefox' "Enthaltenden Ordner oeffnen"
+      # nach einem Download geht NICHT hierueber, sondern ueber die DBus-
+      # Schnittstelle org.freedesktop.FileManager1 -- die liefern nur echte
+      # GUI-Dateimanager mit, yazi nicht. Dafuer braucht es einen eigenen
+      # kleinen DBus-Dienst; steht noch aus.
+      "inode/directory" = "yazi-filemanager.desktop";
 
       # Citrix: die aus dem Firmen-Portal geladene .ica-Datei an den
       # ICA-Adapter uebergeben, statt sie nur im Download-Ordner abzulegen.

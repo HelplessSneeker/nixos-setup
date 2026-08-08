@@ -10,7 +10,13 @@
 
     # Keybind-Spickzettel: liest die LIVE aktiven Hyprland-Binds (hyprctl) und
     # zeigt sie durchsuchbar in fuzzel. Kein Rot-Risiko, weil aus der laufenden
-    # Session generiert statt aus einer Doku-Kopie. Auf SUPER+/ gelegt.
+    # Session generiert statt aus einer Doku-Kopie. Auf SUPER+? gelegt.
+    #
+    # OFFEN: das ist der letzte Nutzer von fuzzel -- Launcher und Clipboard sind
+    # seit 08.08.2026 noctalia-Panels. noctalia hat KEINEN dmenu-Modus (per
+    # `noctalia msg --help` geprueft), die Optik bleibt hier also vorerst fremd.
+    # Wege: Community-Plugin suchen, sonst ein eigenes fuzzel-Template fuer
+    # noctalias Theming (fuzzel fehlt unter den 20 Builtin-Templates).
     (writeShellScriptBin "hypr-cheatsheet" ''
       hyprctl -j binds \
         | ${jq}/bin/jq -r '
@@ -45,7 +51,10 @@
 
     ### Programme ###
     $terminal    = kitty
-    $menu        = fuzzel
+    # Suche/Launcher ist ab 08.08.2026 noctalias Panel statt fuzzel -- ein Stack
+    # fuer alles, was aufklappt. fuzzel bleibt vorerst als Paket installiert,
+    # weil hypr-cheatsheet es noch als dmenu-Engine braucht (siehe oben).
+    $menu        = noctalia msg panel-toggle launcher
     $browser     = firefox
     $mail        = thunderbird
     $fileManager = kitty -e yazi
@@ -56,7 +65,11 @@
     #exec-once = mako
     exec-once = noctalia
     exec-once = 1password --silent
-    exec-once = wl-paste --watch cliphist store   # Clipboard-History mitschreiben
+    # cliphist-Mitschnitt hier entfernt (08.08.2026): noctalia bringt eine
+    # EIGENE Clipboard-History mit und nutzt cliphist nachweislich nicht (im
+    # noctalia-5.0.0-Binary kommt weder `cliphist` noch `wl-paste` vor). Beides
+    # parallel hiess: zwei unabhaengige Historien mit unterschiedlichem Inhalt,
+    # je nachdem ob man die Bar oder SUPER+SHIFT+V benutzt hat.
 
     ### Look ###
     general {
@@ -171,7 +184,10 @@
     bind = $mainMod, K, movefocus, u
     bind = $mainMod, L, movefocus, r
 
-    # Fenster verschieben (SHIFT+H frei fuer Help-Menue -> links per Maus-Drag)
+    # Fenster verschieben -- jetzt symmetrisch zum Fokus-Block darueber.
+    # SHIFT+H war bis 08.08.2026 fuer das Help-Menue reserviert, nach links
+    # verschieben ging deshalb nur per Maus-Drag. Help sitzt jetzt auf SUPER+?.
+    bind = $mainMod SHIFT, H, movewindow, l
     bind = $mainMod SHIFT, J, movewindow, d
     bind = $mainMod SHIFT, K, movewindow, u
     bind = $mainMod SHIFT, L, movewindow, r
@@ -186,12 +202,22 @@
 
     # System
     bind = $mainMod SHIFT, Escape, exec, hyprlock
-    bind = $mainMod SHIFT, H, exec, hypr-cheatsheet
-    bind = $mainMod, Slash, exec, hypr-cheatsheet
+    # Hilfe auf SUPER+? -- auf de-Layout ist das Shift+ss, der Keysym heisst
+    # `question`. Der zweite Bind auf `Slash` ist ersatzlos weg: / liegt auf de
+    # ebenfalls auf einer Shift-Ebene (Shift+7), ein Bind ohne SHIFT trifft den
+    # Keysym dort bestenfalls zufaellig.
+    bind = $mainMod SHIFT, question, exec, hypr-cheatsheet
     bind = $mainMod, C, exec, grimblast --notify copysave area
     bind = $mainMod CTRL, C, exec, grimblast --notify copysave screen
     bind = $mainMod SHIFT, C, exec, hyprpicker -a
-    bind = $mainMod SHIFT, V, exec, cliphist list | fuzzel --dmenu | cliphist decode | wl-copy
+    # Clipboard-History: noctalias Panel statt cliphist+fuzzel (siehe Autostart).
+    # Panel-ID `clipboard` ist eine begruendete Annahme -- so heisst das Widget in
+    # der Bar-Config, und die Hilfe nennt `launcher` und `control-center` als
+    # Beispiel-IDs. Stimmt sie nicht, antwortet noctalia mit
+    # `unknown panel "clipboard"` statt irgendwas kaputtzumachen.
+    bind = $mainMod SHIFT, V, exec, noctalia msg panel-toggle clipboard
+    # noctalia-Einstellungen
+    bind = $mainMod SHIFT, E, exec, noctalia msg settings-toggle
     bind = $mainMod SHIFT, R, exec, hyprctl reload
 
     # Workspaces
