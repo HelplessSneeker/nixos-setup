@@ -162,13 +162,25 @@
     source = ~/.config/hypr/noctalia.conf
 
     ### Keybindings ###
+    #
+    # Jeder Bind traegt einen Klartext-Kommentar am Zeilenende. Das ist kein
+    # Schmuck: das keybind-cheatsheet-Plugin liest genau dieses Muster --
+    # `# "Text"` am Zeilenende, Zeile MUSS auf das Anfuehrungszeichen enden
+    # (service.luau, extractTrailingDescription). Ohne den Kommentar landet der
+    # Bind im Panel unter "without description" und zeigt nur den rohen
+    # Dispatcher, also z.B. "Launch $menu" statt "Anwendungen suchen".
+    #
+    # NICHT `bindd` verwenden, obwohl Hyprland das koennte: der Parser des
+    # Plugins splittet Bind-Zeilen auf 4 Felder, `bindd` hat 5 -- die
+    # Beschreibung landet dann im Dispatcher-Feld und die Anzeige ist kaputt.
+    #
     # Fenster & Session
-    bind = $mainMod, Return, exec, $terminal
-    bind = $mainMod, Space, exec, $menu
-    bind = $mainMod, W, killactive
-    bind = $mainMod SHIFT, Q, exit
-    bind = $mainMod, F, fullscreen
-    bind = $mainMod, V, togglefloating
+    bind = $mainMod, Return, exec, $terminal  # "Terminal öffnen"
+    bind = $mainMod, Space, exec, $menu  # "Anwendungen suchen und starten"
+    bind = $mainMod, W, killactive  # "Aktives Fenster schließen"
+    bind = $mainMod SHIFT, Q, exit  # "Hyprland beenden (abmelden)"
+    bind = $mainMod, F, fullscreen  # "Vollbild an/aus"
+    bind = $mainMod, V, togglefloating  # "Fenster schweben lassen / einrasten"
     # togglesplit ist seit 0.56 kein eigener Dispatcher mehr, sondern eine
     # Layout-Message. SHIFT+P = pseudotile, ersetzt die weggefallene dwindle-Option.
     #
@@ -177,33 +189,33 @@
     # ERSTEN Treffer -- der 1Password-Bind war damit wirkungslos, ohne dass es
     # eine Fehlermeldung gegeben haette. Pseudotile ist der deutlich seltenere
     # Griff und zieht deshalb um; P bleibt bei Password.
-    bind = $mainMod, T, layoutmsg, togglesplit
-    bind = $mainMod SHIFT, P, pseudo
+    bind = $mainMod, T, layoutmsg, togglesplit  # "Teilung drehen: nebeneinander <-> übereinander"
+    bind = $mainMod SHIFT, P, pseudo  # "Pseudo-Kachelung an/aus"
 
     # Fokus (vim HJKL)
-    bind = $mainMod, H, movefocus, l
-    bind = $mainMod, J, movefocus, d
-    bind = $mainMod, K, movefocus, u
-    bind = $mainMod, L, movefocus, r
+    bind = $mainMod, H, movefocus, l  # "Fokus nach links"
+    bind = $mainMod, J, movefocus, d  # "Fokus nach unten"
+    bind = $mainMod, K, movefocus, u  # "Fokus nach oben"
+    bind = $mainMod, L, movefocus, r  # "Fokus nach rechts"
 
     # Fenster verschieben -- jetzt symmetrisch zum Fokus-Block darueber.
     # SHIFT+H war bis 08.08.2026 fuer das Help-Menue reserviert, nach links
     # verschieben ging deshalb nur per Maus-Drag. Help sitzt jetzt auf SUPER+?.
-    bind = $mainMod SHIFT, H, movewindow, l
-    bind = $mainMod SHIFT, J, movewindow, d
-    bind = $mainMod SHIFT, K, movewindow, u
-    bind = $mainMod SHIFT, L, movewindow, r
+    bind = $mainMod SHIFT, H, movewindow, l  # "Fenster nach links verschieben"
+    bind = $mainMod SHIFT, J, movewindow, d  # "Fenster nach unten verschieben"
+    bind = $mainMod SHIFT, K, movewindow, u  # "Fenster nach oben verschieben"
+    bind = $mainMod SHIFT, L, movewindow, r  # "Fenster nach rechts verschieben"
 
     # Apps
-    bind = $mainMod, B, exec, $browser
-    bind = $mainMod, M, exec, $mail
-    bind = $mainMod, E, exec, $fileManager
-    bind = $mainMod, O, exec, obsidian
-    bind = $mainMod, P, exec, 1password
-    bind = $mainMod, D, exec, discord-web
+    bind = $mainMod, B, exec, $browser  # "Browser (Firefox)"
+    bind = $mainMod, M, exec, $mail  # "Mail (Thunderbird)"
+    bind = $mainMod, E, exec, $fileManager  # "Dateimanager (yazi im Terminal)"
+    bind = $mainMod, O, exec, obsidian  # "Obsidian (Notizen)"
+    bind = $mainMod, P, exec, 1password  # "1Password"
+    bind = $mainMod, D, exec, discord-web  # "Discord (Website in Firefox)"
 
     # System
-    bind = $mainMod SHIFT, Escape, exec, hyprlock
+    bind = $mainMod SHIFT, Escape, exec, hyprlock  # "Bildschirm sperren"
     # Hilfe auf SUPER+ss. Voraus gingen zwei tote Varianten: `SHIFT, question`
     # und `SHIFT, ssharp`. Gelernt (verifiziert im Test 09.08.2026): auf
     # de-Layout ist ? = Shift+ss, aber Hyprland matcht hier den Keysym der
@@ -212,45 +224,43 @@
     #
     # Die Panel-ID ist voll qualifiziert (<plugin-id>:<panel-id>) -- ein blosses
     # `cheatsheet` quittiert noctalia mit `unknown panel`.
-    bind = $mainMod, ssharp, exec, noctalia msg panel-toggle kenn/keybind-cheatsheet:cheatsheet
-    bind = $mainMod, C, exec, grimblast --notify copysave area
-    bind = $mainMod CTRL, C, exec, grimblast --notify copysave screen
-    bind = $mainMod SHIFT, C, exec, hyprpicker -a
+    bind = $mainMod, ssharp, exec, noctalia msg panel-toggle kenn/keybind-cheatsheet:cheatsheet  # "Diese Tastenkürzel-Übersicht"
+    bind = $mainMod, C, exec, grimblast --notify copysave area  # "Screenshot: Bereich auswählen"
+    bind = $mainMod CTRL, C, exec, grimblast --notify copysave screen  # "Screenshot: ganzer Bildschirm"
+    bind = $mainMod SHIFT, C, exec, hyprpicker -a  # "Farbe vom Bildschirm aufnehmen"
     # Clipboard-History: noctalias Panel statt cliphist+fuzzel (siehe Autostart).
-    # Panel-ID `clipboard` ist eine begruendete Annahme -- so heisst das Widget in
-    # der Bar-Config, und die Hilfe nennt `launcher` und `control-center` als
-    # Beispiel-IDs. Stimmt sie nicht, antwortet noctalia mit
-    # `unknown panel "clipboard"` statt irgendwas kaputtzumachen.
-    bind = $mainMod SHIFT, V, exec, noctalia msg panel-toggle clipboard
-    # noctalia-Einstellungen
-    bind = $mainMod SHIFT, E, exec, noctalia msg settings-toggle
-    bind = $mainMod SHIFT, R, exec, hyprctl reload
+    # Panel-ID `clipboard` ist seit 09.08.2026 bestaetigt -- noctalia listet bei
+    # einer falschen ID alle gueltigen auf, das ist der billigste Weg sie zu
+    # pruefen (`noctalia msg panel-toggle bloedsinn`).
+    bind = $mainMod SHIFT, V, exec, noctalia msg panel-toggle clipboard  # "Zwischenablage-Verlauf"
+    bind = $mainMod SHIFT, E, exec, noctalia msg settings-toggle  # "noctalia-Einstellungen"
+    bind = $mainMod SHIFT, R, exec, hyprctl reload  # "Hyprland-Konfiguration neu laden"
 
     # Workspaces
-    bind = $mainMod, 1, workspace, 1
-    bind = $mainMod, 2, workspace, 2
-    bind = $mainMod, 3, workspace, 3
-    bind = $mainMod, 4, workspace, 4
-    bind = $mainMod, 5, workspace, 5
-    bind = $mainMod, 6, workspace, 6
-    bind = $mainMod, 7, workspace, 7
-    bind = $mainMod, 8, workspace, 8
-    bind = $mainMod, 9, workspace, 9
-    bind = $mainMod, 0, workspace, 10
+    bind = $mainMod, 1, workspace, 1  # "Zu Workspace 1"
+    bind = $mainMod, 2, workspace, 2  # "Zu Workspace 2"
+    bind = $mainMod, 3, workspace, 3  # "Zu Workspace 3"
+    bind = $mainMod, 4, workspace, 4  # "Zu Workspace 4"
+    bind = $mainMod, 5, workspace, 5  # "Zu Workspace 5"
+    bind = $mainMod, 6, workspace, 6  # "Zu Workspace 6"
+    bind = $mainMod, 7, workspace, 7  # "Zu Workspace 7"
+    bind = $mainMod, 8, workspace, 8  # "Zu Workspace 8"
+    bind = $mainMod, 9, workspace, 9  # "Zu Workspace 9"
+    bind = $mainMod, 0, workspace, 10  # "Zu Workspace 10"
 
-    bind = $mainMod SHIFT, 1, movetoworkspace, 1
-    bind = $mainMod SHIFT, 2, movetoworkspace, 2
-    bind = $mainMod SHIFT, 3, movetoworkspace, 3
-    bind = $mainMod SHIFT, 4, movetoworkspace, 4
-    bind = $mainMod SHIFT, 5, movetoworkspace, 5
-    bind = $mainMod SHIFT, 6, movetoworkspace, 6
-    bind = $mainMod SHIFT, 7, movetoworkspace, 7
-    bind = $mainMod SHIFT, 8, movetoworkspace, 8
-    bind = $mainMod SHIFT, 9, movetoworkspace, 9
-    bind = $mainMod SHIFT, 0, movetoworkspace, 10
+    bind = $mainMod SHIFT, 1, movetoworkspace, 1  # "Fenster auf Workspace 1"
+    bind = $mainMod SHIFT, 2, movetoworkspace, 2  # "Fenster auf Workspace 2"
+    bind = $mainMod SHIFT, 3, movetoworkspace, 3  # "Fenster auf Workspace 3"
+    bind = $mainMod SHIFT, 4, movetoworkspace, 4  # "Fenster auf Workspace 4"
+    bind = $mainMod SHIFT, 5, movetoworkspace, 5  # "Fenster auf Workspace 5"
+    bind = $mainMod SHIFT, 6, movetoworkspace, 6  # "Fenster auf Workspace 6"
+    bind = $mainMod SHIFT, 7, movetoworkspace, 7  # "Fenster auf Workspace 7"
+    bind = $mainMod SHIFT, 8, movetoworkspace, 8  # "Fenster auf Workspace 8"
+    bind = $mainMod SHIFT, 9, movetoworkspace, 9  # "Fenster auf Workspace 9"
+    bind = $mainMod SHIFT, 0, movetoworkspace, 10  # "Fenster auf Workspace 10"
 
-    bind = $mainMod, mouse_down, workspace, e+1
-    bind = $mainMod, mouse_up, workspace, e-1
+    bind = $mainMod, mouse_down, workspace, e+1  # "Nächster Workspace (Mausrad)"
+    bind = $mainMod, mouse_up, workspace, e-1  # "Voriger Workspace (Mausrad)"
 
     # SUPER+Tab oeffnet noctalias Fenster-Switcher statt blind einen Workspace
     # weiterzuschalten (bfn 09.08.2026: getestet, reicht ihm -- damit ist
@@ -261,28 +271,28 @@
     # bei offenem Switcher ist Shift+Tab das Rueckwaertsblaettern IM Switcher,
     # ein Hyprland-Bind wuerde dort dazwischenfunken. Workspace-Blaettern per
     # Tastatur geht weiter ueber SUPER+1..0, per Maus ueber SUPER+Scroll.
-    bind = $mainMod, Tab, exec, noctalia msg window-switcher
+    bind = $mainMod, Tab, exec, noctalia msg window-switcher  # "Fenster-Umschalter (alle offenen Fenster)"
 
     # Scratchpad
-    bind = $mainMod, S, togglespecialworkspace, magic
-    bind = $mainMod SHIFT, S, movetoworkspace, special:magic
+    bind = $mainMod, S, togglespecialworkspace, magic  # "Scratchpad ein-/ausblenden"
+    bind = $mainMod SHIFT, S, movetoworkspace, special:magic  # "Fenster ins Scratchpad legen"
 
     # Maus: move/resize per Drag
-    bindm = $mainMod, mouse:272, movewindow
-    bindm = $mainMod, mouse:273, resizewindow
+    bindm = $mainMod, mouse:272, movewindow  # "Fenster ziehen (linke Maustaste)"
+    bindm = $mainMod, mouse:273, resizewindow  # "Fenstergröße ziehen (rechte Maustaste)"
 
     # Media & Helligkeit
     # SPACE stand hier im Modifier-Feld, ist aber kein Modifier -- der Bind war
     # damit ungueltig und hat nie ausgeloest. 08.08.2026 auf SUPER ALT korrigiert.
-    bind = SUPER ALT, W, exec, noctalia msg wallpaper-next
-    bindel = ,XF86AudioRaiseVolume,  exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+
-    bindel = ,XF86AudioLowerVolume,  exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
-    bindel = ,XF86AudioMute,         exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
-    bindel = ,XF86MonBrightnessUp,   exec, brightnessctl -e4 -n2 set 5%+
-    bindel = ,XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-
-    bindl  = ,XF86AudioNext,  exec, playerctl next
-    bindl  = ,XF86AudioPause, exec, playerctl play-pause
-    bindl  = ,XF86AudioPlay,  exec, playerctl play-pause
-    bindl  = ,XF86AudioPrev,  exec, playerctl previous
+    bind = SUPER ALT, W, exec, noctalia msg wallpaper-next  # "Nächstes Hintergrundbild"
+    bindel = ,XF86AudioRaiseVolume,  exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+  # "Lautstärke +5%"
+    bindel = ,XF86AudioLowerVolume,  exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-  # "Lautstärke -5%"
+    bindel = ,XF86AudioMute,         exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle  # "Stumm an/aus"
+    bindel = ,XF86MonBrightnessUp,   exec, brightnessctl -e4 -n2 set 5%+  # "Helligkeit +5%"
+    bindel = ,XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-  # "Helligkeit -5%"
+    bindl  = ,XF86AudioNext,  exec, playerctl next  # "Nächster Titel"
+    bindl  = ,XF86AudioPause, exec, playerctl play-pause  # "Wiedergabe pausieren/fortsetzen"
+    bindl  = ,XF86AudioPlay,  exec, playerctl play-pause  # "Wiedergabe pausieren/fortsetzen"
+    bindl  = ,XF86AudioPrev,  exec, playerctl previous  # "Voriger Titel"
   '';
 }

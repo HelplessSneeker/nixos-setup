@@ -63,7 +63,7 @@
       mkcd = "mkdir -p $argv[1]; and cd $argv[1]";
 
       # Spickzettel: eigene Abbreviations + Funktionen + Verweis auf die
-      # Hyprland-Keybinds (SUPER+/). Damit vergisst du dein eigenes Setup nicht.
+      # Hyprland-Keybinds (SUPER+ss). Damit vergisst du dein eigenes Setup nicht.
       cheat = ''
         set_color --bold cyan; echo "── Abbreviations ──"; set_color normal
         echo "  (tippen + Leertaste -> expandiert sichtbar zum vollen Kommando)"
