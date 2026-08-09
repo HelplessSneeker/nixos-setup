@@ -2,17 +2,36 @@
   description = "bfn NixOS config (multi-host)";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    # 26.05 seit 09.08.2026. Davor 25.05, das seit Ende 2025 EOL ist -- also
+    # ohne Sicherheitsupdates. Der Sprung ueberspringt 25.11; NixOS traegt das,
+    # die Breaking Changes beider Releases summieren sich aber. Geprueft und
+    # relevant fuer diese Config waren zwei:
+    #   1. Der DBus-Default wechselt auf dbus-broker (26.05). Betrifft die
+    #      Aktivierung des FileManager1-Shims in home/apps.nix. Ausserdem ist
+    #      services.dbus.implementation ein "switch inhibitor" -- der Wechsel
+    #      braucht einen REBOOT, ein switch allein reicht nicht.
+    #   2. Das NVIDIA-Modul wurde umgebaut (neues nvidia-x11-Output-Layout,
+    #      EGL-ICDs aus Source statt Vendor-Binaries, neue Option
+    #      hardware.nvidia.branch). package/open bleiben gueltig.
+    # Unkritisch, weil hier nicht benutzt: AcceptEnv-Typwechsel, PostgreSQL-,
+    # Nextcloud-, Stalwart- und taskchampion-Defaults.
+    #
+    # system.stateVersion bleibt bewusst auf dem Installationswert je Host und
+    # wird NICHT mitgezogen -- die Option markiert den Stand, gegen den
+    # Datenmigrationen laufen, nicht die nixpkgs-Version.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.05";
+      # MUSS zur nixpkgs-Release passen, sonst driften Modul-Optionen.
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     # Bewusst KEIN follows: noctalia braucht sein eigenes nixpkgs-unstable
-    # (C++23-Deps), sonst bricht der Build gegen 25.05.
+    # (C++23-Deps).
     noctalia.url = "github:noctalia-dev/noctalia";
 
-    # Nur fuer einzelne Bleeding-Edge-Pakete (godot 4.7, claude-code): 25.05
-    # liefert nur godot ~4.4 / claude-code 1.0.85. Bewusst KEIN follows -> eigene,
+    # Bleibt auch nach dem 26.05-Umstieg noetig, das ist geprueft: 26.05 hat
+    # Hyprland nur in 0.55.4, hier laeuft 0.56.1. Ebenso godot 4.7,
+    # claude-code und citrix-workspace. Bewusst KEIN follows -> eigene,
     # aktuelle nixpkgs-Instanz.
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
