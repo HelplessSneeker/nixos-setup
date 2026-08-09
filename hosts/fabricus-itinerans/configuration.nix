@@ -175,5 +175,7 @@
   # Beides liegt im LUKS-Container -> das Hibernate-Abbild ist mitverschluesselt.
   boot.resumeDevice = "/dev/vg0/swap";
 
-  system.stateVersion = "25.05";
+  # 26.05, weil dieser Host am 09.08.2026 frisch mit 26.05 installiert wurde
+  # (nicht von 25.05 hochgezogen). Anders als auf fabricus, wo 25.05 steht.
+  system.stateVersion = "26.05";
 }
