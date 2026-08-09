@@ -18,8 +18,13 @@
 
   programs.git = {
     enable = true;
-    userName = "Benjamin Nößler";
-    userEmail = "benjamin@noessler.at";
+    # settings.user.* statt userName/userEmail -- in home-manager 26.05
+    # umbenannt. Die alten Namen funktionieren noch, warnen aber bei jedem
+    # Rebuild. settings bildet die git-Config direkt ab (Sektion.Schluessel).
+    settings.user = {
+      name = "Benjamin Nößler";
+      email = "benjamin@noessler.at";
+    };
   };
 
   # programs.noctalia (Theming, Wallpaper, Bar-Layout) lebt jetzt in ./noctalia.nix

@@ -12,45 +12,70 @@ let
   tailnet = "tail872491.ts.net";
 in
 {
+  # Ab home-manager 26.05: `settings` statt `matchBlocks`, und die Schluessel
+  # sind die ECHTEN OpenSSH-Direktivnamen (HostName, User, IdentityFile ...)
+  # statt der camelCase-Varianten. matchBlocks funktioniert noch, warnt aber.
   programs.ssh = {
     enable = true;
 
-    # Vorab-verifizierte Host-Keys (siehe known_hosts_nix unten) zusaetzlich zur
-    # normalen, schreibbaren known_hosts. Verhindert den TOFU-Prompt beim ersten
-    # Connect, ohne die schreibbare Datei durch einen Store-Symlink zu ersetzen.
-    userKnownHostsFile = "~/.ssh/known_hosts ~/.ssh/known_hosts_nix";
+    # Die eingebauten Defaults sind ausgeschaltet und stehen stattdessen
+    # unten in settings."*". Grund: home-manager warnt, dass es sie kuenftig
+    # ersatzlos entfernt -- dann waeren sie stillschweigend weg. Explizit
+    # gesetzt aendert sich nichts am Verhalten, aber es bleibt sichtbar, was
+    # gilt. Die Werte sind 1:1 die bisherigen home-manager-Defaults.
+    enableDefaultConfig = false;
 
-    matchBlocks = {
-      # SSH nutzt den 1Password-Agent statt eines Keys auf der Platte.
-      # Der Socket kommt vom System-Modul (modules/gui-apps.nix,
-      # programs._1password-gui); hier zeigt nur ~/.ssh/config drauf. WICHTIG:
-      # in der 1Password-GUI einmalig Settings -> Developer -> "Use the SSH
-      # agent" aktivieren, sonst existiert der Socket nicht.
-      "*".extraOptions.IdentityAgent = "~/.1password/agent.sock";
+    settings = {
+      "*" = {
+        # --- bisherige home-manager-Defaults, jetzt explizit ---
+        ForwardAgent = false;
+        AddKeysToAgent = "no";
+        Compression = false;
+        ServerAliveInterval = 0;
+        ServerAliveCountMax = 3;
+        HashKnownHosts = false;
+        ControlMaster = "no";
+        ControlPath = "~/.ssh/master-%r@%n:%p";
+        ControlPersist = "no";
+
+        # --- eigene Einstellungen ---
+        # Vorab-verifizierte Host-Keys (known_hosts_nix unten) zusaetzlich zur
+        # normalen, schreibbaren known_hosts. Verhindert den TOFU-Prompt beim
+        # ersten Connect, ohne die schreibbare Datei durch einen Store-Symlink
+        # zu ersetzen. Ueberschreibt den Default "~/.ssh/known_hosts".
+        UserKnownHostsFile = "~/.ssh/known_hosts ~/.ssh/known_hosts_nix";
+
+        # SSH nutzt den 1Password-Agent statt eines Keys auf der Platte.
+        # Der Socket kommt vom System-Modul (modules/gui-apps.nix,
+        # programs._1password-gui); hier zeigt nur ~/.ssh/config drauf.
+        # WICHTIG: in der 1Password-GUI einmalig Settings -> Developer ->
+        # "Use the SSH agent" aktivieren, sonst existiert der Socket nicht.
+        IdentityAgent = "~/.1password/agent.sock";
+      };
 
       # OpenClaw-Host (Hetzner-VPS). User ist `claw`, nicht `bfn` --
       # auf primus existiert kein bfn-Account.
       primus = {
-        hostname = "primus.${tailnet}";
-        user = "claw";
-        identityFile = "~/.ssh/primus-vps.pub";   # 1Password-Eintrag "Primus VPS SSH"
-        identitiesOnly = true;
+        HostName = "primus.${tailnet}";
+        User = "claw";
+        IdentityFile = "~/.ssh/primus-vps.pub";   # 1Password-Eintrag "Primus VPS SSH"
+        IdentitiesOnly = true;
       };
 
       # Heim-Server (Media-/Torrent-Stack). Nutzt den lokalen fabricus-Key,
       # nicht 1Password -- dort liegt kein passender Eintrag.
       cogitator-prime = {
-        hostname = "cogitator-prime.${tailnet}";
-        user = "bfn";
-        identityFile = "~/.ssh/id_ed25519";
-        identitiesOnly = true;
+        HostName = "cogitator-prime.${tailnet}";
+        User = "bfn";
+        IdentityFile = "~/.ssh/id_ed25519";
+        IdentitiesOnly = true;
       };
 
       # Coolify-Host. Laeuft Tailscale SSH (Auth ueber Tailnet-Identity),
       # daher bewusst KEIN Key/IdentitiesOnly -- nur der User zaehlt.
       personal-server = {
-        hostname = "personal-server.${tailnet}";
-        user = "bfn";
+        HostName = "personal-server.${tailnet}";
+        User = "bfn";
       };
     };
   };
