@@ -59,7 +59,10 @@
     $menu        = noctalia msg panel-toggle launcher
     $browser     = firefox
     $mail        = thunderbird
-    $fileManager = kitty -e yazi
+    # --override=confirm_os_window_close=0: kitty fragt sonst beim Schliessen
+    # (SUPER+W) nach, weil im Fenster noch yazi laeuft. Bewusst nur hier und
+    # nicht global -- bei einem Terminal mit laufendem Build will man die Frage.
+    $fileManager = kitty --override=confirm_os_window_close=0 -e yazi
     $mainMod     = SUPER
 
     ### Autostart ###

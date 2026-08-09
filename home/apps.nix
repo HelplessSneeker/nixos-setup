@@ -46,6 +46,11 @@ let
       from gi.repository import Gio, GLib
 
       TERMINAL = "${pkgs.kitty}/bin/kitty"
+      # Ohne das fragt kitty beim Schliessen (SUPER+W) nach, weil im Fenster
+      # noch yazi laeuft -- confirm_os_window_close steht per Default auf -1.
+      # Gezielt pro Fenster abgeschaltet statt global: bei einem Terminal mit
+      # laufendem Build oder SSH ist die Rueckfrage weiterhin erwuenscht.
+      NO_CLOSE_PROMPT = "--override=confirm_os_window_close=0"
       YAZI = "${pkgs.yazi}/bin/yazi"
       BUS_NAME = "org.freedesktop.FileManager1"
       OBJECT_PATH = "/org/freedesktop/FileManager1"
@@ -99,7 +104,7 @@ let
 
       def open_in_yazi(path):
           subprocess.Popen(
-              [TERMINAL, "-e", YAZI, path],
+              [TERMINAL, NO_CLOSE_PROMPT, "-e", YAZI, path],
               start_new_session=True,
               stdin=subprocess.DEVNULL,
               stdout=subprocess.DEVNULL,
@@ -235,7 +240,9 @@ in
     name = "Dateien (yazi)";
     genericName = "Dateimanager";
     comment = "Verzeichnis in yazi oeffnen";
-    exec = "kitty -e yazi %f";
+    # --override=confirm_os_window_close=0: sonst fragt kitty beim Schliessen
+    # nach, weil yazi noch laeuft. Nur fuer dieses Fenster, nicht global.
+    exec = "kitty --override=confirm_os_window_close=0 -e yazi %f";
     icon = "system-file-manager";
     terminal = false;
     categories = [ "System" "FileTools" "FileManager" ];
