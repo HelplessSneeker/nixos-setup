@@ -106,8 +106,15 @@
 
   # Deckel zu -> Suspend. Am externen Netzteil bewusst `ignore`: sonst schlaeft
   # die Kiste weg, sobald man sie zugeklappt an einen Monitor haengt.
-  services.logind.lidSwitch = "suspend";
-  services.logind.lidSwitchExternalPower = "ignore";
+  #
+  # Seit 26.05 heisst das services.logind.settings.Login.* und traegt die
+  # ECHTEN logind.conf-Direktivnamen (HandleLidSwitch...), nicht mehr die
+  # camelCase-Aliase. Die alten Namen funktionieren noch, warnen aber beim
+  # Evaluieren -- dieselbe Umstellung wie bei programs.ssh in home/ssh.nix.
+  services.logind.settings.Login = {
+    HandleLidSwitch = "suspend";
+    HandleLidSwitchExternalPower = "ignore";
+  };
 
   # --- Bluetooth -------------------------------------------------------------
   # Am Desktop bewusst weggelassen (kein Adapter), hier onboard vorhanden.
@@ -131,7 +138,9 @@
   services.greetd = {
     enable = true;
     settings.default_session = {
-      command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd start-hyprland";
+      # pkgs.tuigreet, nicht pkgs.greetd.tuigreet -- in 26.05 umbenannt, analog
+      # hosts/fabricus/configuration.nix. Der alte Pfad baut noch, warnt aber.
+      command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd start-hyprland";
       user = "greeter";
     };
   };
