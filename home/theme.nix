@@ -3,7 +3,19 @@
 # Notifications macht noctalia (mako-Config hier entfernt). Fuer kitty + Hyprland
 # legt noctalia zusaetzlich seine Wallpaper-Palette drueber (siehe bfn.nix
 # theme.templates) -> laeuft noctalia, gewinnt Material; sonst bleibt Catppuccin.
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, osConfig, ... }:
+
+# Dieselbe isLaptop-Weiche wie in home/hyprland.nix und home/noctalia.nix.
+#
+# Warum Groessen ueberhaupt host-abhaengig sind: fabricus laeuft auf scale 1.25,
+# der Laptop auf scale 1.0 (1080p vertraegt kein fractional Scaling ohne echte
+# Unschaerfe). Beide Panels haben fast dieselbe Pixeldichte (~157 dpi) -- ein
+# identischer Zahlenwert erscheint auf dem Laptop deshalb rund 20 % kleiner.
+# Die Laptop-Werte sind die Desktop-Werte mal 1.25, also gleiche PHYSISCHE
+# Groesse auf beiden Maschinen.
+let
+  isLaptop = osConfig.networking.hostName == "fabricus-itinerans";
+in
 {
   home.packages = with pkgs; [
     papirus-icon-theme  # System-Icon-Set fuer GTK-Apps. Kam urspruenglich wegen
@@ -15,7 +27,7 @@
   home.pointerCursor = {
     name = "Bibata-Modern-Classic";
     package = pkgs.bibata-cursors;
-    size = 20;
+    size = if isLaptop then 24 else 20;
     gtk.enable = true;
     x11.enable = true;
     hyprcursor.enable = true;
@@ -40,7 +52,7 @@
   # Statische Catppuccin-Farben als Basis/Fallback ...
   programs.kitty.settings = {
     font_family = "JetBrainsMono Nerd Font";
-    font_size = 12;
+    font_size = if isLaptop then 15 else 12;
     background_opacity = "0.95";
     window_padding_width = 8;
     cursor_shape = "beam";

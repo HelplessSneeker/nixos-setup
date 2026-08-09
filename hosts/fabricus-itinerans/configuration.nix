@@ -171,6 +171,38 @@
   # Host-Extra-Font; noto + jetbrains-mono kommen aus modules/system-base.nix.
   fonts.packages = with pkgs; [ nerd-fonts.fira-code ];
 
+  # --- Font-Rendering --------------------------------------------------------
+  # BEWUSST NUR HIER, nicht in modules/system-base.nix: fabricus haengt an 4k
+  # und braucht das nicht -- Subpixel-Rendering und hartes Hinting greifen umso
+  # staerker, je groeber das Raster ist. Auf einem 1080p-Panel bei scale 1.0
+  # holt das sichtbar Kantenschaerfe raus, auf 4k waere es nur eine
+  # Verhaltensaenderung an einem laufenden System.
+  #
+  # NixOS-Defaults, die hier ueberschrieben werden: hinting.style = "slight",
+  # subpixel.rgba = "none" (also reines Graustufen-Antialiasing).
+  #
+  # rgba = "rgb" setzt die uebliche Subpixel-Reihenfolge eines RGB-LCD voraus.
+  # Falls Text stattdessen farbige Saeume bekommt (rote/blaue Kanten an
+  # Buchstaben), ist das Panel BGR -> Wert auf "bgr" aendern.
+  # lcdfilter daempft genau diese Farbsaeume und steht ohnehin schon auf
+  # "default" -- hier nur explizit, weil es sachlich zum Subpixel-Rendering
+  # gehoert und sonst niemand sieht, dass es mitspielt.
+  #
+  # hinting "full" richtet Glyphen hart am Pixelraster aus -- schaerfer, aber
+  # die Buchstabenformen weichen etwas vom Original ab. Wem das zu hart ist:
+  # "medium" ist der Mittelweg, "slight" der NixOS-Default.
+  fonts.fontconfig = {
+    antialias = true;
+    hinting = {
+      enable = true;
+      style = "full";
+    };
+    subpixel = {
+      rgba = "rgb";
+      lcdfilter = "default";
+    };
+  };
+
   # System-Editor fuer root/TTY (neovim ist home-only fuer bfn).
   environment.systemPackages = with pkgs; [ vim ];
 
