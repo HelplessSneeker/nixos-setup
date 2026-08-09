@@ -271,8 +271,17 @@
 
     bind = $mainMod, mouse_down, workspace, e+1
     bind = $mainMod, mouse_up, workspace, e-1
-    bind = $mainMod, Tab, workspace, e+1
-    bind = $mainMod SHIFT, Tab, workspace, e-1
+
+    # SUPER+Tab oeffnet noctalias Fenster-Switcher statt blind einen Workspace
+    # weiterzuschalten (bfn 09.08.2026: getestet, reicht ihm -- damit ist
+    # hyprshell vom Tisch und wir sparen uns einen dritten UI-Stack mit eigenem
+    # Launcher und eigener Clipboard-History).
+    #
+    # SUPER+SHIFT+Tab ist bewusst WEG statt auf `workspace, e-1` zu bleiben:
+    # bei offenem Switcher ist Shift+Tab das Rueckwaertsblaettern IM Switcher,
+    # ein Hyprland-Bind wuerde dort dazwischenfunken. Workspace-Blaettern per
+    # Tastatur geht weiter ueber SUPER+1..0, per Maus ueber SUPER+Scroll.
+    bind = $mainMod, Tab, exec, noctalia msg window-switcher
 
     # Scratchpad
     bind = $mainMod, S, togglespecialworkspace, magic
