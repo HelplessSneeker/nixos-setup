@@ -77,6 +77,32 @@ in
         HostName = "personal-server.${tailnet}";
         User = "bfn";
       };
+
+      # Die beiden eigenen Maschinen untereinander. Beide autorisieren denselben
+      # Key `openclaw-lab` (steht deklarativ in beiden hosts/*/configuration.nix),
+      # dessen privater Teil in 1Password liegt -- deshalb dieselbe Mechanik wie
+      # bei primus: IdentityFile zeigt auf den *public* Key, IdentitiesOnly
+      # schraenkt die Agent-Auswahl darauf ein.
+      #
+      # Ohne diese beiden Bloecke laeuft der Agent alle Keys durch und sshd
+      # bricht mit "Too many authentication failures" ab, bevor der richtige
+      # dran ist -- am 09.08.2026 genau so passiert.
+      #
+      # Der Eintrag fuer die eigene Maschine ist jeweils inert, aber das Modul
+      # ist shared: so gilt auf beiden Hosts dieselbe Datei.
+      fabricus = {
+        HostName = "fabricus.${tailnet}";
+        User = "bfn";
+        IdentityFile = "~/.ssh/openclaw-lab.pub";
+        IdentitiesOnly = true;
+      };
+
+      fabricus-itinerans = {
+        HostName = "fabricus-itinerans.${tailnet}";
+        User = "bfn";
+        IdentityFile = "~/.ssh/openclaw-lab.pub";
+        IdentitiesOnly = true;
+      };
     };
   };
 
@@ -85,12 +111,24 @@ in
   home.file.".ssh/primus-vps.pub".text =
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHBMd+ZsTr68NdZlioXii1MZFbtZx3v5TmqyG53+M0ub primus-vps\n";
 
+  # Public Key des 1Password-Eintrags "openclaw-lab" -- derselbe Key steht als
+  # authorizedKey in beiden hosts/*/configuration.nix. Nur oeffentlich.
+  home.file.".ssh/openclaw-lab.pub".text =
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFdHqQP/7i5iIK4hBcLnjzvvQKFiD7xHH9+o7x95i58a openclaw-lab\n";
+
   # Host-Keys, verifiziert am 06.08.2026 per ssh-keyscan aus dem Tailnet heraus.
   # Bei Neuinstallation eines Hosts hier den Eintrag aktualisieren, sonst
   # meldet ssh "REMOTE HOST IDENTIFICATION HAS CHANGED".
+  #
+  # fabricus + fabricus-itinerans ergaenzt am 09.08.2026. Der Laptop-Key wurde
+  # doppelt bestaetigt: ssh-keyscan von primus und der TOFU-Prompt auf fabricus
+  # zeigen denselben Fingerprint
+  # (SHA256:BjloS3/zAZKfflsTmmmDTZ+TJr90V2cAz0zchRW6Xx8).
   home.file.".ssh/known_hosts_nix".text = ''
     primus,primus.${tailnet},100.73.119.56 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG9nn1+O1p2FLVtEN3PINm948NQu2hVpGxXWPbopTSCH
     cogitator-prime,cogitator-prime.${tailnet},100.123.62.126 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBhGLbay2eMoV9Ls4G1I2X6YdKmdigXHFkXdXdqqkYyO
     personal-server,personal-server.${tailnet},100.116.251.104 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINjiKE7VILsFyUI3FL7wsM4ztlGlN7SRjWBAjhbhyWzp
+    fabricus,fabricus.${tailnet},100.105.13.78 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICTh8W7s/z53sSUJoRjZUlNuiAkB5RaZYTtac2WpMj+w
+    fabricus-itinerans,fabricus-itinerans.${tailnet},100.99.116.48 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID4IcFf4c71HIIIDSEuPBdgyqZ6Jz5I78p05dNL2dqvY
   '';
 }
