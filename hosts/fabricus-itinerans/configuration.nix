@@ -26,12 +26,25 @@
   ];
 
   # --- Boot ------------------------------------------------------------------
-  # systemd-boot auf der EFI-Partition, LUKS-Root analog fabricus. Die
-  # LUKS-Zeile selbst (boot.initrd.luks.devices) schreibt nixos-generate-config
-  # in hardware-configuration.nix -- nach der Installation dort GEGENPRUEFEN,
-  # sie fehlt gelegentlich, und dann bootet die Kiste beim naechsten Mal nicht.
+  # systemd-boot auf der EFI-Partition, LUKS-Root analog fabricus.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+
+  # nixos-generate-config hat diese Zeile bei der Installation am 09.08.2026
+  # NICHT geschrieben -- obwohl der Container offen, gemountet und aktiv war.
+  # Ohne sie findet der initrd cryptroot nicht und der Boot bleibt stehen.
+  # Sie steht bewusst HIER und nicht in hardware-configuration.nix: die Datei
+  # traegt "Do not modify", ein spaeteres nixos-generate-config wuerde die
+  # Ergaenzung also kommentarlos wieder verschlucken.
+  boot.initrd.luks.devices."cryptroot".device =
+    "/dev/disk/by-uuid/72e63b77-27ad-428e-89eb-7ab42fab2e63";
+
+  # nixos-generate-config mountet /boot mit fmask/dmask 0022, damit ist der
+  # Random-Seed von systemd-boot world-readable -- der Installer warnt beim
+  # Schreiben genau darueber. 0077 macht ESP und Inhalt root-only.
+  # mkForce, weil hardware-configuration.nix die Liste bereits definiert und
+  # zwei Definitionen sonst zu einer widerspruechlichen Mount-Zeile mergen.
+  fileSystems."/boot".options = lib.mkForce [ "fmask=0077" "dmask=0077" ];
 
   networking.hostName = "fabricus-itinerans";
   networking.networkmanager.enable = true;

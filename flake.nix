@@ -35,13 +35,24 @@
     # aktuelle nixpkgs-Instanz.
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
-    # UNVERIFIZIERT (08.08.2026) -- Hardware-Quirks fuer den ThinkPad T480.
-    # Bringt: services.throttled (gegen Lenovos Power-Limit-Drosselung),
-    # TrackPoint + emulateWheel, fstrim, Kaby-Lake-Defaults.
-    # RISIKO: das Modul setzt hardware.intelgpu.vaapiDriver -- ob 25.05 diese
-    # Option schon kennt, ist NICHT geprueft. Der Eval-Test dazu ist
-    # abgebrochen, weil fabricus mittendrin ausgefallen ist.
-    # Solange der Laptop-Output unten auskommentiert bleibt, ist das hier inert.
+    # Hardware-Quirks fuer den ThinkPad T480 (nur vom Laptop-Host importiert).
+    # Modulkette am 09.08.2026 gegen upstream gelesen, sie bringt:
+    #   - services.throttled        gegen Lenovos BIOS-Power-Limit-Drosselung
+    #   - TrackPoint + emulateWheel mittlere Taste halten = scrollen
+    #   - i915-Kernelparams         enable_guc=2, enable_fbc=1, enable_psr=2
+    #   - hardware.intelgpu         vaapiDriver=intel-media-driver,
+    #                               computeRuntime=legacy (Gen9.5 will die alte)
+    #   - services.fstrim, i915 im initrd, Microcode-Default
+    #
+    # Der frueher hier notierte Verdacht gegen hardware.intelgpu.vaapiDriver hat
+    # sich aufgeloest: die Option wird von nixos-hardware SELBST deklariert
+    # (common/gpu/intel), haengt also an keiner nixpkgs-Release.
+    # Ebenfalls geprueft: common/pc/laptop setzt services.tlp nur per
+    # `mkDefault (!power-profiles-daemon.enable)` -- die Host-Config schaltet
+    # PPD ein, TLP bleibt damit aus. Kein Konflikt.
+    # Im Auge behalten: throttled laeuft dann parallel zu thermald (anderer
+    # Job -- MSR-Power-Limits vs. Thermik), und enable_psr=2 ist der erste
+    # Verdaechtige, falls das Panel je flackert.
     nixos-hardware.url = "github:NixOS/nixos-hardware";
   };
 
@@ -97,10 +108,9 @@
       # -- die fish-Abbrevs nrs/nrb funktionieren so auf jeder Maschine gleich.
       nixosConfigurations = {
         fabricus = mkHost ./hosts/fabricus/configuration.nix;
-        # Bleibt aus, bis hosts/fabricus-itinerans/hardware-configuration.nix
-        # existiert (kommt bei der Installation aus nixos-generate-config).
-        # Vorher wuerde jedes `nix flake check` auf diesem Branch scheitern.
-        # fabricus-itinerans = mkHost ./hosts/fabricus-itinerans/configuration.nix;
+        # Aktiv seit 09.08.2026 -- die hardware-configuration.nix aus der
+        # Installation liegt jetzt im Repo.
+        fabricus-itinerans = mkHost ./hosts/fabricus-itinerans/configuration.nix;
       };
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixpkgs-fmt;
