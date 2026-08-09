@@ -24,8 +24,16 @@ let
   yaziFileManager1 =
     let
       python = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
-    in
-    pkgs.writeScriptBin "yazi-filemanager1" ''
+
+      # Nur das nackte Skript -- der ausfuehrbare Wrapper kommt unten.
+      #
+      # Grund (Fehlschlag vom 09.08.2026): `python3.withPackages [ pygobject3 ]`
+      # liefert die Python-Bindings, aber NICHT die GObject-Introspection-
+      # Typelibs. Ohne die bricht schon `gi.require_version("Gio", "2.0")` mit
+      # `ValueError: Namespace Gio not available`. Die .typelib-Dateien liegen
+      # in glib, und zwar im out-Output -- `${pkgs.glib}` allein zeigt bei
+      # diesem Paket auf den bin-Output und waere der falsche Pfad.
+      script = pkgs.writeScript "yazi-filemanager1-unwrapped" ''
       #!${python}/bin/python3
       # Uebersetzt org.freedesktop.FileManager1 auf yazi im Terminal.
       import subprocess
@@ -137,6 +145,14 @@ let
 
       reset_idle()
       loop.run()
+      '';
+    in
+    pkgs.runCommandLocal "yazi-filemanager1" {
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+    } ''
+      mkdir -p $out/bin
+      makeWrapper ${script} $out/bin/yazi-filemanager1 \
+        --set GI_TYPELIB_PATH ${pkgs.glib.out}/lib/girepository-1.0
     '';
 in
 {
