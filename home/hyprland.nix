@@ -26,6 +26,29 @@ let
       monitor = DP-1,     3840x2160@60, 3072x0, 1.25
       monitor = ,preferred,auto,1.25
     '';
+
+  # Trackpad-Gesten -- nur der Laptop hat ueberhaupt ein Trackpad.
+  #
+  # Syntax ist die NEUE aus Hyprland 0.51+ (hier laeuft 0.56.1, verifiziert:
+  # start-hyprland zeigt auf hyprland-0.56.1). Der alte Block
+  #   gestures { workspace_swipe = true; workspace_swipe_fingers = 3 }
+  # ist weg -- stattdessen:
+  #   gesture = <finger>, <richtung>, [mod:MOD], [scale:X], <aktion> [args]
+  # Richtungen: left/right/up/down/horizontal/vertical/swipe/pinch(in|out),
+  # Aktionen u.a. workspace, special, move, resize, close, fullscreen,
+  # float, cursorZoom, scrollMove, dispatcher, unset.
+  # Quelle: handleGesture() in src/config/legacy/ConfigManager.cpp des Tags.
+  #
+  # `horizontal` deckt BEIDE Richtungen ab -- absichtlich keine zwei Zeilen
+  # fuer left und right: der Parser lehnt das zweite mit "Gesture will be
+  # overshadowed by a previous gesture" ab.
+  gestureBlock =
+    if isLaptop then ''
+
+      ### Trackpad ###
+      # 3 Finger horizontal = Workspace wechseln (kontinuierlich, mit Animation).
+      gesture = 3, horizontal, workspace
+    '' else "";
 in
 {
   home.packages = with pkgs; [
@@ -155,7 +178,7 @@ in
             natural_scroll = true
         }
     }
-
+${gestureBlock}
     ### Color Management: wp-cm-v1 auf Version 1 begrenzen ###
     # Hyprland 0.56 bietet wp-color-management-v1 in Version 2 an. Firefox 146
     # implementiert nur v1 -- dort hat wp_image_description_v1 exakt zwei Events

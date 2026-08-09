@@ -38,8 +38,11 @@ let
   # `scale` skaliert den Widget-INHALT, `thickness` die Bar-HOEHE. Die beiden
   # haengen im Code nicht aneinander -- immer gemeinsam anpassen, sonst
   # sprengt der Inhalt die Bar oder schwimmt darin.
-  barScale = if isLaptop then 1.6 else 1.3;
-  barThickness = if isLaptop then 55 else 44;
+  # 1.45/50 statt der rechnerischen 1.63/55: die volle Paritaet war bfn nach
+  # dem Sehen einen Tick zu gross (09.08.2026). Bleibt deutlich ueber den alten
+  # 1.0/34, die schlicht falsch gerechnet waren.
+  barScale = if isLaptop then 1.45 else 1.3;
+  barThickness = if isLaptop then 50 else 44;
 in
 {
   programs.noctalia = {
