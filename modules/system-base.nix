@@ -60,6 +60,27 @@
   # --- Nix-Store-Hygiene ---
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.auto-optimise-store = true;    # dedupliziert identische Store-Pfade
+
+  # --- Ausdauer bei Downloads, die NICHT aus dem Binary-Cache kommen ---
+  #
+  # Anlass (09.08.2026): der NVIDIA-Treiber. Er ist unfree und darf deshalb
+  # NICHT auf cache.nixos.org liegen -- jede Maschine laedt das .run-Archiv
+  # (404 MB) selbst bei NVIDIA. Von hier aus laufen alle NVIDIA-Mirrors
+  # zwischen 20 kB/s und 1 MB/s und brechen dabei staendig mit
+  # "SSL_read: unexpected eof" ab; von einem Hetzner-Server dieselbe Datei mit
+  # 34 MB/s. Es liegt also an der Strecke hierhin, nicht an NVIDIA.
+  #
+  # Entscheidend: curl setzt abgebrochene Transfers fort ("Resuming transfer
+  # from byte position ..."). Mit genug Versuchen arbeitet sich der Download
+  # also hoch, statt bei Null neu zu beginnen. Der Default von 5 Versuchen
+  # reicht dafuer nicht -- 25 schon, und sie kosten nichts, solange nichts
+  # abbricht.
+  #
+  # stalled-download-timeout: ein Transfer gilt erst nach 10 Minuten ohne
+  # jeden Fortschritt als tot (Default 5). Bei 20 kB/s ist "langsam" sonst
+  # schnell mit "haengt" verwechselt.
+  nix.settings.download-attempts = 25;
+  nix.settings.stalled-download-timeout = 600;
   nix.gc = {
     automatic = true;
     dates = "weekly";
