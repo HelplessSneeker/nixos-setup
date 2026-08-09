@@ -24,11 +24,22 @@ let
   # Logisch bleiben damit ~126 px/Zoll -- noctalias Defaults (thickness 34,
   # scale 1.0) sind aber gegen 96 px/Zoll gezeichnet. Faktor 126/96 = 1.31,
   # daher 34 -> 44 und 1.0 -> 1.3.
+  # fabricus-itinerans: eDP-1, 1920x1080 auf 310x170 mm = ebenfalls ~157 PPI,
+  # aber in Hyprland auf scale 1.0 (1080p vertraegt kein fractional Scaling).
+  # Logisch sind das volle 157 px/Zoll -> Faktor 157/96 = 1.63, also 34 -> 55
+  # und 1.0 -> 1.6.
+  #
+  # Die alten Laptop-Werte (1.0 / 34) waren schlicht falsch gerechnet: sie
+  # unterstellten 96 logische px/Zoll, was nur bei scale 1.63 zutraefe. Ergebnis
+  # war eine Bar, die auf dem Laptop rund 40 % kleiner wirkte als auf dem
+  # Desktop. Gegenprobe ueber den anderen Weg: 1.3 x 1.25 = 1.63, gleiches
+  # Ergebnis -- damit sind beide Bars jetzt physisch gleich gross.
+  #
   # `scale` skaliert den Widget-INHALT, `thickness` die Bar-HOEHE. Die beiden
   # haengen im Code nicht aneinander -- immer gemeinsam anpassen, sonst
   # sprengt der Inhalt die Bar oder schwimmt darin.
-  barScale = if isLaptop then 1.0 else 1.3;
-  barThickness = if isLaptop then 34 else 44;
+  barScale = if isLaptop then 1.6 else 1.3;
+  barThickness = if isLaptop then 55 else 44;
 in
 {
   programs.noctalia = {

@@ -52,7 +52,11 @@ in
   # Statische Catppuccin-Farben als Basis/Fallback ...
   programs.kitty.settings = {
     font_family = "JetBrainsMono Nerd Font";
-    font_size = if isLaptop then 15 else 12;
+    # 13, nicht 15: die volle Umrechnung (12 x 1.25) war in der Praxis einen
+    # Tick zu gross -- bfns Urteil am 09.08.2026 nach dem ersten Sehen. Ein
+    # Terminal liest sich anders als eine Bar, deshalb hier bewusst unter dem
+    # rechnerischen Paritaetswert.
+    font_size = if isLaptop then 13 else 12;
     background_opacity = "0.95";
     window_padding_width = 8;
     cursor_shape = "beam";
