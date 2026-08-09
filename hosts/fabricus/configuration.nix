@@ -145,7 +145,7 @@
   # gegen den zustandsbehaftete Defaults und Datenmigrationen laufen (Datenbank-
   # Layouts, Verzeichnispfade). Hochsetzen wuerde solche Migrationen scharf
   # schalten, ohne dass jemand die Daten migriert hat.
-  # Auf fabricus-itinerans steht hier 26.05 -- korrekt, weil dort frisch
-  # installiert wurde.
+  # Pro Host verschieden: fabricus-itinerans wurde frisch mit 26.05 installiert
+  # und traegt deshalb dort 26.05.
   system.stateVersion = "25.05";
 }
