@@ -1,6 +1,144 @@
 # Per-User Apps (home-manager). Shared home-Modul -> gilt fuer jeden Host,
 # der home/bfn.nix zieht (fabricus jetzt, fabricus-itinerans spaeter).
 { config, pkgs, pkgsUnstable, lib, ... }:
+let
+  # --- org.freedesktop.FileManager1 -> yazi (Punkt 9b) ---
+  # Firefox' "Enthaltenden Ordner oeffnen" geht NICHT ueber xdg-open, sondern
+  # ruft per DBus org.freedesktop.FileManager1.ShowItems. Das Interface liefern
+  # nur echte GUI-Dateimanager mit; yazi hat es nicht und wird es absehbar auch
+  # nicht bekommen (Upstream-Issues sxyazi/yazi#1120 und #1698, beide offen).
+  # Auf fabricus beansprucht den Namen bisher niemand -- der Aufruf scheitert
+  # also hart, ohne Fallback auf den inode/directory-Handler.
+  #
+  # Dieser Shim beansprucht den Namen und uebersetzt die drei Methoden auf
+  # "yazi im Terminal". DBus-aktiviert (Service-File unten): er startet erst,
+  # wenn ihn jemand ruft, und beendet sich nach IDLE_SECONDS wieder -- kein
+  # Dauerlaeufer.
+  #
+  # ShowItems bekommt Datei-URIs, nicht Ordner. yazi kann damit direkt umgehen:
+  # `yazi /pfad/datei` oeffnet das Elternverzeichnis mit der Datei unter dem
+  # Cursor -- genau die Semantik, die die Spec verlangt.
+  #
+  # pygobject statt dbus-python: liegt auf dieser Maschine ohnehin schon im
+  # Store (GTK-Stack), kostet also keine zusaetzliche Closure.
+  yaziFileManager1 =
+    let
+      python = pkgs.python3.withPackages (ps: [ ps.pygobject3 ]);
+    in
+    pkgs.writeScriptBin "yazi-filemanager1" ''
+      #!${python}/bin/python3
+      # Uebersetzt org.freedesktop.FileManager1 auf yazi im Terminal.
+      import subprocess
+      import sys
+      import urllib.parse
+
+      import gi
+
+      gi.require_version("Gio", "2.0")
+      from gi.repository import Gio, GLib
+
+      TERMINAL = "${pkgs.kitty}/bin/kitty"
+      YAZI = "${pkgs.yazi}/bin/yazi"
+      BUS_NAME = "org.freedesktop.FileManager1"
+      OBJECT_PATH = "/org/freedesktop/FileManager1"
+      IDLE_SECONDS = 20
+
+      NODE_XML = """
+      <node>
+        <interface name="org.freedesktop.FileManager1">
+          <method name="ShowFolders">
+            <arg type="as" name="URIs" direction="in"/>
+            <arg type="s" name="StartupId" direction="in"/>
+          </method>
+          <method name="ShowItems">
+            <arg type="as" name="URIs" direction="in"/>
+            <arg type="s" name="StartupId" direction="in"/>
+          </method>
+          <method name="ShowItemProperties">
+            <arg type="as" name="URIs" direction="in"/>
+            <arg type="s" name="StartupId" direction="in"/>
+          </method>
+        </interface>
+      </node>
+      """
+
+      loop = GLib.MainLoop()
+      idle_source = None
+
+
+      def stop():
+          loop.quit()
+          return GLib.SOURCE_REMOVE
+
+
+      def reset_idle():
+          # Nach der letzten Anfrage noch kurz warten, dann beenden. Ein neuer
+          # Aufruf startet uns per DBus-Aktivierung ohnehin wieder.
+          global idle_source
+          if idle_source is not None:
+              GLib.source_remove(idle_source)
+          idle_source = GLib.timeout_add_seconds(IDLE_SECONDS, stop)
+
+
+      def uri_to_path(uri):
+          parsed = urllib.parse.urlparse(uri)
+          if parsed.scheme == "":
+              return uri
+          if parsed.scheme != "file":
+              return None
+          return urllib.parse.unquote(parsed.path)
+
+
+      def open_in_yazi(path):
+          subprocess.Popen(
+              [TERMINAL, "-e", YAZI, path],
+              start_new_session=True,
+              stdin=subprocess.DEVNULL,
+              stdout=subprocess.DEVNULL,
+              stderr=subprocess.DEVNULL,
+          )
+
+
+      def on_call(_conn, _sender, _path, _iface, method, params, invocation):
+          reset_idle()
+          if method not in ("ShowFolders", "ShowItems", "ShowItemProperties"):
+              invocation.return_dbus_error(
+                  "org.freedesktop.DBus.Error.UnknownMethod", method
+              )
+              return
+          uris = params[0] if len(params) > 0 else []
+          for uri in uris:
+              path = uri_to_path(uri)
+              if path:
+                  open_in_yazi(path)
+          # ShowItemProperties kann yazi nicht -- wir zeigen die Datei, statt den
+          # Aufruf ins Leere laufen zu lassen. Bewusste Naeherung.
+          invocation.return_value(None)
+
+
+      def on_bus_acquired(connection, _name):
+          node = Gio.DBusNodeInfo.new_for_xml(NODE_XML)
+          connection.register_object(OBJECT_PATH, node.interfaces[0], on_call, None, None)
+
+
+      def on_name_lost(_connection, _name):
+          # Ein echter Dateimanager haelt den Namen schon -- dann raus hier.
+          sys.exit(1)
+
+
+      Gio.bus_own_name(
+          Gio.BusType.SESSION,
+          BUS_NAME,
+          Gio.BusNameOwnerFlags.NONE,
+          on_bus_acquired,
+          None,
+          on_name_lost,
+      )
+
+      reset_idle()
+      loop.run()
+    '';
+in
 {
   home.packages = with pkgs; [
     firefox        # Default-Browser (SUPER+B). Brave am 06.08.2026 rausgeworfen:
@@ -10,6 +148,9 @@
                    # xdph 1.4.1 nicht zu retten (Portal-Bug, s. hyprland.nix bei
                    # SUPER+D). Discord laeuft jetzt als Website in Firefox --
                    # dort funktioniert Streamen nachweislich.
+    yaziFileManager1  # DBus-Shim: org.freedesktop.FileManager1 -> yazi.
+                      # Steht bewusst auch im PATH, damit man ihn zum Testen
+                      # von Hand starten und die Fehlermeldung sehen kann.
     wl-clipboard   # Clipboard-Bridge fuer nvim/Terminal unter Wayland
                    # (bleibt! nvim/Terminal brauchen wl-copy/wl-paste direkt --
                    #  unabhaengig davon, wer die History fuehrt)
@@ -85,6 +226,23 @@
     mimeType = [ "inode/directory" ];
   };
 
+  # --- DBus-Aktivierung fuer den FileManager1-Shim (Punkt 9b) ---
+  # Damit deckt yazi jetzt BEIDE Wege ab, die "Ordner oeffnen" nehmen kann:
+  # den xdg-open-Weg (Desktop-Entry oben) und den DBus-Weg (dieser Service).
+  #
+  # Der Service startet den Shim erst, wenn ihn wirklich jemand ruft. Die
+  # Datei landet unter ~/.local/share/dbus-1/services/ und damit im
+  # Suchpfad der Session-Bus-Aktivierung, vor den systemweiten Diensten.
+  #
+  # Wenn hier je ein echter Dateimanager einzieht (nautilus, thunar), bringt
+  # der denselben Bus-Namen mit -- dann diesen Block entfernen, sonst gewinnt
+  # wer zuerst kommt.
+  xdg.dataFile."dbus-1/services/org.freedesktop.FileManager1.service".text = ''
+    [D-BUS Service]
+    Name=org.freedesktop.FileManager1
+    Exec=${yaziFileManager1}/bin/yazi-filemanager1
+  '';
+
   # --- Default-Anwendungen (xdg-open / Link-Klicks aus anderen Apps) ---
   # Muss deklarativ sein, seit Brave raus ist: die alte, per GUI gepflegte
   # ~/.config/mimeapps.list zeigte http/https noch auf brave-browser.desktop --
@@ -114,10 +272,9 @@
 
       # Verzeichnisse in yazi (Eintrag oben). Deckt den xdg-open-Weg ab, also
       # Klicks auf Verzeichnis-Links. Firefox' "Enthaltenden Ordner oeffnen"
-      # nach einem Download geht NICHT hierueber, sondern ueber die DBus-
-      # Schnittstelle org.freedesktop.FileManager1 -- die liefern nur echte
-      # GUI-Dateimanager mit, yazi nicht. Dafuer braucht es einen eigenen
-      # kleinen DBus-Dienst; steht noch aus.
+      # nach einem Download laeuft NICHT hierueber, sondern ueber DBus
+      # (org.freedesktop.FileManager1) -- dafuer gibt es seit 09.08.2026 den
+      # Shim oben. Beide Wege landen bei yazi.
       "inode/directory" = "yazi-filemanager.desktop";
 
       # Citrix: die aus dem Firmen-Portal geladene .ica-Datei an den
