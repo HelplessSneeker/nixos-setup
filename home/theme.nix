@@ -99,7 +99,7 @@
   # Der eigentliche Schalter ist die dconf-Key color-scheme=prefer-dark. Den liest
   # xdg-desktop-portal-gtk aus und beantwortet damit die Portal-Settings-API --
   # ueber die fragen Firefox, Thunderbird und alle Electron-Apps (Obsidian,
-  # vesktop, 1Password) unter Wayland ihr prefers-color-scheme ab. Ein blosses
+  # 1Password) unter Wayland ihr prefers-color-scheme ab. Ein blosses
   # GTK-Theme reicht dafuer NICHT.
   # Braucht `programs.dconf.enable = true` auf System-Ebene (modules/gui-apps.nix),
   # sonst existiert die dconf-Datenbank nicht und der Wert verpufft.

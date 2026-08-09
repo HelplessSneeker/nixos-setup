@@ -28,29 +28,12 @@
     modesetting.enable = true;
     powerManagement.enable = false;
 
-    # --- Screen-Sharing-Versuch 2 von 3 (08.08.2026) ---
-    # Symptom: Discord-Screenshare bricht beim Bestaetigen der Quelle ab. Der
-    # Portal-Log zeigt, dass es NICHT am Client liegt -- die Kette laeuft bis zum
-    # Stream-Start und stirbt dann im Buffer-Handshake:
-    #   [pw] Building modifiers for dma
-    #   [screencopy] Sharing initialized
-    #   [screencopy/pipewire] Out of buffers
-    #   [ERR]  [pw] DMA-BUF fixation failed after 2 attempts, falling back to SHM
-    #   [WARN] [pipewire] Asked for a wl_shm buffer which is legacy.
-    #   [screencopy] Stream destroyed
-    # Die DMA-BUF-Allokation scheitert, der SHM-Fallback wird abgelehnt.
-    # Passend dazu: xdg-desktop-portal-hyprland ist am 06.08.2026 zweimal von
-    # selbst mit SIGSEGV gestorben (coredumpctl, Versionen 1.3.9 und 1.4.1).
-    #
-    # Versuch 1 (AQ_NO_MODIFIERS, s. environment.sessionVariables) hat nichts
-    # geaendert und ist wieder raus. Versuch 2 sind die offenen Kernelmodule:
-    # die RTX 2060 ist Turing, wird davon unterstuetzt, und NVIDIA empfiehlt sie
-    # ab Turing selbst -- der DMA-BUF-/GBM-Pfad ist dort der aktiv gepflegte.
-    # Rueckweg: alte NixOS-Generation im Bootloader.
-    #
-    # Versuch 3 waere der Treiber (570.195.03 -> 580er-Serie). Bewusst NICHT
-    # jetzt: das bringt auf einer Maschine mit ungeklaerten MCE-Abstuerzen eine
-    # zusaetzliche Variable ins Spiel und vergiftet die laufende Fehlersuche.
+    # Offene Kernelmodule. Kam am 08.08.2026 als Screenshare-Versuch rein und
+    # hat daran nichts geaendert (Ursache war der Portal-Bug, s. home/apps.nix)
+    # -- bleibt aber bewusst an: die RTX 2060 ist Turing, NVIDIA empfiehlt die
+    # offenen Module ab dieser Generation selbst, und sie laufen hier seit dem
+    # Reboot am 09.08.2026 unauffaellig. Zurueckdrehen kostet einen weiteren
+    # Reboot (Kernelmodul), ohne dass ein Problem dafuer spraeche.
     open = true;
 
     nvidiaSettings = true;

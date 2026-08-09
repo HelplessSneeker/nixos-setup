@@ -6,7 +6,10 @@
     firefox        # Default-Browser (SUPER+B). Brave am 06.08.2026 rausgeworfen:
                    # bfn will die transparentere Datenschutz-Story.
     obsidian
-    vesktop        # Discord-Client, nativ Wayland (Screenshare + Themes)
+                   # vesktop am 09.08.2026 rausgeworfen: Screenshare war unter
+                   # xdph 1.4.1 nicht zu retten (Portal-Bug, s. hyprland.nix bei
+                   # SUPER+D). Discord laeuft jetzt als Website in Firefox --
+                   # dort funktioniert Streamen nachweislich.
     wl-clipboard   # Clipboard-Bridge fuer nvim/Terminal unter Wayland
                    # (bleibt! nvim/Terminal brauchen wl-copy/wl-paste direkt --
                    #  unabhaengig davon, wer die History fuehrt)
@@ -104,7 +107,10 @@
       "message/rfc822"           = "thunderbird.desktop";
       "x-scheme-handler/mid"     = "thunderbird.desktop";
 
-      "x-scheme-handler/discord" = "vesktop.desktop";
+      # discord:// hatte vesktop als Handler -- mit dem Paket ist der Eintrag
+      # weg. Firefox versteht das Schema nicht, ein Ersatz waere also nur ein
+      # toter Eintrag. Einladungs- und Channel-Links sind ohnehin https und
+      # laufen ueber den firefox.desktop-Handler oben.
 
       # Verzeichnisse in yazi (Eintrag oben). Deckt den xdg-open-Weg ab, also
       # Klicks auf Verzeichnis-Links. Firefox' "Enthaltenden Ordner oeffnen"

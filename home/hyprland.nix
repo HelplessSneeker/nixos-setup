@@ -8,6 +8,31 @@
     fuzzel     # App-Launcher (SUPER+Space)
     grimblast  # Screenshot-Wrapper (Print)
 
+    # Discord als Website (SUPER+D). vesktop ist am 09.08.2026 rausgeflogen:
+    # Screenshare war dort nicht zu retten. Ursache war NICHT der Client,
+    # sondern xdg-desktop-portal-hyprland 1.4.1 -- "Out of buffers" ist normale
+    # Backpressure, das Portal renegotiiert dabei aber den Buffer-Pool und
+    # zerstoert den Frame-Callback, womit die Session stirbt (Issue #423, Fix in
+    # PR #424 gemerged 06.08.2026, aber in KEINEM Release: v1.4.1 ist vom
+    # 29.07.2026). Firefox loest den Bug nie aus, weil er die Buffer schnell
+    # genug zurueckgibt -- im Gegentest am 09.08.2026 hat er sauber gestreamt,
+    # auf demselben Portal und Treiber.
+    #
+    # Das Skript ersetzt vesktops Single-Instance-Verhalten: ein zweiter Druck
+    # holt das bestehende Fenster nach vorn, statt ein weiteres zu oeffnen.
+    # Grenze: gematcht wird ueber den FENSTERTITEL. Ein Firefox-Fenster, in dem
+    # Discord nur einer von mehreren Tabs ist, wird nur getroffen, solange der
+    # Discord-Tab aktiv ist. Fuer den gedachten Gebrauch (eigenes Fenster, per
+    # --new-window erzeugt) passt das.
+    (writeShellScriptBin "discord-web" ''
+      if hyprctl -j clients \
+           | ${jq}/bin/jq -e 'any(.[]; .title | test("Discord"))' >/dev/null; then
+        hyprctl dispatch focuswindow 'title:.*Discord.*'
+      else
+        firefox --new-window https://discord.com/app
+      fi
+    '')
+
     # Keybind-Spickzettel: liest die LIVE aktiven Hyprland-Binds (hyprctl) und
     # zeigt sie durchsuchbar in fuzzel. Kein Rot-Risiko, weil aus der laufenden
     # Session generiert statt aus einer Doku-Kopie. Auf SUPER+? gelegt.
@@ -198,7 +223,7 @@
     bind = $mainMod, E, exec, $fileManager
     bind = $mainMod, O, exec, obsidian
     bind = $mainMod, P, exec, 1password
-    bind = $mainMod, D, exec, vesktop
+    bind = $mainMod, D, exec, discord-web
 
     # System
     bind = $mainMod SHIFT, Escape, exec, hyprlock
