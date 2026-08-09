@@ -250,21 +250,47 @@ in
   };
 
   # --- DBus-Aktivierung fuer den FileManager1-Shim (Punkt 9b) ---
-  # Damit deckt yazi jetzt BEIDE Wege ab, die "Ordner oeffnen" nehmen kann:
-  # den xdg-open-Weg (Desktop-Entry oben) und den DBus-Weg (dieser Service).
+  # Damit deckt yazi BEIDE Wege ab, die "Ordner oeffnen" nehmen kann: den
+  # xdg-open-Weg (Desktop-Entry oben) und den DBus-Weg (hier).
   #
-  # Der Service startet den Shim erst, wenn ihn wirklich jemand ruft. Die
-  # Datei landet unter ~/.local/share/dbus-1/services/ und damit im
-  # Suchpfad der Session-Bus-Aktivierung, vor den systemweiten Diensten.
+  # Die Aktivierung laeuft ueber systemd statt direkt ueber Exec, und das ist
+  # kein Stil, sondern ein Bugfix (09.08.2026): der dbus-daemon liest die
+  # .service-Dateien einmal und cached sie fuer die Lebensdauer der Session.
+  # Stand ein Store-Pfad in Exec=, startete er nach jedem Rebuild weiter die
+  # ALTE Ableitung -- auch nach ReloadConfig, das nur die Bus-Konfiguration
+  # neu liest, nicht die Aktivierungsdatenbank. Kostete eine Fehlersuche, in
+  # der die Datei auf der Platte laengst richtig war.
+  #
+  # Mit SystemdService= enthaelt diese Datei keinen Store-Pfad mehr und
+  # aendert sich nie wieder. Was sich aendert, ist die systemd-Unit, und die
+  # laedt home-manager bei jeder Aktivierung sauber neu. Nebenbei landen
+  # Tracebacks damit unter `journalctl --user -u yazi-filemanager1`.
+  #
+  # Exec= bleibt Pflicht im Dateiformat und zeigt bewusst auf einen stabilen
+  # Pfad statt in den Store -- es wird nur benutzt, wenn systemd fehlt.
   #
   # Wenn hier je ein echter Dateimanager einzieht (nautilus, thunar), bringt
-  # der denselben Bus-Namen mit -- dann diesen Block entfernen, sonst gewinnt
-  # wer zuerst kommt.
+  # der denselben Bus-Namen mit -- dann diesen Block und die Unit entfernen,
+  # sonst gewinnt wer zuerst kommt.
   xdg.dataFile."dbus-1/services/org.freedesktop.FileManager1.service".text = ''
     [D-BUS Service]
     Name=org.freedesktop.FileManager1
-    Exec=${yaziFileManager1}/bin/yazi-filemanager1
+    Exec=/run/current-system/sw/bin/false
+    SystemdService=yazi-filemanager1.service
   '';
+
+  systemd.user.services.yazi-filemanager1 = {
+    Unit = {
+      Description = "org.freedesktop.FileManager1 auf yazi abbilden";
+      # Kein Install/WantedBy: der Dienst wird ausschliesslich per DBus
+      # aktiviert und beendet sich nach Leerlauf wieder selbst.
+    };
+    Service = {
+      Type = "dbus";
+      BusName = "org.freedesktop.FileManager1";
+      ExecStart = "${yaziFileManager1}/bin/yazi-filemanager1";
+    };
+  };
 
   # --- Default-Anwendungen (xdg-open / Link-Klicks aus anderen Apps) ---
   # Muss deklarativ sein, seit Brave raus ist: die alte, per GUI gepflegte
