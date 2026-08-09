@@ -81,7 +81,9 @@
       # "Hyprland is being launched without start-hyprland".
       # Der Wrapper liegt im hyprland-Paket (/run/current-system/sw/bin/start-hyprland).
       # Rueckweg bei kaputtem Login: alte NixOS-Generation im Bootloader.
-      command = "${pkgs.greetd.tuigreet}/bin/tuigreet --time --cmd start-hyprland";
+      # pkgs.tuigreet, nicht pkgs.greetd.tuigreet -- in 26.05 umbenannt. Der alte
+      # Pfad funktioniert noch ueber einen Alias, warnt aber bei jedem Rebuild.
+      command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd start-hyprland";
       user = "greeter";
     };
   };

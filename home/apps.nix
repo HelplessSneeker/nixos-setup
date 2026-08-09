@@ -224,6 +224,15 @@ in
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
+
+    # Ab home-manager 26.05 stehen beide per Default auf false. Hier bewusst
+    # beim alten Wert, damit das Kanal-Upgrade nichts am Verhalten aendert.
+    #
+    # Beim anstehenden nvim-Setup neu bewerten: `false` spart spuerbar Closure,
+    # und moderne Plugins brauchen die Ruby-/Python-Provider praktisch nie --
+    # `:checkhealth` sagt dir dann, ob wirklich etwas fehlt.
+    withRuby = true;
+    withPython3 = true;
   };
 
   # --- Dateimanager-Eintrag fuer yazi ---
