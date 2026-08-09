@@ -5,7 +5,6 @@
 { config, pkgs, lib, ... }:
 {
   home.packages = with pkgs; [
-    fuzzel     # App-Launcher (SUPER+Space)
     grimblast  # Screenshot-Wrapper (Print)
 
     # Discord als Website (SUPER+D). vesktop ist am 09.08.2026 rausgeflogen:
@@ -33,34 +32,12 @@
       fi
     '')
 
-    # Keybind-Spickzettel: liest die LIVE aktiven Hyprland-Binds (hyprctl) und
-    # zeigt sie durchsuchbar in fuzzel. Kein Rot-Risiko, weil aus der laufenden
-    # Session generiert statt aus einer Doku-Kopie. Auf SUPER+? gelegt.
-    #
-    # OFFEN: das ist der letzte Nutzer von fuzzel -- Launcher und Clipboard sind
-    # seit 08.08.2026 noctalia-Panels. noctalia hat KEINEN dmenu-Modus (per
-    # `noctalia msg --help` geprueft), die Optik bleibt hier also vorerst fremd.
-    # Wege: Community-Plugin suchen, sonst ein eigenes fuzzel-Template fuer
-    # noctalias Theming (fuzzel fehlt unter den 20 Builtin-Templates).
-    (writeShellScriptBin "hypr-cheatsheet" ''
-      hyprctl -j binds \
-        | ${jq}/bin/jq -r '
-            def mods(m):
-              [ (if (m/64|floor)%2==1 then "SUPER" else empty end),
-                (if (m/4|floor)%2==1  then "CTRL"  else empty end),
-                (if (m/8|floor)%2==1  then "ALT"   else empty end),
-                (if (m/1|floor)%2==1  then "SHIFT" else empty end) ] | join("+");
-            .[]
-            | (mods(.modmask)) as $m
-            | ((if $m == "" then "" else $m + "+" end)
-               + (if (.key|length) > 0 then .key else ("code:" + (.keycode|tostring)) end)) as $combo
-            | $combo + "\t" + .dispatcher
-              + (if (.arg|length) > 0 then " " + .arg else "" end)
-          ' \
-        | sort \
-        | ${util-linux}/bin/column -t -s "$(printf "\t")" \
-        | ${fuzzel}/bin/fuzzel --dmenu --prompt "keys> " --width 72 >/dev/null
-    '')
+    # Der selbstgebaute hypr-cheatsheet ist am 09.08.2026 rausgeflogen. Ersetzt
+    # durch das noctalia-Plugin kenn/keybind-cheatsheet -- gleiche Idee (Binds
+    # live statt aus einer Doku-Kopie), aber im noctalia-Design statt in fuzzel.
+    # Das Plugin liest hyprland.conf direkt (Einstellung hyprland_parser=conf),
+    # es braucht also weder Lua noch hyprctl-Parsing von Hand. Mit dem Ausbau
+    # verliert fuzzel seinen letzten Nutzer und fliegt ebenfalls raus.
   ];
 
   xdg.configFile."hypr/hyprland.conf".text = ''
@@ -77,8 +54,8 @@
     ### Programme ###
     $terminal    = kitty
     # Suche/Launcher ist ab 08.08.2026 noctalias Panel statt fuzzel -- ein Stack
-    # fuer alles, was aufklappt. fuzzel bleibt vorerst als Paket installiert,
-    # weil hypr-cheatsheet es noch als dmenu-Engine braucht (siehe oben).
+    # fuer alles, was aufklappt. Seit 09.08.2026 ist fuzzel auch als Paket weg,
+    # weil die Hilfe auf das noctalia-Plugin umgezogen ist (war der letzte Nutzer).
     $menu        = noctalia msg panel-toggle launcher
     $browser     = firefox
     $mail        = thunderbird
@@ -232,7 +209,10 @@
     # de-Layout ist ? = Shift+ss, aber Hyprland matcht hier den Keysym der
     # BASIS-Ebene -- also `ssharp` OHNE SHIFT im Modifier-Feld. Ein Bind auf den
     # geshifteten Keysym feuert nie, und zwar kommentarlos.
-    bind = $mainMod, ssharp, exec, hypr-cheatsheet
+    #
+    # Die Panel-ID ist voll qualifiziert (<plugin-id>:<panel-id>) -- ein blosses
+    # `cheatsheet` quittiert noctalia mit `unknown panel`.
+    bind = $mainMod, ssharp, exec, noctalia msg panel-toggle kenn/keybind-cheatsheet:cheatsheet
     bind = $mainMod, C, exec, grimblast --notify copysave area
     bind = $mainMod CTRL, C, exec, grimblast --notify copysave screen
     bind = $mainMod SHIFT, C, exec, hyprpicker -a

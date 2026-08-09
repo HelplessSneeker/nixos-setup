@@ -89,7 +89,7 @@
         printf "  %-14s %s\n" "Tab"        "Vervollstaendigung"
         echo
         set_color --bold cyan; echo "── Hyprland ──"; set_color normal
-        echo "  SUPER+/        durchsuchbare Keybind-Liste (auch: hypr-cheatsheet)"
+        echo "  SUPER+ss       durchsuchbare Keybind-Liste (noctalia-Plugin)"
       '';
     };
 
