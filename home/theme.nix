@@ -6,7 +6,9 @@
 { config, pkgs, lib, ... }:
 {
   home.packages = with pkgs; [
-    papirus-icon-theme  # Icons fuer fuzzel
+    papirus-icon-theme  # System-Icon-Set fuer GTK-Apps. Kam urspruenglich wegen
+                        # fuzzel rein und bleibt nach dessen Ausbau: ein
+                        # Icon-Theme braucht der Desktop unabhaengig davon.
   ];
 
   # Cursor-Theme (statt Default-Adwaita). Setzt XCursor + GTK + hyprcursor in einem.
@@ -22,38 +24,10 @@
   # --- Filemanager: yazi (terminal, HJKL-gesteuert) ---
   programs.yazi.enable = true;
 
-  # --- Launcher: fuzzel ---
-  # Bleibt statisch Catppuccin: dient jetzt v.a. als dmenu-Backend fuer den
-  # hypr-cheatsheet (SUPER+/). App-Launcher-Rolle kann spaeter noctalia uebernehmen.
-  programs.fuzzel = {
-    enable = true;
-    settings = {
-      main = {
-        font = "JetBrainsMono Nerd Font:size=12";
-        prompt = "'  '";
-        icon-theme = "Papirus-Dark";
-        width = 34;
-        lines = 10;
-        horizontal-pad = 20;
-        vertical-pad = 14;
-        inner-pad = 8;
-      };
-      border = {
-        width = 2;
-        radius = 10;
-      };
-      colors = {
-        background = "1e1e2eee";
-        text = "cdd6f4ff";
-        prompt = "bac2deff";
-        match = "89b4faff";
-        selection = "313244ff";
-        selection-text = "cdd6f4ff";
-        selection-match = "89b4faff";
-        border = "cba6f7ff";
-      };
-    };
-  };
+  # fuzzel ist am 09.08.2026 komplett rausgeflogen. Es war zuletzt nur noch
+  # dmenu-Backend fuer den hypr-cheatsheet; seit das keybind-cheatsheet-Plugin
+  # die Hilfe im noctalia-Design uebernimmt, hat es keinen Nutzer mehr. Launcher
+  # und Clipboard liefen schon seit 08.08.2026 ueber noctalia-Panels.
 
   # --- Terminal: kitty (enable kommt aus bfn.nix) ---
   # Statische Catppuccin-Farben als Basis/Fallback ...
@@ -99,7 +73,7 @@
   # Der eigentliche Schalter ist die dconf-Key color-scheme=prefer-dark. Den liest
   # xdg-desktop-portal-gtk aus und beantwortet damit die Portal-Settings-API --
   # ueber die fragen Firefox, Thunderbird und alle Electron-Apps (Obsidian,
-  # vesktop, 1Password) unter Wayland ihr prefers-color-scheme ab. Ein blosses
+  # 1Password) unter Wayland ihr prefers-color-scheme ab. Ein blosses
   # GTK-Theme reicht dafuer NICHT.
   # Braucht `programs.dconf.enable = true` auf System-Ebene (modules/gui-apps.nix),
   # sonst existiert die dconf-Datenbank nicht und der Wert verpufft.
