@@ -36,7 +36,10 @@
     enableDefaultPackages = true;
     packages = with pkgs; [
       noto-fonts
-      noto-fonts-emoji
+      # In nixpkgs 26.05 umbenannt: noto-fonts-emoji -> noto-fonts-color-emoji.
+      # Der alte Name ist keine Warnung, sondern ein harter Fehler (throw), der
+      # den gesamten Rebuild abbricht.
+      noto-fonts-color-emoji
       nerd-fonts.jetbrains-mono    # Icons fuer Waybar / nvim / Terminal
     ];
   };

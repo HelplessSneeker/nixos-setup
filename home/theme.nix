@@ -22,7 +22,14 @@
   };
 
   # --- Filemanager: yazi (terminal, HJKL-gesteuert) ---
-  programs.yazi.enable = true;
+  programs.yazi = {
+    enable = true;
+    # Ab home-manager 26.05 heisst der Shell-Wrapper per Default `y` statt `yy`.
+    # Hier bewusst beim alten Namen: `yy` sitzt im Muskelgedaechtnis, und ein
+    # Kanal-Upgrade ist der falsche Moment, um Kommandonamen zu aendern.
+    # Umstellen ist ein Einzeiler, wenn du `y` lieber magst.
+    shellWrapperName = "yy";
+  };
 
   # fuzzel ist am 09.08.2026 komplett rausgeflogen. Es war zuletzt nur noch
   # dmenu-Backend fuer den hypr-cheatsheet; seit das keybind-cheatsheet-Plugin
@@ -94,6 +101,14 @@
     };
     gtk3.extraConfig.gtk-application-prefer-dark-theme = 1;
     gtk4.extraConfig.gtk-application-prefer-dark-theme = 1;
+
+    # Ab home-manager 26.05 ist der Default fuer gtk4.theme `null` statt
+    # `config.gtk.theme`. Hier bewusst der bisherige Wert, explizit gesetzt:
+    # das haelt die Optik der GTK4-Apps exakt so wie sie war und macht nebenbei
+    # die Rebuild-Warnung weg. Auf `null` umzustellen ist eine Optik-
+    # Entscheidung (GTK4-Apps wuerden dann libadwaita-Standard nehmen) und
+    # gehoert nicht in ein Kanal-Upgrade.
+    gtk4.theme = config.gtk.theme;
   };
 
   # Qt-Apps (z.B. qbittorrent-GUI, VLC) an die GTK-Einstellung koppeln, damit
