@@ -129,5 +129,12 @@
 
   zramSwap.enable = true;
 
+  # BLEIBT auf 25.05, auch nachdem die Flake am 09.08.2026 auf nixpkgs 26.05
+  # gezogen ist. Das ist kein vergessener Wert: stateVersion markiert den Stand,
+  # gegen den zustandsbehaftete Defaults und Datenmigrationen laufen (Datenbank-
+  # Layouts, Verzeichnispfade). Hochsetzen wuerde solche Migrationen scharf
+  # schalten, ohne dass jemand die Daten migriert hat.
+  # Auf fabricus-itinerans steht hier 26.05 -- korrekt, weil dort frisch
+  # installiert wurde.
   system.stateVersion = "25.05";
 }
