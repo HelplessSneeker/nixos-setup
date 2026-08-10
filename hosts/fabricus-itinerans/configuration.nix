@@ -12,6 +12,10 @@
     ./hardware-configuration.nix
     inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t480
 
+    # Ladeschwellen 75/80 % fuer BAT0 + BAT1. Host-spezifisch importiert,
+    # nicht im shared Stack -- fabricus hat keinen Akku.
+    ../../modules/battery-charge-thresholds.nix
+
     # Citrix Workspace -- ABSICHTLICH AUS bis nach dem ersten Boot.
     #
     # Das Modul zieht seinen Tarball ueber `requireFile`, die Datei muss also im
