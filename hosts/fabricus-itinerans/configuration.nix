@@ -16,17 +16,18 @@
     # nicht im shared Stack -- fabricus hat keinen Akku.
     ../../modules/battery-charge-thresholds.nix
 
-    # Citrix Workspace -- ABSICHTLICH AUS bis nach dem ersten Boot.
+    # Citrix Workspace. Aktiv seit 10.08.2026 (Phase 2).
     #
-    # Das Modul zieht seinen Tarball ueber `requireFile`, die Datei muss also im
-    # Store DIESER Maschine liegen. Waehrend `nixos-install` ist der Ziel-Store
-    # /mnt und dort liegt sie garantiert nicht -- mit aktivem Import scheitert
-    # die Installation, nicht erst irgendein spaeterer Rebuild.
+    # VORAUSSETZUNG, sonst bricht JEDER Rebuild dieses Hosts ab: der Tarball
+    # linuxx64-26.04.0.105.tar.gz muss im Store DIESER Maschine liegen --
+    # `requireFile` kann ihn nicht selbst holen (Citrix-EULA). Einmalig:
+    #   nix-prefetch-url file://$PWD/linuxx64-26.04.0.105.tar.gz
+    # Der Ablauf steht ausfuehrlich im Kopf von modules/citrix.nix.
     #
-    # Phase 2, nach dem ersten Boot: Tarball laden + `nix-prefetch-url` (die
-    # Schritte stehen oben in modules/citrix.nix), dann diese Zeile
-    # einkommentieren und `nixos-rebuild switch`.
-    # ../../modules/citrix.nix
+    # Waehrend der Installation war der Import bewusst aus: der Ziel-Store war
+    # /mnt, dort konnte die Datei gar nicht liegen -- mit aktivem Import waere
+    # `nixos-install` selbst gescheitert, nicht erst ein spaeterer Rebuild.
+    ../../modules/citrix.nix
   ];
 
   # --- Boot ------------------------------------------------------------------
