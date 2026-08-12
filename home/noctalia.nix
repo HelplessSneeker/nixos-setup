@@ -123,6 +123,45 @@ in
           title_scroll = "on_hover";
         };
       };
+
+      # Kalender im Control-Center. Quelle ist Radicale auf personal-server
+      # (cal.bfnoessler.at), seit 12.08.2026 der Master fuer alle Geraete.
+      #
+      # noctalia LIEST nur, es schreibt nicht: der CalendarService liefert laut
+      # Quellcode einen "read-only event snapshot", der CalDavClient kennt genau
+      # eine Methode (fetchEvents). Termine anlegen und aendern bleibt Sache von
+      # Thunderbird bzw. DAVx5 am Handy. Aufgaben (VTODO) blendet der Parser
+      # ohnehin aus, die Bar bleibt also frei davon.
+      #
+      # Das Passwort darf hier NICHT stehen: nixos-setup ist ein oeffentliches
+      # Repo, und Flake-Quellen landen zusaetzlich im weltlesbaren Nix-Store.
+      # Deshalb credential_source = "file" auf eine Datei ausserhalb des Stores.
+      # Einmalig pro Maschine anlegen:
+      #   mkdir -p ~/.config/noctalia
+      #   install -m 600 /dev/null ~/.config/noctalia/caldav-password
+      #   printf '%s' 'DAS-PASSWORT' > ~/.config/noctalia/caldav-password
+      # printf statt echo ist Absicht: noctalia entfernt beim Lesen genau EIN
+      # abschliessendes Newline und trimmt sonst nichts -- ein Leerzeichen waere
+      # Teil des Passworts und der Login schluege fehl.
+      calendar = {
+        enabled = true;
+        refresh_minutes = 15;
+
+        # Der Tabellen-Schluessel ist die Account-ID. Sie muss [a-z0-9_] sein,
+        # weil noctalia damit dauerhaft die Credential-Records identifiziert.
+        account.privat = {
+          type = "caldav";
+          provider = "custom";   # kein Preset (icloud), eigener Server
+          name = "Privat";       # Anzeigename -- das Feld heisst "name", NICHT display_name
+          color = "#1a5fb4";     # gleiche Farbe wie im Radicale-Web-UI
+          server_url = "https://cal.bfnoessler.at/";
+          username = "bfn";
+          credential_source = "file";
+          password_file = "${config.home.homeDirectory}/.config/noctalia/caldav-password";
+          # `calendars` bewusst weggelassen: leer bedeutet "alle gefundenen",
+          # damit ein spaeter angelegter zweiter Kalender ohne Rebuild auftaucht.
+        };
+      };
     };
   };
 }
