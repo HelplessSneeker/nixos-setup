@@ -62,12 +62,24 @@ in
         IdentitiesOnly = true;
       };
 
-      # Heim-Server (Media-/Torrent-Stack). Nutzt den lokalen fabricus-Key,
-      # nicht 1Password -- dort liegt kein passender Eintrag.
+      # Heim-Server (Media-/Torrent-Stack). Klassisches sshd mit
+      # ~/.ssh/authorized_keys -- anders als personal-server, das Tailscale SSH
+      # nutzt und deshalb ganz ohne Key auskommt.
+      #
+      # Bis 11.08.2026 stand hier ~/.ssh/id_ed25519. Diese Datei liegt aber nur
+      # auf fabricus (Desktop) auf der Platte -- vom Laptop aus gab es damit
+      # keinen anbietbaren Key ("no such identity"), und IdentitiesOnly sperrte
+      # den 1Password-Agent zusaetzlich aus. Genau das war der Grund, warum
+      # cogitator vom Laptop nie erreichbar war.
+      #
+      # Jetzt der 1Password-Eintrag "cogitator-prime", am 11.08.2026 angelegt
+      # und auf dem Server an /home/bfn/.ssh/authorized_keys *angehaengt*;
+      # `media-server` und `fabricus` stehen weiterhin daneben.
+      # Fingerprint: SHA256:s535wIXb/AylSt0zsKIu+JIcUG0SXLVTV7STvmjBdTA
       cogitator-prime = {
         HostName = "cogitator-prime.${tailnet}";
         User = "bfn";
-        IdentityFile = "~/.ssh/id_ed25519";
+        IdentityFile = "~/.ssh/cogitator-prime.pub";
         IdentitiesOnly = true;
       };
 
@@ -78,15 +90,19 @@ in
         User = "bfn";
       };
 
-      # Die beiden eigenen Maschinen untereinander. Beide autorisieren denselben
-      # Key `openclaw-lab` (steht deklarativ in beiden hosts/*/configuration.nix),
-      # dessen privater Teil in 1Password liegt -- deshalb dieselbe Mechanik wie
-      # bei primus: IdentityFile zeigt auf den *public* Key, IdentitiesOnly
-      # schraenkt die Agent-Auswahl darauf ein.
+      # Die beiden eigenen Maschinen untereinander.
       #
-      # Ohne diese beiden Bloecke laeuft der Agent alle Keys durch und sshd
-      # bricht mit "Too many authentication failures" ab, bevor der richtige
-      # dran ist -- am 09.08.2026 genau so passiert.
+      # ACHTUNG, STAND 11.08.2026: diese beiden Bloecke funktionieren NICHT.
+      # Sie zeigen auf `openclaw-lab`, und von diesem Key existiert kein
+      # privater Teil -- der 1Password-Agent listet ihn nicht (`ssh-add -l`),
+      # und in den sshd-Journalen beider Hosts steht seit dem 09.08.2026 kein
+      # einziger `bfn`-Login damit. Der Pubkey wurde am 08.08.2026 deklariert,
+      # ohne dass je ein Gegenstueck angelegt wurde. Karteileiche.
+      #
+      # Absicht der Mechanik (die stimmt): IdentityFile zeigt auf den *public*
+      # Key, IdentitiesOnly schraenkt die Agent-Auswahl darauf ein. Ohne das
+      # laeuft der Agent alle Keys durch und sshd bricht mit "Too many
+      # authentication failures" ab -- am 09.08.2026 genau so passiert.
       #
       # Der Eintrag fuer die eigene Maschine ist jeweils inert, aber das Modul
       # ist shared: so gilt auf beiden Hosts dieselbe Datei.
@@ -111,8 +127,19 @@ in
   home.file.".ssh/primus-vps.pub".text =
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHBMd+ZsTr68NdZlioXii1MZFbtZx3v5TmqyG53+M0ub primus-vps\n";
 
-  # Public Key des 1Password-Eintrags "openclaw-lab" -- derselbe Key steht als
-  # authorizedKey in beiden hosts/*/configuration.nix. Nur oeffentlich.
+  # Public Key des 1Password-Eintrags "cogitator-prime" (angelegt 11.08.2026).
+  # Gegenstueck steht auf dem Server in /home/bfn/.ssh/authorized_keys --
+  # cogitator ist Debian, nicht NixOS, also nicht deklarativ von hier aus.
+  # Nur oeffentlich, gehoert nicht zu den Secrets.
+  home.file.".ssh/cogitator-prime.pub".text =
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIESznCeiuvFIcwB58RTCMe3ALD6kn95vn0KKDhk5pNVV cogitator-prime\n";
+
+  # Pubkey `openclaw-lab`, steht als authorizedKey in beiden
+  # hosts/*/configuration.nix. TOTER KEY -- kein privater Teil existiert
+  # (siehe Kommentar bei den fabricus-Bloecken oben). Bleibt vorerst stehen,
+  # damit die Bloecke evaluieren; ersatzlos raus oder durch einen echten Key
+  # ersetzen, sobald entschieden ist, ob die Maschinen sich gegenseitig
+  # ueberhaupt per SSH erreichen sollen.
   home.file.".ssh/openclaw-lab.pub".text =
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFdHqQP/7i5iIK4hBcLnjzvvQKFiD7xHH9+o7x95i58a openclaw-lab\n";
 
