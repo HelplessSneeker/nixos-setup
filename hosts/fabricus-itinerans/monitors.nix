@@ -37,13 +37,13 @@
     # Dock: zwei externe 1080p-Schirme nebeneinander, oberkantenbuendig.
     # scale 1, KEIN 1.25 wie am Desktop -- die 1.25 dort teilt 4k sauber auf,
     # auf 1080p waere derselbe Faktor fractional und damit unscharf.
-    monitor = DP-4, preferred, 0x0,    1
+    monitor = DP-4, preferred, 3840x0,    1
     monitor = DP-5, preferred, 1920x0, 1
 
     # Internes Panel mittig darunter: die beiden Externen sind zusammen 3840
     # breit, das 1920 breite Panel sitzt zentriert bei x = (3840-1920)/2 = 960.
     # Deckel zu / Panel aus: Zeile durch `monitor = eDP-1, disable` ersetzen.
-    monitor = eDP-1, preferred, 960x1080, 1
+    monitor = eDP-1, preferred, 0x0, 1
 
     # Unbekannter Schirm (Beamer, fremdes Dock): rechts dran, native Aufloesung.
     monitor = , preferred, auto, 1
