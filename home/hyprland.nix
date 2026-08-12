@@ -4,28 +4,13 @@
 # alten dotfiles portiert), aber vim-HJKL + 10 Workspaces bleiben.
 { config, pkgs, lib, osConfig, ... }:
 
-# Der Monitor-Block ist das einzige host-spezifische Stueck hier drin, deshalb
-# dieselbe isLaptop-Weiche wie in home/noctalia.nix (osConfig = die NixOS-Config
-# des Hosts, den home-manager gerade baut).
+# Der Monitor-Block wohnt seit 12.08.2026 NICHT mehr hier, sondern je Host in
+# hosts/<host>/monitors.nix -- die beiden Faelle haben gegensaetzliche
+# Anforderungen (Desktop statisch, Laptop je nach Dock/Beamer) und teilen sich
+# keine einzige Zeile mehr. Eingebunden wird das ueber `source` weiter unten.
+# Die isLaptop-Weiche bleibt, sie traegt noch die Trackpad-Gesten.
 let
   isLaptop = osConfig.networking.hostName == "fabricus-itinerans";
-
-  monitorBlock =
-    if isLaptop then ''
-      # cachus-rex-Hardware, internes Panel. `preferred` statt fester Werte:
-      # Mode und Name (eDP-1) sind erst nach dem ersten Boot verifizierbar.
-      # scale 1, KEIN 1.25 wie am Desktop -- die 1.25 dort teilen 4k sauber auf,
-      # auf einem 1080p-Panel waere derselbe Faktor fractional und damit unscharf.
-      monitor = eDP-1, preferred, 0x0, 1
-      # Externer Schirm (Vortrag/Dock): rechts daneben, native Skalierung.
-      monitor = , preferred, auto, 1
-    '' else ''
-      # 2x BenQ EL2870U (28" 4k). scale 1.25 -> logisch 3072x1728 pro Schirm
-      # (teilt 3840/2160 sauber, kein Fractional-Blur). HDMI links, DP rechts daneben.
-      monitor = HDMI-A-1, 3840x2160@60, 0x0, 1.25
-      monitor = DP-1,     3840x2160@60, 3072x0, 1.25
-      monitor = ,preferred,auto,1.25
-    '';
 
   # Trackpad-Gesten -- nur der Laptop hat ueberhaupt ein Trackpad.
   #
@@ -92,7 +77,12 @@ in
     # Catppuccin Mocha - clean & ruhig
 
     ### Monitor ###
-    ${monitorBlock}
+    # Host-spezifisch, deshalb ausgelagert: hosts/<host>/monitors.nix schreibt
+    # diese Datei (xdg.configFile, also Store-Symlink und read-only). Sie ist
+    # der EINZIGE Ort mit monitor=-Regeln -- hier steht bewusst keine, auch kein
+    # Catch-all, sonst gewinnt je nach Reihenfolge mal die eine, mal die andere.
+    # Fehlt die Datei, warnt Hyprland nur (wie bei noctalia.conf weiter unten).
+    source = ~/.config/hypr/monitors.conf
 
     ### Programme ###
     $terminal    = kitty

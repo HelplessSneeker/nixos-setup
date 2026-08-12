@@ -12,6 +12,11 @@
     ./hardware-configuration.nix
     inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t480
 
+    # Monitor-Layout dieses Hosts. Host-lokal statt in home/, weil Desktop und
+    # Laptop sich hier nichts mehr teilen -- der Laptop wandert zwischen Dock,
+    # Beamer und Solo-Betrieb, der Desktop steht fest (siehe Kopf der Datei).
+    ./monitors.nix
+
     # Ladeschwellen 75/80 % fuer BAT0 + BAT1. Host-spezifisch importiert,
     # nicht im shared Stack -- fabricus hat keinen Akku.
     ../../modules/battery-charge-thresholds.nix
