@@ -167,11 +167,10 @@
     extraGroups = [ "wheel" "networkmanager" "docker" "video" ];
     shell = pkgs.fish;
 
-    # Siehe hosts/fabricus/configuration.nix -- derselbe Key, damit der Weg
-    # Laptop <-> Desktop in beide Richtungen offen ist.
-    openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFdHqQP/7i5iIK4hBcLnjzvvQKFiD7xHH9+o7x95i58a openclaw-lab"
-    ];
+    # KEIN eigener SSH-Zugang fuer bfn auf dieser Maschine -- siehe die
+    # ausfuehrliche Begruendung in hosts/fabricus/configuration.nix. Kurz:
+    # hier stand `openclaw-lab`, ein Pubkey ohne existierenden privaten Teil,
+    # am 12.08.2026 entfernt.
   };
   programs.zsh.enable = true;
 
