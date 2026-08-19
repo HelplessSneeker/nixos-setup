@@ -2,6 +2,16 @@
 # der home/bfn.nix zieht (fabricus jetzt, fabricus-itinerans spaeter).
 { config, pkgs, pkgsUnstable, lib, ... }:
 let
+  # Startseite von Firefox: Startup, Home-Button UND neuer Tab (die Erweiterung
+  # unten spiegelt sie). Eine Stelle, ein String -- hier tauschen, nicht in den
+  # Policies weiter unten.
+  #
+  # Bewusst eine externe Seite und NICHT das Homepage-Dashboard auf
+  # cogitator-prime: das haengt am Tailnet. Auf dem Laptop hiesse das eine
+  # Fehlerseite in jedem Cafe-WLAN, und ausgerechnet vor dem Portal-Login
+  # (SUPER+SHIFT+W) waere sie garantiert kaputt.
+  firefoxStartUrl = "https://duckduckgo.com/";
+
   # --- org.freedesktop.FileManager1 -> yazi (Punkt 9b) ---
   # Firefox' "Enthaltenden Ordner oeffnen" geht NICHT ueber xdg-open, sondern
   # ruft per DBus org.freedesktop.FileManager1.ShowItems. Das Interface liefern
@@ -186,6 +196,59 @@ in
             install_url = "https://addons.mozilla.org/firefox/downloads/latest/vimium-ff/latest.xpi";
             installation_mode = "force_installed";
             default_area = "menupanel";
+          };
+
+          # New Tab Override (19.0.0, MPL-2.0, ~59k Nutzer, zuletzt 19.07.2026).
+          # GUID aus dem Manifest des echten XPI, nicht aus der Doku:
+          #   browser_specific_settings.gecko.id = newtaboverride@agenedia.com
+          #
+          # WARUM UEBERHAUPT EINE ERWEITERUNG:
+          # Auf about:newtab/about:home laesst Firefox KEINE Erweiterung
+          # mitlesen -- dort greift Vimium prinzipiell nicht, kein j, kein f,
+          # kein o. Die Sperre gilt fuer alle about:*-Seiten. Und die Policy
+          # `NewTabPage` ist im Firefox-Schema ein reiner Boolean (an/aus,
+          # "aus" = leere Seite); eine URL kann sie nicht setzen. Der einzige
+          # unterstuetzte Weg zu einer echten Seite im neuen Tab ist
+          # chrome_url_overrides.newtab, und das kann nur eine Erweiterung.
+          "newtaboverride@agenedia.com" = {
+            install_url = "https://addons.mozilla.org/firefox/downloads/latest/new-tab-override/latest.xpi";
+            installation_mode = "force_installed";
+          };
+        };
+
+        # Startseite fuer Start und Home-Button. Ohne `Locked`, damit bfn sie in
+        # den Einstellungen noch aendern kann -- die Policy setzt den Default,
+        # sie friert ihn nicht ein.
+        Homepage = {
+          URL = firefoxStartUrl;
+          StartPage = "homepage";
+        };
+
+        # Konfiguration der Erweiterung, deklarativ statt per Optionsseite.
+        # New Tab Override liest browser.storage.managed; die Werte gewinnen
+        # dort gegen die lokalen Einstellungen ({...local, ...managed} in
+        # js/core/settings.js) und werden auf der Optionsseite als
+        # policy-verwaltet markiert. Aus dem XPI 19.0.0 verifiziert, nicht aus
+        # der Doku -- erlaubte Schluessel: background_color, context_rules,
+        # focus_website, type, url; erlaubte type-Werte: background_color,
+        # custom_url, homepage.
+        "3rdparty" = {
+          Extensions = {
+            "newtaboverride@agenedia.com" = {
+              # `homepage` liest browserSettings.homepageOverride, also genau
+              # die Homepage-Policy oben. Damit steht die URL an EINER Stelle;
+              # `custom_url` waere eine zweite, die auseinanderlaufen kann.
+              type = "homepage";
+
+              # Der Punkt der ganzen Uebung: Fokus auf die SEITE statt in die
+              # Adresszeile. Nur so bekommt Vimium die Tastendruecke im neuen
+              # Tab -- mit Fokus in der Adresszeile landet jedes j/k/f dort.
+              #
+              # Preis: Strg+T setzt den Cursor nicht mehr in die Adresszeile.
+              # Ersatz ist Strg+L (Adresszeile) oder Vimiums `o` (Omnibar mit
+              # History, Bookmarks und Suche in einem Feld).
+              focus_website = true;
+            };
           };
         };
       };
