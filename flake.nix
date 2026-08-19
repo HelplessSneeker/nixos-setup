@@ -86,6 +86,12 @@
           # shared Stack: der Laptop-Host soll dieselbe Policy erben.
           ./modules/agent-user.nix
           ./modules/ssh-hardening.nix
+          # `wifi-portal` fuer Captive-Portal-WLANs (SUPER+SHIFT+W). Shared,
+          # obwohl praktisch nur der Laptop in fremde Netze kommt: der Keybind
+          # lebt im gemeinsamen home/hyprland.nix, und ein Bind, dessen Kommando
+          # auf einem Host fehlt, taucht im Cheatsheet trotzdem auf und laeuft
+          # dann ins Leere. Ein ungenutztes Skript ist billiger als das.
+          ./modules/captive-portal.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;

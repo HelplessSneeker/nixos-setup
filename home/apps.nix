@@ -162,8 +162,34 @@ let
 in
 {
   home.packages = with pkgs; [
-    firefox        # Default-Browser (SUPER+B). Brave am 06.08.2026 rausgeworfen:
-                   # bfn will die transparentere Datenschutz-Story.
+    # Default-Browser (SUPER+B). Brave am 06.08.2026 rausgeworfen: bfn will die
+    # transparentere Datenschutz-Story.
+    #
+    # extraPolicies statt programs.firefox: das home-manager-Modul wuerde das
+    # ganze Profil uebernehmen (search, bookmarks, prefs) und bfns per GUI
+    # gepflegten Stand ueberschreiben. Der Wrapper legt stattdessen nur
+    # /etc/firefox/policies/policies.json neben den Binary -- Enterprise-Policy,
+    # die Firefox beim Start liest. Profil bleibt unangetastet.
+    (firefox.override {
+      extraPolicies = {
+        ExtensionSettings = {
+          # Vimium ("Vimium FF", 2.4.2, MIT). GUID aus der AMO-API geholt, nicht
+          # geraten -- eine falsche GUID installiert kommentarlos nichts.
+          #   curl -s https://addons.mozilla.org/api/v5/addons/addon/vimium-ff/
+          #
+          # force_installed = bfn kann es in about:addons NICHT deaktivieren
+          # oder deinstallieren. Bewusst so: sonst driftet der Zustand von der
+          # Config weg. Zum Loswerden: diesen Block entfernen + rebuild.
+          # Fuer einzelne Seiten reicht Vimiums eigene Blocklist (SUPER-Taste
+          # `i` schaltet in den Insert-Modus, Esc zurueck).
+          "{d7742d87-e61d-4b78-b8a1-b469842139fa}" = {
+            install_url = "https://addons.mozilla.org/firefox/downloads/latest/vimium-ff/latest.xpi";
+            installation_mode = "force_installed";
+            default_area = "menupanel";
+          };
+        };
+      };
+    })
     obsidian
                    # vesktop am 09.08.2026 rausgeworfen: Screenshare war unter
                    # xdph 1.4.1 nicht zu retten (Portal-Bug, s. hyprland.nix bei
