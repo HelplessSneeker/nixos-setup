@@ -27,6 +27,8 @@ let
       config.services.tailscale.package
       pkgs.curl
       pkgs.libnotify
+      pkgs.coreutils # date -Is, tail, mkdir fuers Log
+      pkgs.gnugrep
     ];
     # firefox bewusst NICHT in runtimeInputs: der laeuft ueber home.packages und
     # traegt dort die Vimium-Policy (home/apps.nix). Ein zweiter, system-weiter
@@ -38,21 +40,74 @@ let
       # einem Portal einen Redirect auf dessen Anmeldeseite. Bewusst http:// --
       # ueber https koennte kein Portal umleiten, ohne das Zertifikat zu brechen.
       CHECK_URL="http://captive.apple.com/hotspot-detect.html"
+      LOG_FILE="''${XDG_STATE_HOME:-$HOME/.local/state}/wifi-portal.log"
 
+      mkdir -p "$(dirname "$LOG_FILE")"
+      # Log auf die letzten 200 Zeilen eindampfen, damit die Datei nicht
+      # unbegrenzt waechst. Kein logrotate fuer 20 Zeilen pro Lauf.
+      if [ -f "$LOG_FILE" ]; then
+        tail -n 200 "$LOG_FILE" > "$LOG_FILE.tmp" && mv "$LOG_FILE.tmp" "$LOG_FILE"
+      fi
+
+      log() {
+        printf '%s  %s\n' "$(date -Is)" "$*" >> "$LOG_FILE"
+      }
+
+      # Benachrichtigung ist Beiwerk, die DNS-Logik ist der Zweck. Ohne diesen
+      # Wrapper reisst ein fehlschlagendes notify-send via `set -e` das ganze
+      # Skript mit -- gefunden am 19.08.2026 beim Testlauf ohne Desktop-Session
+      # ("GDBus.Error ... The name is not activatable"). Derselbe Fall trifft
+      # jede Session, in der gerade kein Notification-Daemon laeuft.
+      notify() {
+        notify-send "$@" 2>/dev/null || log "notify-send nicht erreichbar: $*"
+      }
+
+      # --ipv4 ist kein Detail, sondern der Fix vom 19.08.2026: der erste
+      # Versuch dieses Skripts meldete faelschlich "Portal", weil das WLAN in
+      # genau dem Moment IPv6-Adressen dazubekam (tailscaled-Journal:
+      # "LinkChange: major ... HaveV6: false->true"). Happy Eyeballs lief in die
+      # halb-fertige v6-Route, curl timeoutete, das Skript schloss auf ein
+      # Portal. Captive-Portal-Erkennung ist ohnehin ein v4-Thema.
       online() {
-        curl -sf -m 4 "$CHECK_URL" 2>/dev/null | grep -q "Success"
+        curl -sf --ipv4 -m 6 "$CHECK_URL" 2>/dev/null | grep -q "Success"
+      }
+
+      # Ein einzelner Fehlschlag ist noch kein Portal -- meistens ist es ein
+      # Interface, das gerade umkonfiguriert wird. Erst drei Fehlschlaege in
+      # Folge gelten.
+      online_stable() {
+        for _ in 1 2 3; do
+          if online; then
+            return 0
+          fi
+          sleep 2
+        done
+        return 1
+      }
+
+      # Steht ein Resolver in resolv.conf, der NICHT tailscaled ist? Genau das
+      # ist die Bedingung dafuer, dass ein Portal seinen DNS-Hijack ueberhaupt
+      # ausliefern kann.
+      has_local_resolver() {
+        grep -E '^nameserver' /etc/resolv.conf 2>/dev/null \
+          | grep -qvE '100\.100\.100\.100|fd7a:115c:a1e0::53'
       }
 
       restore_dns() {
         tailscale set --accept-dns=true || true
+        log "accept-dns zurueck auf true"
       }
 
-      if online; then
-        notify-send "WLAN" "Internet laeuft bereits -- kein Portal-Login noetig."
+      log "--- Start"
+
+      if online_stable; then
+        log "Internet laeuft -- kein Portal-Login noetig, Abbruch"
+        notify "WLAN" "Internet laeuft bereits -- kein Portal-Login noetig."
         exit 0
       fi
 
-      notify-send "WLAN-Portal" "Tailscale-DNS pausiert, oeffne die Anmeldeseite..."
+      log "kein Internet nach 3 Versuchen -> Portal vermutet"
+      notify "WLAN-Portal" "Tailscale-DNS pausiert, oeffne die Anmeldeseite..."
       tailscale set --accept-dns=false
 
       # Ab hier MUSS der DNS zurueck, egal wie das Skript endet (Erfolg,
@@ -60,16 +115,40 @@ let
       # niemand weiss warum.
       trap restore_dns EXIT INT TERM
 
-      # Kurz warten, bis resolvconf die DHCP-Resolver zurueckgeschrieben hat.
-      sleep 2
+      # NICHT blind schlafen. Der erste Entwurf hatte hier `sleep 2` und hat
+      # Firefox losgeschickt, bevor resolvconf die DHCP-Resolver zurueck hatte
+      # -- der Browser zeigte dann eine DNS-Fehlerseite und laedt die von
+      # selbst nie neu. Also warten, bis der Resolver wirklich steht.
+      dns_ok=0
+      for _ in $(seq 1 20); do
+        if has_local_resolver; then
+          dns_ok=1
+          break
+        fi
+        sleep 1
+      done
 
-      # Die echte Portal-URL steht im Location-Header des Redirects. Faellt der
-      # aus (manche Portale kapern erst beim zweiten Request), tut es neverssl:
-      # eine Seite, die es bewusst nur ueber http gibt und die deshalb nie aus
-      # dem HSTS-Cache oder von HTTPS-Only weggebogen wird.
-      portal=$(curl -s -o /dev/null -w '%{redirect_url}' -m 6 "$CHECK_URL" || true)
+      if [ "$dns_ok" -eq 0 ]; then
+        log "FEHLER: nach 20s kein lokaler Resolver in /etc/resolv.conf"
+        notify -u critical "WLAN-Portal" \
+          "Der lokale DNS kam nicht zurueck. Abbruch, Tailscale-DNS bleibt aktiv."
+        exit 1
+      fi
+      log "lokaler Resolver da: $(grep -E '^nameserver' /etc/resolv.conf | tr '\n' ' ')"
+
+      # Die echte Portal-URL steht im Location-Header des Redirects.
+      #
+      # Faellt der aus, wird BEWUSST dieselbe CHECK_URL geoeffnet und nicht
+      # neverssl.com: der Hotspot hat genau diese Adresse eben noch abgefangen,
+      # sie ist also der zuverlaessigste Weg in sein Portal. neverssl.com stand
+      # hier im ersten Entwurf und setzt zusaetzlich voraus, dass eine fremde
+      # Domain aufgeloest wird -- ein Schritt mehr, der schiefgehen kann.
+      portal=$(curl -s --ipv4 -o /dev/null -w '%{redirect_url}' -m 6 "$CHECK_URL" || true)
       if [ -z "$portal" ]; then
-        portal="http://neverssl.com"
+        portal="$CHECK_URL"
+        log "kein Redirect erkannt, oeffne CHECK_URL direkt"
+      else
+        log "Portal-URL aus Redirect: $portal"
       fi
 
       # Privates Fenster: ein normales Fenster wuerde die Portal-Domain aus dem
@@ -79,13 +158,15 @@ let
       # Bis zu 5 Minuten auf den Login warten. Danach greift der trap ohnehin.
       for _ in $(seq 1 60); do
         if online; then
-          notify-send "WLAN-Portal" "Angemeldet -- Tailscale-DNS ist wieder aktiv."
+          log "Login erkannt, Internet steht"
+          notify "WLAN-Portal" "Angemeldet -- Tailscale-DNS ist wieder aktiv."
           exit 0
         fi
         sleep 5
       done
 
-      notify-send -u critical "WLAN-Portal" \
+      log "Timeout: nach 5 Minuten kein Internet"
+      notify -u critical "WLAN-Portal" \
         "Nach 5 Minuten kein Internet. Tailscale-DNS wird trotzdem zurueckgeschaltet."
     '';
   };
