@@ -271,6 +271,11 @@ ${gestureBlock}
     bind = $mainMod SHIFT, V, exec, noctalia msg panel-toggle clipboard  # "Zwischenablage-Verlauf"
     bind = $mainMod SHIFT, E, exec, noctalia msg settings-toggle  # "noctalia-Einstellungen"
     bind = $mainMod SHIFT, R, exec, hyprctl reload  # "Hyprland-Konfiguration neu laden"
+    # Fremdes WLAN mit Anmeldeseite. Ohne das Skript kommt die Seite nie hoch:
+    # Tailscale haelt den DNS auf 100.100.100.100, das Portal kann seinen
+    # Redirect also gar nicht ausliefern. Begruendung im Kopf von
+    # modules/captive-portal.nix.
+    bind = $mainMod SHIFT, W, exec, wifi-portal  # "WLAN-Anmeldeseite öffnen (Hotel, Café, Bahn)"
 
     # Workspaces
     bind = $mainMod, 1, workspace, 1  # "Zu Workspace 1"
