@@ -12,6 +12,7 @@
 # waere Rechtschreibhilfe, nicht Codeverstaendnis. Deshalb eine Schicht.
 #
 # Eingehaengt von ./config.nix.
+{ pkgs, ... }:
 {
   # ---------------------------------------------------------------------------
   # Die Sprachserver
@@ -45,6 +46,12 @@
   # `plugins.lsp` mit eigener setup()-Logik bleibt bewusst aus.
   plugins.lspconfig.enable = true;
 
+  # nixpkgs-fmt fuer nixds formatting.command (unten). Wie bei ripgrep in
+  # finder.nix: in deiner Shell ist es ueber `nix fmt` erreichbar, der
+  # Sprachserver ruft es aber als eigenes Kommando auf und braucht es im PATH
+  # des Editors -- besonders im Standalone-Paket ohne home-manager-Umgebung.
+  extraPackages = [ pkgs.nixpkgs-fmt ];
+
   lsp.servers = {
     # TypeScript/JavaScript. Paket: typescript-language-server.
     # Deckt .ts/.tsx/.js/.jsx ab.
@@ -56,10 +63,52 @@
     basedpyright.enable = true;
 
     # Nix. Kein Zufall, dass der hier steht: du editierst diese Konfiguration
-    # taeglich. nixd wertet die Flake tatsaechlich aus und kann deshalb
-    # Optionsnamen und Paketattribute vervollstaendigen -- das ist mehr als
-    # Syntaxpruefung.
-    nixd.enable = true;
+    # taeglich.
+    #
+    # OHNE die settings unten kann nixd nur Syntax -- er weiss dann nicht, wo
+    # nixpkgs liegt und welche Optionen es gibt. Erst damit beantwortet er
+    # "gibt es pkgs.foo ueberhaupt?" und "heisst die Option wirklich so?".
+    nixd = {
+      enable = true;
+
+      config.settings.nixd = {
+        # Woher die Paketnamen kommen.
+        #
+        # Die nixd-Doku schlaegt `import <nixpkgs> { }` vor -- das geht hier
+        # NICHT verlaesslich: <nixpkgs> kommt aus NIX_PATH, und auf einem
+        # reinen Flake-System ist der oft leer oder zeigt auf einen alten
+        # Channel. Stattdessen direkt der nixpkgs-Input DIESER Flake, damit
+        # der Editor exakt die Paketmenge kennt, gegen die auch gebaut wird.
+        nixpkgs.expr = ''import (builtins.getFlake "/etc/nixos").inputs.nixpkgs { }'';
+
+        # Woher die Optionsnamen kommen.
+        #
+        # Der Ausdruck muss den HOSTNAMEN enthalten, und diese Datei ist
+        # shared (fabricus und fabricus-itinerans lesen sie beide). Deshalb
+        # wird er zur Laufzeit in Lua zusammengesetzt statt in Nix fixiert --
+        # `__raw` heisst: nixvim gibt den Inhalt unveraendert als Lua-Code aus,
+        # statt ihn als String zu quoten.
+        #
+        # Innen bewusst einfache Anfuehrungszeichen: Lua akzeptiert beide, und
+        # so bleiben die doppelten fuer den Nix-Ausdruck frei -- ohne eine
+        # einzige Escape-Sequenz.
+        options.nixos.expr.__raw = ''
+          '(builtins.getFlake "/etc/nixos").nixosConfigurations.' .. vim.uv.os_gethostname() .. '.options'
+        '';
+
+        # BEWUSST NICHT gesetzt: options.home_manager.
+        # Der uebliche Ausdruck dafuer zeigt auf `homeConfigurations."user@host"`
+        # -- die gibt es hier nicht. home-manager laeuft in dieser Flake als
+        # NixOS-Modul (siehe flake.nix, mkHost), nicht standalone. Ein Ausdruck
+        # ins Leere wuerde nixd nur bei jedem Start einen Evaluierungsfehler
+        # bescheren. home-manager-Optionen bleiben damit unvervollstaendigt.
+
+        # Formatierer fuer `vim.lsp.buf.format`. nixpkgs-fmt und nicht das
+        # neuere nixfmt, weil flake.nix genau das als `formatter` gesetzt hat
+        # -- sonst formatiert der Editor anders als `nix fmt` im selben Repo.
+        formatting.command = [ "nixpkgs-fmt" ];
+      };
+    };
 
     # Lua. Zwei Gruende: das Cheatsheet-Plugin von noctalia ist Lua, und die
     # Hyprland-Migration nach Lua steht bei dir auf der Liste.
