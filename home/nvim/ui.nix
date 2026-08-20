@@ -116,7 +116,17 @@
       # ({ "<leader>h", group = "..." }). Nix kennt keine gemischten
       # Listen/Records, deshalb dieser Platzhaltername -- er wird beim
       # Erzeugen des Lua-Codes wieder entfernt.
+      # ALLE Gruppen stehen hier, auch die fuer Plugins aus anderen Schichten
+      # (z.B. <leader>f aus finder.nix). Das ist Absicht und kein Schlamperei:
+      # `settings` ist ein freeform-Attrset vom Typ `anything`, und der kann
+      # Listen aus zwei Modulen NICHT zusammenfuehren -- eine zweite
+      # spec-Definition in einer anderen Datei gaebe einen Konflikt beim Eval.
+      # Eine Liste, ein Ort.
       spec = [
+        {
+          __unkeyed-1 = "<leader>f";
+          group = "Finden";
+        }
         {
           __unkeyed-1 = "<leader>h";
           group = "Git-Hunks";
