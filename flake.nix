@@ -63,14 +63,27 @@
     # nixpkgs-Generation kommen. `main` gegen 26.05 gibt Option-Drift.
     # Geprueft am 20.08.2026: der Zweig nixos-26.05 existiert.
     #
-    # follows ist hier RICHTIG (anders als bei noctalia/nixpkgs-unstable): der
-    # Zweig ist ohnehin auf 26.05 gebaut, und ohne follows zoege er eine
-    # zweite, vollstaendige nixpkgs-Instanz nur fuer die Editor-Plugins in den
-    # Store.
-    nixvim = {
-      url = "github:nix-community/nixvim/nixos-26.05";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # KEIN follows -- das war am 20.08.2026 zuerst anders und ist bewusst
+    # zurueckgenommen worden. Die Ueberlegung dahinter ("der Zweig ist ohnehin
+    # 26.05, spart eine zweite nixpkgs-Instanz") klingt richtig, aber nixvim
+    # widerspricht selbst, und zwar zur Eval-Zeit:
+    #
+    #   evaluation warning: The `nixpkgs.source` default value has been
+    #   affected by your flake input `follows`. Nixvim's inputs pin Nixpkgs to
+    #   02e08985..., actual Nixpkgs is following ee48b147...
+    #   Please remove your `inputs.nixvim.inputs.nixpkgs.follows` or explicitly
+    #   define `nixpkgs.source`.
+    #
+    # Grund: nixvims Plugin-Ableitungen sind gegen GENAU den gepinnten
+    # nixpkgs-Commit getestet, nicht gegen den jeweils aktuellen Stand des
+    # Branches. Der Ausweg `nixpkgs.source` traegt upstream ein
+    # "> [!CAUTION] Changing this option can lead to issues that may be
+    # difficult to debug" -- den Handel gehen wir nicht ein, nur um eine
+    # Warnung loszuwerden, die auf ein echtes Risiko zeigt.
+    #
+    # Preis: eine zweite nixpkgs-Quelle im Store. Dasselbe Muster wie bei
+    # noctalia und nixpkgs-unstable, also hausueblich.
+    nixvim.url = "github:nix-community/nixvim/nixos-26.05";
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs:

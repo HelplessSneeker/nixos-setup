@@ -152,6 +152,16 @@
   # Schicht 4).
   plugins.lualine.enable = true;
 
+  # Dateityp-Icons (die kleinen Symbole vor Dateinamen in telescope, lualine
+  # und oil). Kommt aus der Nerd-Font, die systemweit ohnehin installiert ist.
+  #
+  # EXPLIZIT gesetzt, obwohl telescope es auch selbst aktivieren wuerde: genau
+  # diese automatische Aktivierung ist in nixvim deprecated und warnt bei jedem
+  # Eval ("This plugin was enabled automatically ... This behaviour is
+  # deprecated"). Aufgefallen beim Eval-Test zu Schicht 4 -- eingeschleppt hat
+  # es Schicht 3.
+  plugins.web-devicons.enable = true;
+
   # ---------------------------------------------------------------------------
   # gitsigns -- Aenderungen am Rand
   # ---------------------------------------------------------------------------
