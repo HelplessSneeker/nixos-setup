@@ -265,6 +265,45 @@ in
                    # (bleibt! nvim/Terminal brauchen wl-copy/wl-paste direkt --
                    #  unabhaengig davon, wer die History fuehrt)
     hyprpicker     # Farb-Picker (SUPER+C)
+
+    # Mail. Accounts werden in der GUI eingerichtet, nicht deklarativ --
+    # programs.thunderbird bringt zwar Profile/Accounts als Nix-Optionen, die
+    # Passwoerter muessen trotzdem manuell rein.
+    #
+    # Steht seit 20.08.2026 wieder im Release-Kanal. Vorgeschichte: kam am
+    # 06.08. nach unstable, weil 25.05 auf 146.0.1 (Build 16.12.2025) fest hing
+    # und 146 unter Wayland beim Senden reproduzierbar abstuerzte --
+    # Crash-Signatur bp-b28f2271-99be-4016-8331-bc57a0260806: Endlos-Rekursion
+    # in AppWindow::Center (AppWindow.cpp:824) -> Stack Overflow -> SIGSEGV.
+    # Ursache: unter Wayland darf ein Client sein Fenster nicht selbst
+    # positionieren; TB zentriert den Sende-Fortschrittsdialog, der Compositor
+    # meldet eine andere Position zurueck, TB zentriert erneut -> Schleife.
+    # Vgl. Mozilla-Bug 1724656 ("phantom window is created when sending
+    # (wayland)").
+    #
+    # Der Grund ist mit dem 26.05-Umstieg weg: an den gelockten Revisionen
+    # liefern nixos-26.05 (ee48b147) und nixpkgs-unstable (104240a7) beide
+    # thunderbird = thunderbird-latest = 153.0.1 -- identisch, also kein
+    # Versionsverlust. Zurueckgeholt, weil ein Mail-Client sicherheitskritisch
+    # ist: NUR der Release-Kanal bekommt Security-Backports, ein
+    # unstable-Paket haengt exakt auf dem Stand, den flake.lock festhaelt.
+    # So kommen TB-Sicherheitsupdates jetzt mit demselben
+    # `nix flake update nixpkgs home-manager`, das ohnehin faellig ist.
+    #
+    # Falls der Wayland-Crash je wiederkommt: erst pruefen, ob unstable
+    # ueberhaupt neuer ist (packages.nix im nixpkgs-Repo, Attribut
+    # thunderbird-latest) -- war es am 20.08.2026 nicht.
+    thunderbird
+
+    # FALLBACK, falls 153 unter Wayland doch noch crasht: Thunderbird ueber
+    # XWayland zwingen. Zuverlaessig, aber auf 4k@1.25 sichtbar unschaerfer.
+    # Dann die Zeile oben auskommentieren und diese hier aktivieren:
+    # (pkgs.symlinkJoin {
+    #   name = "thunderbird-xwayland";
+    #   paths = [ pkgs.thunderbird ];
+    #   nativeBuildInputs = [ pkgs.makeWrapper ];
+    #   postBuild = "wrapProgram $out/bin/thunderbird --set MOZ_ENABLE_WAYLAND 0";
+    # })
   ] ++ [
     # --- Pakete aus nixpkgs-unstable ---
     # pkgsUnstable wird zentral in flake.nix gebaut (import mit allowUnfree) und
@@ -281,29 +320,10 @@ in
     # (Kandidaten: godot_4, godot, godot_4-mono).
     pkgsUnstable.godot_4
 
-    # Mail. Accounts werden in der GUI eingerichtet, nicht deklarativ --
-    # programs.thunderbird bringt zwar Profile/Accounts als Nix-Optionen, die
-    # Passwoerter muessen trotzdem manuell rein.
-    #
-    # Aus unstable (153.0.1) statt 25.05 (146.0.1, Build vom 16.12.2025), weil
-    # 146 unter Wayland beim Senden reproduzierbar abstuerzt. Crash-Signatur aus
-    # bp-b28f2271-99be-4016-8331-bc57a0260806: Endlos-Rekursion in
-    # AppWindow::Center (AppWindow.cpp:824) -> Stack Overflow -> SIGSEGV.
-    # Ursache: unter Wayland darf ein Client sein Fenster nicht selbst
-    # positionieren. TB zentriert den Sende-Fortschrittsdialog, der Compositor
-    # meldet eine andere Position zurueck, TB zentriert erneut -> Schleife.
-    # Vgl. Mozilla-Bug 1724656 ("phantom window is created when sending (wayland)").
-    pkgsUnstable.thunderbird
-
-    # FALLBACK, falls 153 unter Wayland immer noch crasht: Thunderbird ueber
-    # XWayland zwingen. Zuverlaessig, aber auf 4k@1.25 sichtbar unschaerfer.
-    # Dann die Zeile oben auskommentieren und diese hier aktivieren:
-    # (pkgs.symlinkJoin {
-    #   name = "thunderbird-xwayland";
-    #   paths = [ pkgsUnstable.thunderbird ];
-    #   nativeBuildInputs = [ pkgs.makeWrapper ];
-    #   postBuild = "wrapProgram $out/bin/thunderbird --set MOZ_ENABLE_WAYLAND 0";
-    # })
+    # Thunderbird stand hier bis 20.08.2026 und ist zurueck in den
+    # Release-Kanal gewandert (siehe Kommentar oben im pkgs-Block) --
+    # unstable liefert keine neuere Version mehr, wohl aber schlechtere
+    # Security-Pflege.
   ];
 
   # Neovim ist am 20.08.2026 nach home/nvim/ umgezogen (nixvim statt des
