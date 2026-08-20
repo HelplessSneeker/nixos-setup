@@ -105,6 +105,51 @@
   # aufgerufenes Verzeichnis landet also automatisch in oil.
   plugins.oil.enable = true;
 
+  # ---------------------------------------------------------------------------
+  # neo-tree -- die Seitenleiste
+  # ---------------------------------------------------------------------------
+  # Der klassische Dateibaum links. Ergaenzt oil, ersetzt es nicht: oil ist zum
+  # ARBEITEN in einem Verzeichnis (umbenennen, loeschen als Text), neo-tree zum
+  # UEBERBLICKEN eines Projekts -- Baum aufklappen, sehen wo was liegt,
+  # nebenbei den Git-Status jeder Datei ablesen.
+  plugins.neo-tree = {
+    enable = true;
+
+    settings = {
+      # Fenster schliessen, wenn der Baum das letzte offene ist. Ohne das
+      # bleibt beim Beenden eine leere Seitenleiste stehen.
+      close_if_last_window = true;
+
+      filesystem = {
+        # WICHTIG, sonst streiten sich zwei Plugins um dieselbe Aufgabe:
+        # neo-tree wuerde per Default netrw kapern ("open_default") und damit
+        # jedes geoeffnete Verzeichnis an sich ziehen -- genau das macht aber
+        # schon oil (Schicht 3, `-`). Wer gewinnt, haengt sonst an der
+        # Ladereihenfolge, was ein schoen unzuverlaessiger Fehler waere.
+        #
+        # "disabled" heisst: neo-tree kommt NUR, wenn du es rufst.
+        hijack_netrw_behavior = "disabled";
+
+        # Der Baum markiert automatisch die Datei, in der du gerade bist --
+        # praktisch, wenn du per Fuzzy-Finder irgendwohin gesprungen bist und
+        # wissen willst, wo das im Projekt liegt.
+        # leave_dirs_open: dabei aufgeklappte Ordner bleiben offen, statt
+        # hinter dir wieder zuzuklappen.
+        follow_current_file = {
+          enabled = true;
+          leave_dirs_open = true;
+        };
+
+        # Per Default koppelt neo-tree seine Wurzel an vims Arbeitsverzeichnis
+        # -- in BEIDE Richtungen. Es wuerde also beim Oeffnen den cwd
+        # umsetzen, und damit stillschweigend aendern, wo telescope sucht.
+        # Hier bewusst aus: die Tasten unten geben das Verzeichnis explizit
+        # vor, und sonst aendert sich nichts hinter deinem Ruecken.
+        bind_to_cwd = false;
+      };
+    };
+  };
+
   keymaps = [
     # `-` ist die oil-Konvention: oeffnet das VERZEICHNIS der aktuellen Datei,
     # mit dem Cursor auf ihr. Danach nochmal `-` geht eine Ebene hoeher.
@@ -114,6 +159,45 @@
       key = "-";
       action = "<cmd>Oil<CR>";
       options.desc = "Verzeichnis oeffnen (oil)";
+    }
+
+    # --- Seitenleiste ---
+    # Zwei Tasten, zwei Wurzeln -- dieselbe Aufteilung wie in LazyVim:
+    #
+    #   <leader>e  Wurzel = PROJEKT. vim.fs.root sucht vom aktuellen Puffer
+    #              aufwaerts das erste Verzeichnis mit `.git` -- also das
+    #              Repo, egal wie tief du gerade drinsteckst. Gibt es keins
+    #              (Datei ausserhalb eines Repos), faellt es auf den cwd
+    #              zurueck, statt gar nichts zu tun.
+    #
+    #   <leader>E  Wurzel = ARBEITSVERZEICHNIS, also der Ordner, in dem du
+    #              nvim gestartet hast. Der Unterschied faellt genau dann auf,
+    #              wenn du nvim in einem Unterordner startest oder eine Datei
+    #              ausserhalb des Repos offen hast.
+    #
+    # `toggle` heisst: dieselbe Taste schliesst die Leiste wieder.
+    # `reveal` deckt die aktuelle Datei im Baum auf und stellt den Cursor
+    # darauf.
+    {
+      mode = "n";
+      key = "<leader>e";
+      action.__raw = ''
+        function()
+          local root = vim.fs.root(0, ".git") or vim.uv.cwd()
+          vim.cmd("Neotree toggle reveal dir=" .. vim.fn.fnameescape(root))
+        end
+      '';
+      options.desc = "Seitenleiste (Projekt)";
+    }
+    {
+      mode = "n";
+      key = "<leader>E";
+      action.__raw = ''
+        function()
+          vim.cmd("Neotree toggle reveal dir=" .. vim.fn.fnameescape(vim.uv.cwd()))
+        end
+      '';
+      options.desc = "Seitenleiste (Arbeitsverzeichnis)";
     }
   ];
 }
