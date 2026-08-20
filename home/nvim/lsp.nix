@@ -27,6 +27,24 @@
   # nixvim unter modules/lsp/servers/packages.nix). Genau das ist der Punkt, an
   # dem Mason-basierte Setups auf NixOS scheitern: Mason laedt vorkompilierte
   # Binaries, die einen FHS-Loader erwarten, den es hier nicht gibt.
+  # Die Server-DEFINITIONEN. Ohne die passiert gar nichts, und zwar lautlos.
+  #
+  # `lsp.servers.ts_ls.enable = true` unten erzeugt am Ende ein
+  # `vim.lsp.enable("ts_ls")`. Dieser Aufruf sucht im runtimepath nach einer
+  # Datei `lsp/ts_ls.lua` -- dort stehen Kommandozeile, Dateitypen und
+  # Projektwurzel-Marker des Servers. nvim selbst bringt KEINE solchen Dateien
+  # mit (geprueft: share/nvim/runtime/lsp/ existiert nicht), sie kommen aus
+  # nvim-lspconfig.
+  #
+  # Fehlt das Plugin, ist der Server "aktiviert", hat aber kein cmd und keine
+  # filetypes -- er wird also nie gestartet. Kein Fehler, keine Meldung, nur
+  # keine Diagnostics. Genau das war der Zustand am 20.08.2026.
+  #
+  # nvim-lspconfig liefert hier NUR die Definitionen; konfiguriert und
+  # eingeschaltet werden die Server ueber `lsp.*` (der native Weg). Der aeltere
+  # `plugins.lsp` mit eigener setup()-Logik bleibt bewusst aus.
+  plugins.lspconfig.enable = true;
+
   lsp.servers = {
     # TypeScript/JavaScript. Paket: typescript-language-server.
     # Deckt .ts/.tsx/.js/.jsx ab.
