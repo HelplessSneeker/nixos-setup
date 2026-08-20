@@ -124,6 +124,10 @@
       # Eine Liste, ein Ort.
       spec = [
         {
+          __unkeyed-1 = "<leader>c";
+          group = "Code";
+        }
+        {
           __unkeyed-1 = "<leader>f";
           group = "Finden";
         }

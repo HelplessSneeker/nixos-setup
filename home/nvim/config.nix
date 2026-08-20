@@ -12,7 +12,7 @@
 #   1  Basis (hier)        Optionen, Leader, Keymaps, Farben, Clipboard
 #   2  Sichtbarkeit        -> ./ui.nix (Treesitter, which-key, lualine, gitsigns)
 #   3  Navigation          -> ./finder.nix (telescope, oil)
-#   4  LSP + Completion    ts_ls, basedpyright, nixd, lua_ls
+#   4  LSP + Completion    -> ./lsp.nix (ts_ls, basedpyright, nixd, lua_ls)
 #   5  Formatieren/Linten  conform, ruff
 # Was hier NICHT steht, fehlt noch nicht -- es ist noch nicht dran.
 {
@@ -21,6 +21,7 @@
   imports = [
     ./ui.nix
     ./finder.nix
+    ./lsp.nix
   ];
 
   # --- Provider ---
