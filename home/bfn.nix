@@ -3,6 +3,7 @@
 
   imports = [
     ./apps.nix
+    ./nvim            # nixvim-Config; ersetzt den frueheren programs.neovim-Block
     ./ssh.nix
     ./hyprland.nix
     ./theme.nix

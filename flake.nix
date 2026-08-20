@@ -54,6 +54,23 @@
     # Job -- MSR-Power-Limits vs. Thermik), und enable_psr=2 ist der erste
     # Verdaechtige, falls das Panel je flackert.
     nixos-hardware.url = "github:NixOS/nixos-hardware";
+
+    # nvim-Konfiguration als Nix-Modul (statt Lua-Dotfiles). Config liegt in
+    # home/nvim/.
+    #
+    # Der Branch MUSS zur nixpkgs-Release passen -- nixvim pflegt pro Release
+    # einen eigenen Zweig, weil die Plugin-Ableitungen aus der jeweiligen
+    # nixpkgs-Generation kommen. `main` gegen 26.05 gibt Option-Drift.
+    # Geprueft am 20.08.2026: der Zweig nixos-26.05 existiert.
+    #
+    # follows ist hier RICHTIG (anders als bei noctalia/nixpkgs-unstable): der
+    # Zweig ist ohnehin auf 26.05 gebaut, und ohne follows zoege er eine
+    # zweite, vollstaendige nixpkgs-Instanz nur fuer die Editor-Plugins in den
+    # Store.
+    nixvim = {
+      url = "github:nix-community/nixvim/nixos-26.05";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, home-manager, ... }@inputs:
@@ -118,6 +135,21 @@
         # Installation liegt jetzt im Repo.
         fabricus-itinerans = mkHost ./hosts/fabricus-itinerans/configuration.nix;
       };
+
+      # nvim als eigenstaendiges Paket, aus DERSELBEN Datei wie der echte
+      # Editor (home/nvim/config.nix). Zweck ist die Iterationsschleife:
+      #
+      #   nix run /etc/nixos#nvim -- datei.ts
+      #
+      # baut nur den Editor -- Sekunden statt einer Systemgeneration, und ohne
+      # sudo. Damit kostet das Ausprobieren einer Option keinen nixos-rebuild;
+      # der kommt erst, wenn es bleiben soll.
+      #
+      # Vorsicht bei der Bewertung des Ergebnisses: dieses nvim laeuft OHNE
+      # home-manager-Umgebung. Was von aussen kommt (Shell-Aliase, EDITOR,
+      # PATH-Werkzeuge), fehlt hier -- der Editor selbst ist aber identisch.
+      packages.${system}.nvim =
+        inputs.nixvim.legacyPackages.${system}.makeNixvim ./home/nvim/config.nix;
 
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixpkgs-fmt;
     };

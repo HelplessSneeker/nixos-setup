@@ -306,23 +306,12 @@ in
     # })
   ];
 
-  # Neovim erstmal nur lauffaehig als Default-Editor.
-  # Plugin-/LSP-/Theme-Config kommt spaeter aus deinen dotfiles.
-  programs.neovim = {
-    enable = true;
-    defaultEditor = true;
-    viAlias = true;
-    vimAlias = true;
-
-    # Ab home-manager 26.05 stehen beide per Default auf false. Hier bewusst
-    # beim alten Wert, damit das Kanal-Upgrade nichts am Verhalten aendert.
-    #
-    # Beim anstehenden nvim-Setup neu bewerten: `false` spart spuerbar Closure,
-    # und moderne Plugins brauchen die Ruby-/Python-Provider praktisch nie --
-    # `:checkhealth` sagt dir dann, ob wirklich etwas fehlt.
-    withRuby = true;
-    withPython3 = true;
-  };
+  # Neovim ist am 20.08.2026 nach home/nvim/ umgezogen (nixvim statt des
+  # nackten programs.neovim). Hier steht bewusst KEIN auskommentierter Rest:
+  # nixvim setzt eine Assertion gegen programs.neovim.enable, ein
+  # wiederbelebter Block wuerde den Rebuild abbrechen, nicht nur doppeln.
+  # withRuby/withPython3 stehen dort jetzt auf false -- siehe Begruendung in
+  # home/nvim/config.nix.
 
   # --- Dateimanager-Eintrag fuer yazi ---
   # yazi ist ein TUI und bringt selbst keine .desktop-Datei mit. Ohne die kann
