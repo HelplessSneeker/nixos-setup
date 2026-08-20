@@ -10,12 +10,16 @@
 #
 # Aufbau in Schichten, jede fuer sich benutzbar:
 #   1  Basis (hier)        Optionen, Leader, Keymaps, Farben, Clipboard
-#   2  Sichtbarkeit        Statuszeile, Treesitter, which-key
+#   2  Sichtbarkeit        -> ./ui.nix (Treesitter, which-key, lualine, gitsigns)
 #   3  Navigation          Fuzzy-Finder, Dateibaum/oil
 #   4  LSP + Completion    ts_ls, basedpyright, nixd, lua_ls
 #   5  Formatieren/Linten  conform, ruff
 # Was hier NICHT steht, fehlt noch nicht -- es ist noch nicht dran.
 {
+  # Ab Schicht 2 bekommt jede Schicht eine eigene Datei. Diese hier bleibt die
+  # Basis: alles, was ohne ein einziges Plugin funktioniert.
+  imports = [ ./ui.nix ];
+
   # --- Provider ---
   # Ruby und Python3 aus: das sind Bruecken fuer ALTE vimscript-Plugins, die
   # ihre Logik in Ruby/Python haben. Nichts aus dem Plan oben braucht sie, und
