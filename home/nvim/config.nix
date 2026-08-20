@@ -13,7 +13,7 @@
 #   2  Sichtbarkeit        -> ./ui.nix (Treesitter, which-key, lualine, gitsigns)
 #   3  Navigation          -> ./finder.nix (telescope, oil)
 #   4  LSP + Completion    -> ./lsp.nix (ts_ls, basedpyright, nixd, lua_ls)
-#   5  Formatieren/Linten  conform, ruff
+#   5  Formatieren/Linten  -> ./format.nix (conform, ruff, eslint)
 # Was hier NICHT steht, fehlt noch nicht -- es ist noch nicht dran.
 {
   # Ab Schicht 2 bekommt jede Schicht eine eigene Datei. Diese hier bleibt die
@@ -22,6 +22,7 @@
     ./ui.nix
     ./finder.nix
     ./lsp.nix
+    ./format.nix
   ];
 
   # --- Provider ---
