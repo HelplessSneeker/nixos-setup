@@ -27,16 +27,23 @@
 # nicht in der Reihenfolge, in der sie auf dem Tisch stehen. Feste Koordinaten
 # sind der Fix; das Catch-all bleibt nur fuer unbekannte Schirme uebrig.
 #
-# STIMMT LINKS/RECHTS NICHT? Dann die x-Offsets von DP-4 und DP-5 tauschen
-# (0x0 <-> 1920x0). Sonst nichts.
+# REIHENFOLGE AENDERN: nur die x-Offsets neu vergeben, in Schritten von 1920
+# (alle drei Schirme sind 1920 logische px breit, scale 1). Aktuell 0 / 1920 /
+# 3840. Ueberlappende Offsets sind der Fehler, den man vermeiden will; Luecken
+# sind unkritisch, der Zeiger springt dann nur ueber den Zwischenraum.
 { ... }:
 {
   home-manager.users.bfn.xdg.configFile."hypr/monitors.conf".text = ''
     # Managed by home-manager (hosts/fabricus-itinerans/monitors.nix)
 
-    # Dock: zwei externe 1080p-Schirme nebeneinander, oberkantenbuendig.
-    # scale 1, KEIN 1.25 wie am Desktop -- die 1.25 dort teilt 4k sauber auf,
-    # auf 1080p waere derselbe Faktor fractional und damit unscharf.
+    # Dock-Aufstellung von links nach rechts, alle drei oberkantenbuendig:
+    #
+    #   [ eDP-1 14" ][ DP-5 22" ][ DP-4 27" ]
+    #   0        1920         3840        5760
+    #
+    # scale 1 ueberall, KEIN 1.25 wie am Desktop -- die 1.25 dort teilt 4k
+    # sauber auf, auf 1080p waere derselbe Faktor fractional und damit unscharf.
+    # Deshalb ist jeder Schirm genau 1920 logische px breit, auch der 27er.
     #Feldkircheken Bildschirme 
 #	monitor = DP-5,  1680x1050@59.954, -1680x0, 1
 #	monitor = DP-3,  1680x1050@59.954, -3360x0, 1
@@ -44,9 +51,11 @@
 	monitor = DP-5,  preferred, 1920x0, 1
 	monitor = DP-4,  preferred, 3840x0, 1
 
-    # Internes Panel mittig darunter: die beiden Externen sind zusammen 3840
-    # breit, das 1920 breite Panel sitzt zentriert bei x = (3840-1920)/2 = 960.
-    # Deckel zu / Panel aus: Zeile durch `monitor = eDP-1, disable` ersetzen.
+    # Internes Panel ganz links, bei 0x0 -- NICHT mittig darunter.
+    # Deckel zu / Panel aus: die eDP-1-Zeile durch `monitor = eDP-1, disable`
+    # ersetzen. Die beiden Externen behalten dabei ihre Offsets, die Flaeche
+    # beginnt dann erst bei 1920 -- unproblematisch, links davon liegt schlicht
+    # kein Schirm mehr. Kein Nachruecken noetig.
     monitor = eDP-1, preferred, 0x0, 1
 
     # Unbekannter Schirm (Beamer, fremdes Dock): rechts dran, native Aufloesung.
