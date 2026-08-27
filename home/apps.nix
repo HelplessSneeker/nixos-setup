@@ -199,9 +199,19 @@ in
             default_area = "menupanel";
           };
 
-          # HIER STAND New Tab Override (newtaboverride@agenedia.com), raus am
-          # 27.08.2026 auf bfns Wunsch. Der neue Tab ist damit wieder Firefox'
-          # about:newtab.
+          # New Tab Override: raus am 27.08.2026 auf bfns Wunsch.
+          #
+          # ERSTER ANLAUF WAR ZU WENIG, und das ist der eigentliche Merksatz
+          # hier: den Eintrag aus ExtensionSettings zu LOESCHEN deinstalliert
+          # nichts. Firefox hoert damit nur auf, die Erweiterung zu erzwingen --
+          # das bereits installierte Add-on bleibt im Profil liegen und wirkt
+          # weiter. Genau so ist es beim Rebuild am 27.08. passiert.
+          #
+          # `blocked` ist der dokumentierte Weg: Firefox entfernt die
+          # Erweiterung beim naechsten Start und laesst sie auch nicht von Hand
+          # wieder installieren. Der Eintrag muss deshalb STEHEN BLEIBEN --
+          # entfernt man ihn spaeter, ist das kein Aufraeumen, sondern gibt die
+          # Installation wieder frei.
           #
           # Was mit dem Ausbau zurueckkommt, damit es niemanden ueberrascht:
           #   - Vimium greift auf about:newtab NICHT (Firefox laesst auf
@@ -217,6 +227,10 @@ in
           # "aus" = leere Seite) und kann keine URL setzen; der einzige
           # unterstuetzte Weg zu einer echten Seite im neuen Tab ist
           # chrome_url_overrides.newtab, und das kann nur eine Erweiterung.
+          "newtaboverride@agenedia.com" = {
+            installation_mode = "blocked";
+            blocked_install_message = "New Tab Override ist per NixOS-Config deaktiviert (home/apps.nix).";
+          };
         };
 
         # Startseite fuer Start und Home-Button. Ohne `Locked`, damit bfn sie in
@@ -225,6 +239,52 @@ in
         Homepage = {
           URL = firefoxStartUrl;
           StartPage = "homepage";
+        };
+
+        # --- Standard-Suchmaschine: Brave Search (27.08.2026) ---
+        #
+        # Brave Search ist in Firefox NICHT eingebaut, muss also erst per `Add`
+        # angelegt und dann per `Default` gesetzt werden. Beide Felder in EINER
+        # Policy -- `Default` verweist auf den `Name` von oben.
+        #
+        # WARUM DAS AUF DIESEM FIREFOX UEBERHAUPT GEHT: die SearchEngines-Policy
+        # war jahrelang ESR-only und auf dem Release-Kanal wirkungslos. Seit
+        # Firefox 139 gilt sie in allen Kanaelen (Mozillas Admin-Referenz,
+        # nachgelesen 27.08.2026). Hier laeuft 153 -- passt. Falls die Suche
+        # trotzdem auf DuckDuckGo bleibt: about:policies zeigt, ob die Policy
+        # angekommen und gueltig ist.
+        #
+        # Alle vier Werte stammen aus Braves EIGENEM OpenSearch-Descriptor
+        # (https://search.brave.com/opensearch.xml), nicht aus einer Anleitung.
+        # Such- und Suggest-URL am 27.08.2026 gegen den Server geprueft: Suche
+        # 200, Suggest liefert das erwartete JSON-Array.
+        #
+        # Die Icon-URL ist Braves inhaltsadressierter CDN-Pfad aus demselben
+        # Descriptor. Stirbt sie irgendwann, zeigt Firefox ein generisches Icon
+        # -- rein kosmetisch, die Suche laeuft weiter.
+        SearchEngines = {
+          Add = [
+            {
+              Name = "Brave";
+              URLTemplate = "https://search.brave.com/search?q={searchTerms}";
+              SuggestURLTemplate = "https://search.brave.com/api/suggest?q={searchTerms}";
+              Method = "GET";
+              # Kuerzel fuer die Adresszeile: `br <suchbegriff>` sucht gezielt
+              # bei Brave, auch wenn der Default mal woanders steht.
+              Alias = "br";
+              Description = "Brave Search: private, independent, open";
+              IconURL = "https://cdn.search.brave.com/serp/v1/static/brand/12832ccf4a94a6fe2ecc75f7ee0df48677abeab018d165ce25b7414477384367-favicon-96x96.png";
+            }
+          ];
+          Default = "Brave";
+
+          # `Remove` bewusst NICHT gesetzt: DuckDuckGo, Google & Co bleiben in
+          # der Liste erhalten und sind ueber ihre Kuerzel weiter erreichbar.
+          # Nur der Default wandert.
+          #
+          # `DefaultPrivate` ebenfalls nicht gesetzt -- ohne den Schluessel
+          # benutzt das private Fenster denselben Default. Ein abweichender
+          # Wert waere eine Entscheidung, keine Vervollstaendigung.
         };
 
         # Der `3rdparty.Extensions`-Block war ausschliesslich die deklarative
