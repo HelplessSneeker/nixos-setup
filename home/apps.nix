@@ -303,6 +303,24 @@ in
                    #  unabhaengig davon, wer die History fuehrt)
     hyprpicker     # Farb-Picker (SUPER+C)
 
+    # Karteikarten mit Spaced Repetition. Synct gegen den eigenen Sync-Server
+    # auf cogitator-prime (`http://cogitator-prime:8088/`, Stack /opt/stacks/anki),
+    # nicht gegen AnkiWeb -- der Zweck ist der Lesezugriff auf die revlog-Tabelle
+    # fuer Lector.
+    #
+    # BEWUSST aus dem Release-Kanal (25.09.4), obwohl der Server auf 26.08 laeuft.
+    # Die Doku im bfn-wiki riet, Client- und Server-Version zusammen zu halten
+    # ("das Sync-Protokoll aendert sich zwischen Releases"). Am 27.08.2026 gegen
+    # die Quelle geprueft, statt es zu glauben -- beide Tags sind identisch:
+    #   rslib/src/sync/version.rs        SYNC_VERSION_MIN 8  / MAX 11
+    #   rslib/src/storage/upgrades/mod.rs SCHEMA_MIN_VERSION 11 / MAX 18
+    # Damit gibt es keinen Kompatibilitaetsgrund fuer unstable, und es gilt das
+    # Thunderbird-Argument von unten: nur der Release-Kanal bekommt Backports.
+    # Falls Anki das Protokoll doch mal bumpt (Symptom: "Please upgrade to the
+    # latest Anki version"), ist der Fix `pkgsUnstable.anki` im Block weiter
+    # unten -- nicht ein Downgrade des Servers.
+    anki
+
     # Mail. Accounts werden in der GUI eingerichtet, nicht deklarativ --
     # programs.thunderbird bringt zwar Profile/Accounts als Nix-Optionen, die
     # Passwoerter muessen trotzdem manuell rein.
