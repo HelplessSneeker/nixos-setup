@@ -90,6 +90,11 @@
     # mitgeliefert; das Nix-Paket ist reproduzierbar und rollback-faehig.
     pnpm
     ripgrep fd fzf bat eza jq btop tmux unzip wget
+    # lazygit: TUI fuer git. Bewusst nur das Paket, kein programs.lazygit --
+    # das home-manager-Modul schreibt eine config.yml als Store-Symlink, damit
+    # waere jede Einstellung, die man IN lazygit per Taste umlegt, nicht mehr
+    # speicherbar. Die git-Identitaet kommt aus programs.git oben.
+    lazygit
     waybar hyprpaper hyprlock hypridle   # mako raus: noctalia macht die Notifications
     grim slurp wl-clipboard brightnessctl playerctl pavucontrol
     networkmanagerapplet

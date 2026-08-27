@@ -107,7 +107,7 @@ in
     # EIGENE Clipboard-History mit und nutzt cliphist nachweislich nicht (im
     # noctalia-5.0.0-Binary kommt weder `cliphist` noch `wl-paste` vor). Beides
     # parallel hiess: zwei unabhaengige Historien mit unterschiedlichem Inhalt,
-    # je nachdem ob man die Bar oder SUPER+SHIFT+V benutzt hat.
+    # je nachdem ob man die Bar oder SUPER+V benutzt hat.
 
     ### Look ###
     general {
@@ -216,7 +216,10 @@ ${gestureBlock}
     bind = $mainMod, W, killactive  # "Aktives Fenster schließen"
     bind = $mainMod SHIFT, Q, exit  # "Hyprland beenden (abmelden)"
     bind = $mainMod, F, fullscreen  # "Vollbild an/aus"
-    bind = $mainMod, V, togglefloating  # "Fenster schweben lassen / einrasten"
+    # V-Paar am 27.08.2026 getauscht (bfn): der Zwischenablage-Verlauf ist der
+    # haeufigere Griff und sitzt jetzt auf dem ungeshifteten SUPER+V (unten im
+    # System-Block), togglefloating rueckt auf SHIFT.
+    bind = $mainMod SHIFT, V, togglefloating  # "Fenster schweben lassen / einrasten"
     # togglesplit ist seit 0.56 kein eigener Dispatcher mehr, sondern eine
     # Layout-Message. SHIFT+P = pseudotile, ersetzt die weggefallene dwindle-Option.
     #
@@ -249,6 +252,10 @@ ${gestureBlock}
     bind = $mainMod, O, exec, obsidian  # "Obsidian (Notizen)"
     bind = $mainMod, P, exec, 1password  # "1Password"
     bind = $mainMod, D, exec, discord-web  # "Discord (Website in Firefox)"
+    # Editor im Terminal. Bewusst OHNE das --override=confirm_os_window_close=0
+    # aus $fileManager: bei yazi ist die Rueckfrage beim Schliessen laestig, bei
+    # nvim ist sie die letzte Warnung vor ungespeicherten Puffern.
+    bind = $mainMod, N, exec, $terminal -e nvim  # "Neovim (Editor im Terminal)"
 
     # System
     bind = $mainMod SHIFT, Escape, exec, hyprlock  # "Bildschirm sperren"
@@ -268,7 +275,15 @@ ${gestureBlock}
     # Panel-ID `clipboard` ist seit 09.08.2026 bestaetigt -- noctalia listet bei
     # einer falschen ID alle gueltigen auf, das ist der billigste Weg sie zu
     # pruefen (`noctalia msg panel-toggle bloedsinn`).
-    bind = $mainMod SHIFT, V, exec, noctalia msg panel-toggle clipboard  # "Zwischenablage-Verlauf"
+    # Liegt seit 27.08.2026 auf SUPER+V statt SUPER+SHIFT+V, siehe Tausch oben.
+    bind = $mainMod, V, exec, noctalia msg panel-toggle clipboard  # "Zwischenablage-Verlauf"
+    # Benachrichtigungen. Es gibt in noctalia 5.0.0 KEIN eigenstaendiges
+    # Notification-Panel -- die Historie ist ein TAB des Control-Centers. Der
+    # Aufruf nimmt deshalb zwei Argumente: Panel, dann Tab. Verifiziert gegen
+    # das gepinnte Binary: die vordefinierten Widget-Aktionen enthalten exakt
+    # `panel-toggle control-center notifications` (daneben home, calendar,
+    # audio, network, bluetooth, weather, system, monitor, power).
+    bind = $mainMod SHIFT, N, exec, noctalia msg panel-toggle control-center notifications  # "Benachrichtigungen"
     bind = $mainMod SHIFT, E, exec, noctalia msg settings-toggle  # "noctalia-Einstellungen"
     bind = $mainMod SHIFT, R, exec, hyprctl reload  # "Hyprland-Konfiguration neu laden"
     # Fremdes WLAN mit Anmeldeseite. Ohne das Skript kommt die Seite nie hoch:

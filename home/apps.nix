@@ -2,9 +2,10 @@
 # der home/bfn.nix zieht (fabricus jetzt, fabricus-itinerans spaeter).
 { config, pkgs, pkgsUnstable, lib, ... }:
 let
-  # Startseite von Firefox: Startup, Home-Button UND neuer Tab (die Erweiterung
-  # unten spiegelt sie). Eine Stelle, ein String -- hier tauschen, nicht in den
-  # Policies weiter unten.
+  # Startseite von Firefox: Startup und Home-Button. Der NEUE TAB haengt seit
+  # 27.08.2026 nicht mehr daran -- New Tab Override ist raus, dort steht wieder
+  # Firefox' about:newtab. Eine Stelle, ein String -- hier tauschen, nicht in
+  # den Policies weiter unten.
   #
   # Bewusst eine externe Seite und NICHT das Homepage-Dashboard auf
   # cogitator-prime: das haengt am Tailnet. Auf dem Laptop hiesse das eine
@@ -198,22 +199,24 @@ in
             default_area = "menupanel";
           };
 
-          # New Tab Override (19.0.0, MPL-2.0, ~59k Nutzer, zuletzt 19.07.2026).
-          # GUID aus dem Manifest des echten XPI, nicht aus der Doku:
-          #   browser_specific_settings.gecko.id = newtaboverride@agenedia.com
+          # HIER STAND New Tab Override (newtaboverride@agenedia.com), raus am
+          # 27.08.2026 auf bfns Wunsch. Der neue Tab ist damit wieder Firefox'
+          # about:newtab.
           #
-          # WARUM UEBERHAUPT EINE ERWEITERUNG:
-          # Auf about:newtab/about:home laesst Firefox KEINE Erweiterung
-          # mitlesen -- dort greift Vimium prinzipiell nicht, kein j, kein f,
-          # kein o. Die Sperre gilt fuer alle about:*-Seiten. Und die Policy
+          # Was mit dem Ausbau zurueckkommt, damit es niemanden ueberrascht:
+          #   - Vimium greift auf about:newtab NICHT (Firefox laesst auf
+          #     about:*-Seiten keine Erweiterung mitlesen) -- kein j, kein f,
+          #     kein o im leeren Tab.
+          #   - Strg+T setzt den Cursor wieder in die Adresszeile (das war der
+          #     Preis von focus_website und ist jetzt der Normalzustand).
+          #   - about:newtab zeigt wieder Firefox' Kacheln/Sponsored Shortcuts;
+          #     abschaltbar in den Einstellungen oder per Zahnrad rechts oben
+          #     auf der Seite selbst.
+          # Zum Wiederbeleben braucht es die Erweiterung erneut: die Policy
           # `NewTabPage` ist im Firefox-Schema ein reiner Boolean (an/aus,
-          # "aus" = leere Seite); eine URL kann sie nicht setzen. Der einzige
+          # "aus" = leere Seite) und kann keine URL setzen; der einzige
           # unterstuetzte Weg zu einer echten Seite im neuen Tab ist
           # chrome_url_overrides.newtab, und das kann nur eine Erweiterung.
-          "newtaboverride@agenedia.com" = {
-            install_url = "https://addons.mozilla.org/firefox/downloads/latest/new-tab-override/latest.xpi";
-            installation_mode = "force_installed";
-          };
         };
 
         # Startseite fuer Start und Home-Button. Ohne `Locked`, damit bfn sie in
@@ -224,33 +227,11 @@ in
           StartPage = "homepage";
         };
 
-        # Konfiguration der Erweiterung, deklarativ statt per Optionsseite.
-        # New Tab Override liest browser.storage.managed; die Werte gewinnen
-        # dort gegen die lokalen Einstellungen ({...local, ...managed} in
-        # js/core/settings.js) und werden auf der Optionsseite als
-        # policy-verwaltet markiert. Aus dem XPI 19.0.0 verifiziert, nicht aus
-        # der Doku -- erlaubte Schluessel: background_color, context_rules,
-        # focus_website, type, url; erlaubte type-Werte: background_color,
-        # custom_url, homepage.
-        "3rdparty" = {
-          Extensions = {
-            "newtaboverride@agenedia.com" = {
-              # `homepage` liest browserSettings.homepageOverride, also genau
-              # die Homepage-Policy oben. Damit steht die URL an EINER Stelle;
-              # `custom_url` waere eine zweite, die auseinanderlaufen kann.
-              type = "homepage";
-
-              # Der Punkt der ganzen Uebung: Fokus auf die SEITE statt in die
-              # Adresszeile. Nur so bekommt Vimium die Tastendruecke im neuen
-              # Tab -- mit Fokus in der Adresszeile landet jedes j/k/f dort.
-              #
-              # Preis: Strg+T setzt den Cursor nicht mehr in die Adresszeile.
-              # Ersatz ist Strg+L (Adresszeile) oder Vimiums `o` (Omnibar mit
-              # History, Bookmarks und Suche in einem Feld).
-              focus_website = true;
-            };
-          };
-        };
+        # Der `3rdparty.Extensions`-Block war ausschliesslich die deklarative
+        # Konfiguration von New Tab Override (type = "homepage",
+        # focus_website = true). Mit der Erweiterung ist er ebenfalls raus --
+        # ein Eintrag fuer eine nicht installierte Erweiterung waere toter
+        # Ballast, den beim naechsten Lesen jemand fuer aktiv haelt.
       };
     })
     obsidian
