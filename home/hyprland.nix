@@ -64,6 +64,48 @@ in
       fi
     '')
 
+    # lazygit im zuletzt benutzten Repo (SUPER+G). Das "zuletzt benutzt" kommt
+    # NICHT von hier: die fish-Funktion __note_last_repo in home/fish.nix
+    # schreibt bei jedem cd in ein git-Repo dessen Wurzel in die Datei unten.
+    # Dieses Skript liest nur.
+    #
+    # Bewusst KEIN Raten als Ersatz (juengstes .git unter ~, hartcodiertes
+    # Projektverzeichnis): das oeffnet irgendwann das falsche Repo, und in
+    # einem git-Frontend ist "falsches Repo" die Sorte Fehler, die man erst
+    # nach dem Commit bemerkt. Lieber ehrlich sagen, dass nichts bekannt ist.
+    #
+    # Der Pfad muss mit dem in home/fish.nix uebereinstimmen -- beide Seiten
+    # bilden ihn aus config.xdg.stateHome, damit es nicht zwei Wahrheiten gibt.
+    (writeShellScriptBin "lazygit-lastrepo" ''
+      state="${config.xdg.stateHome}/lastrepo"
+      repo=""
+      [ -r "$state" ] && repo="$(cat "$state")"
+
+      # Doppelt geprueft, weil die Notiz veralten kann: das Repo kann seit dem
+      # letzten cd umbenannt, verschoben oder geloescht worden sein. `rev-parse
+      # --git-dir` ist der billigste Test, der auch Worktrees und Submodule
+      # richtig beantwortet -- ein blosses `test -d "$repo/.git"` nicht.
+      if [ -n "$repo" ] && ${git}/bin/git -C "$repo" rev-parse --git-dir >/dev/null 2>&1; then
+        cd "$repo" || exit 1
+        exec ${lazygit}/bin/lazygit
+      fi
+
+      echo "SUPER+G: kein zuletzt benutztes git-Repo bekannt."
+      echo
+      if [ -n "$repo" ]; then
+        echo "  Notiert war: $repo"
+        echo "  Das ist heute kein git-Repo mehr (verschoben? geloescht?)."
+      else
+        echo "  Es wurde noch nichts notiert ($state)."
+      fi
+      echo
+      echo "Gemerkt wird ein Repo, sobald du in fish in ein Verzeichnis"
+      echo "darin wechselst. Einmal 'cd' genuegt."
+      echo
+      # Ohne das Warten waere das Fenster weg, bevor man den Text gelesen hat.
+      read -n 1 -r -s -p "Taste druecken zum Schliessen ..."
+    '')
+
     # Der selbstgebaute hypr-cheatsheet ist am 09.08.2026 rausgeflogen. Ersetzt
     # durch das noctalia-Plugin kenn/keybind-cheatsheet -- gleiche Idee (Binds
     # live statt aus einer Doku-Kopie), aber im noctalia-Design statt in fuzzel.
@@ -256,6 +298,11 @@ ${gestureBlock}
     # aus $fileManager: bei yazi ist die Rueckfrage beim Schliessen laestig, bei
     # nvim ist sie die letzte Warnung vor ungespeicherten Puffern.
     bind = $mainMod, N, exec, $terminal -e nvim  # "Neovim (Editor im Terminal)"
+    # lazygit im zuletzt benutzten Repo. Hier MIT
+    # --override=confirm_os_window_close=0 (anders als bei nvim daruber): ein
+    # git-Frontend hat keinen ungespeicherten Puffer, den die Rueckfrage retten
+    # koennte -- sie waere reine Reibung. Siehe $fileManager, gleiche Logik.
+    bind = $mainMod, G, exec, kitty --override=confirm_os_window_close=0 -e lazygit-lastrepo  # "lazygit im zuletzt benutzten Repo"
 
     # System
     bind = $mainMod SHIFT, Escape, exec, hyprlock  # "Bildschirm sperren"

@@ -3,6 +3,15 @@
 # hosts/*/configuration.nix. starship + nix-direnv haengen sich shell-uebergreifend
 # ein (siehe bfn.nix). Autosuggestions + Syntax-Highlighting kann fish nativ.
 { config, pkgs, lib, ... }:
+
+# Ablage fuer "welches git-Repo war zuletzt dran". EINE Definition, zwei Leser:
+# die fish-Funktion unten schreibt, das Skript lazygit-lastrepo aus
+# home/hyprland.nix (SUPER+G) liest. Wird der Pfad hier geaendert, muss er dort
+# mitwandern -- deshalb steht er in beiden Dateien als config.xdg.stateHome und
+# nicht als ausgeschriebener String.
+let
+  lastRepoFile = "${config.xdg.stateHome}/lastrepo";
+in
 {
   # notify-send fuer das 'done'-Plugin (Notification via noctalia).
   home.packages = [ pkgs.libnotify ];
@@ -61,6 +70,42 @@
     functions = {
       # mkdir + direkt reinwechseln
       mkcd = "mkdir -p $argv[1]; and cd $argv[1]";
+
+      # --- Mitschreiber fuer SUPER+G (lazygit im letzten Repo) ---
+      # Ein Hyprland-Bind hat keinen Begriff von "zuletzt benutztem Repo" --
+      # er kennt kein Arbeitsverzeichnis und keine Shell-Historie. Also muss
+      # es jemand mitschreiben, und der einzige Ort, der es zuverlaessig weiss,
+      # ist das cd.
+      #
+      # onVariable = PWD laesst fish die Funktion bei JEDEM Verzeichniswechsel
+      # feuern. Der Aufruf ist ein `git rev-parse` (kein Prozessbaum, keine
+      # Netzwerkarbeit) und faellt ausserhalb eines Repos sofort durch.
+      #
+      # Der Vergleich vor dem Schreiben ist kein Mikro-Optimieren: ohne ihn
+      # bekaeme die Datei bei jedem cd innerhalb desselben Repos einen Write --
+      # auf einem NVMe egal, aber es macht aus einem Lesevorgang unnoetig einen
+      # Schreibvorgang, und der kann teilweise landen.
+      #
+      # GRENZE, damit sie niemanden ueberrascht: nur fish schreibt hier mit.
+      # Ein Repo, das du ausschliesslich in nvims Terminal, ueber zsh oder per
+      # ssh betrittst, taucht nicht auf. Fuer bfns Login-Shell (fish) deckt das
+      # den Normalfall ab.
+      __note_last_repo = {
+        description = "Merkt sich das zuletzt betretene git-Repo (fuer SUPER+G)";
+        onVariable = "PWD";
+        body = ''
+          set -l root (command git rev-parse --show-toplevel 2>/dev/null)
+          test -n "$root"; or return 0
+
+          # Schon notiert? Dann nichts tun.
+          if test -r ${lastRepoFile}
+              test (cat ${lastRepoFile}) = "$root"; and return 0
+          end
+
+          mkdir -p (dirname ${lastRepoFile})
+          printf '%s\n' "$root" >${lastRepoFile}
+        '';
+      };
 
       # Spickzettel: eigene Abbreviations + Funktionen + Verweis auf die
       # Hyprland-Keybinds (SUPER+ss). Damit vergisst du dein eigenes Setup nicht.

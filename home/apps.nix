@@ -2,16 +2,17 @@
 # der home/bfn.nix zieht (fabricus jetzt, fabricus-itinerans spaeter).
 { config, pkgs, pkgsUnstable, lib, ... }:
 let
-  # Startseite von Firefox: Startup und Home-Button. Der NEUE TAB haengt seit
-  # 27.08.2026 nicht mehr daran -- New Tab Override ist raus, dort steht wieder
-  # Firefox' about:newtab. Eine Stelle, ein String -- hier tauschen, nicht in
-  # den Policies weiter unten.
+  # HIER STAND firefoxStartUrl = "https://duckduckgo.com/", raus am 27.08.2026.
+  # Startseite und Home-Button sind seitdem wieder Firefox' eigene (about:home,
+  # "Firefox Start"). Die Homepage-Policy ist ersatzlos entfernt, nicht auf
+  # about:home umgestellt -- keine Policy heisst "Firefox entscheidet", und
+  # genau das war der Wunsch.
   #
-  # Bewusst eine externe Seite und NICHT das Homepage-Dashboard auf
-  # cogitator-prime: das haengt am Tailnet. Auf dem Laptop hiesse das eine
-  # Fehlerseite in jedem Cafe-WLAN, und ausgerechnet vor dem Portal-Login
-  # (SUPER+SHIFT+W) waere sie garantiert kaputt.
-  firefoxStartUrl = "https://duckduckgo.com/";
+  # Falls beim ersten Start trotzdem noch DuckDuckGo kommt: die alte Policy war
+  # ohne `Locked` gesetzt, hat also nur den Default gesetzt. Hat bfn die Seite
+  # irgendwann per GUI bestaetigt, liegt der Wert als BENUTZER-Pref im Profil
+  # und ueberlebt den Ausbau. Weg damit: Einstellungen -> Startseite ->
+  # "Standard wiederherstellen".
 
   # --- org.freedesktop.FileManager1 -> yazi (Punkt 9b) ---
   # Firefox' "Enthaltenden Ordner oeffnen" geht NICHT ueber xdg-open, sondern
@@ -233,13 +234,8 @@ in
           };
         };
 
-        # Startseite fuer Start und Home-Button. Ohne `Locked`, damit bfn sie in
-        # den Einstellungen noch aendern kann -- die Policy setzt den Default,
-        # sie friert ihn nicht ein.
-        Homepage = {
-          URL = firefoxStartUrl;
-          StartPage = "homepage";
-        };
+        # Die `Homepage`-Policy (URL + StartPage) ist am 27.08.2026 entfernt --
+        # Begruendung oben im let-Block, wo firefoxStartUrl stand.
 
         # --- Standard-Suchmaschine: Brave Search (27.08.2026) ---
         #
