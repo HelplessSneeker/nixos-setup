@@ -33,6 +33,11 @@
     # /mnt, dort konnte die Datei gar nicht liegen -- mit aktivem Import waere
     # `nixos-install` selbst gescheitert, nicht erst ein spaeterer Rebuild.
     ../../modules/citrix.nix
+
+    # Kalender-Client (gnome-calendar/evolution) + evolution-data-server fuer
+    # das Time-Blocking gegen Radicale. Host-lokal, weil der Auftrag dem Laptop
+    # galt -- auf fabricus laesst sich dieselbe Zeile jederzeit nachziehen.
+    ../../modules/calendar.nix
   ];
 
   # --- Boot ------------------------------------------------------------------
