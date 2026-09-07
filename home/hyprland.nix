@@ -351,6 +351,13 @@ ${gestureBlock}
     bind = $mainMod, left, workspace, e-1  # "Voriger Workspace"
     bind = $mainMod, right, workspace, e+1  # "Nächster Workspace"
 
+    # Dasselbe mit Fenster im Schlepptau (bfn 07.09.2026). `movetoworkspace`
+    # (nicht ...silent) nimmt den Fokus mit -- man landet beim Fenster, wie bei
+    # SUPER+SHIFT+1..0 darueber. Auch hier `e±1`: am letzten belegten Workspace
+    # passiert nichts, es wird KEIN neuer angelegt.
+    bind = $mainMod SHIFT, left, movetoworkspace, e-1  # "Fenster einen Workspace nach links"
+    bind = $mainMod SHIFT, right, movetoworkspace, e+1  # "Fenster einen Workspace nach rechts"
+
     # SUPER+Tab oeffnet noctalias Fenster-Switcher statt blind einen Workspace
     # weiterzuschalten (bfn 09.08.2026: getestet, reicht ihm -- damit ist
     # hyprshell vom Tisch und wir sparen uns einen dritten UI-Stack mit eigenem
