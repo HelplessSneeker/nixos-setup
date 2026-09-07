@@ -12,6 +12,12 @@
 let
   isLaptop = osConfig.networking.hostName == "fabricus-itinerans";
 
+  # Ablage fuer Screenshots (bfn 07.09.2026). grimblast legt das Verzeichnis
+  # NICHT selbst an -- es baut den Dateinamen als "$DEFAULT_TARGET_DIR/<datum>.png"
+  # und laesst grim darauf los; fehlt der Ordner, scheitert der Schuss.
+  # Deshalb weiter unten die home.activation.
+  screenshotDir = "${config.home.homeDirectory}/Pictures/screenshots";
+
   # Trackpad-Gesten -- nur der Laptop hat ueberhaupt ein Trackpad.
   #
   # Syntax ist die NEUE aus Hyprland 0.51+ (hier laeuft 0.56.1, verifiziert:
@@ -36,6 +42,13 @@ let
     '' else "";
 in
 {
+  # Screenshot-Ordner anlegen. Bewusst NICHT ueber xdg.userDirs: das Modul
+  # schreibt ~/.config/user-dirs.dirs komplett neu (Store-Symlink, read-only)
+  # und wuerde bestehende Eintraege dieser Datei ueberschreiben.
+  home.activation.screenshotDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    run mkdir -p ${lib.escapeShellArg screenshotDir}
+  '';
+
   home.packages = with pkgs; [
     grimblast  # Screenshot-Wrapper (Print)
 
@@ -272,8 +285,16 @@ ${gestureBlock}
     # Die Panel-ID ist voll qualifiziert (<plugin-id>:<panel-id>) -- ein blosses
     # `cheatsheet` quittiert noctalia mit `unknown panel`.
     bind = $mainMod, ssharp, exec, noctalia msg panel-toggle kenn/keybind-cheatsheet:cheatsheet  # "Diese Tastenkürzel-Übersicht"
-    bind = $mainMod, C, exec, grimblast --notify copysave area  # "Screenshot: Bereich auswählen"
-    bind = $mainMod CTRL, C, exec, grimblast --notify copysave screen  # "Screenshot: ganzer Bildschirm"
+    # Screenshots landen seit 07.09.2026 in ~/Pictures/screenshots statt lose
+    # im Bilder-Ordner. Der Weg ist DEFAULT_TARGET_DIR und nicht die Session-
+    # Variable XDG_SCREENSHOTS_DIR: grimblast prueft DEFAULT_TARGET_DIR ZUERST
+    # und ueberspringt dann das Einlesen von user-dirs.dirs komplett -- damit
+    # haengt das Ziel an keiner Datei, die ich nicht kontrolliere, und wirkt
+    # sofort nach `hyprctl reload` statt erst nach dem naechsten Login (env =
+    # wird nur beim Compositor-Start gesetzt). Die Zuweisung vor dem Befehl
+    # traegt Hyprland, weil es exec ueber `/bin/sh -c` startet.
+    bind = $mainMod, C, exec, DEFAULT_TARGET_DIR=${screenshotDir} grimblast --notify copysave area  # "Screenshot: Bereich auswählen"
+    bind = $mainMod CTRL, C, exec, DEFAULT_TARGET_DIR=${screenshotDir} grimblast --notify copysave screen  # "Screenshot: ganzer Bildschirm"
     bind = $mainMod SHIFT, C, exec, hyprpicker -a  # "Farbe vom Bildschirm aufnehmen"
     # Clipboard-History: noctalias Panel statt cliphist+fuzzel (siehe Autostart).
     # Panel-ID `clipboard` ist seit 09.08.2026 bestaetigt -- noctalia listet bei
@@ -321,6 +342,14 @@ ${gestureBlock}
 
     bind = $mainMod, mouse_down, workspace, e+1  # "Nächster Workspace (Mausrad)"
     bind = $mainMod, mouse_up, workspace, e-1  # "Voriger Workspace (Mausrad)"
+
+    # Tastatur-Aequivalent zum 3-Finger-Wisch bzw. zum Mausrad oben (bfn
+    # 07.09.2026). `e+1`/`e-1` ist absichtlich dasselbe Ziel wie beim Rad:
+    # es springt nur auf BESTEHENDE Workspaces und legt am Rand keinen neuen
+    # an -- `r+1` wuerde genau das tun. Kein Wrap-around, am letzten belegten
+    # Workspace ist Schluss; das entspricht dem Verhalten des Wischs.
+    bind = $mainMod, left, workspace, e-1  # "Voriger Workspace"
+    bind = $mainMod, right, workspace, e+1  # "Nächster Workspace"
 
     # SUPER+Tab oeffnet noctalias Fenster-Switcher statt blind einen Workspace
     # weiterzuschalten (bfn 09.08.2026: getestet, reicht ihm -- damit ist
