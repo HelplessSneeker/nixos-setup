@@ -388,6 +388,33 @@ in
   # withRuby/withPython3 stehen dort jetzt auf false -- siehe Begruendung in
   # home/nvim/config.nix.
 
+  # --- polkit-Authentication-Agent (1Password-Unlock, pkexec) ---
+  # polkit ist ZWEITEILIG: `polkitd` entscheidet, der Authentication Agent
+  # zeigt den Dialog. GNOME und KDE bringen ihren Agent selbst mit -- Hyprland
+  # nicht. Ohne Agent hat polkitd niemanden zum Fragen und lehnt sofort ab:
+  # kein Dialog, keine Fehlermeldung, "geht einfach nie".
+  #
+  # Genau das war hier der Zustand. Befund vom 21.08.2026, nachgemessen am
+  # 09.09.2026 auf fabricus: `polkitd` 127 laeuft, die 1Password-Policy liegt
+  # in /run/current-system/sw/share/polkit-1/actions/, polkitPolicyOwners ist
+  # in modules/gui-apps.nix gesetzt -- aber es lief NIE ein Agent, und keiner
+  # war ueberhaupt installiert. Im Journal steht ueber sieben Tage kein
+  # einziges "Registered Authentication Agent".
+  #
+  # Betroffen ist JEDE polkit-Aktion in der Session (pkexec, GUI-Tools mit
+  # Root-Bedarf), aufgefallen ist es nur an 1Passwords Unlock ueber die
+  # System-Authentifizierung.
+  #
+  # Bewusst das home-manager-Modul statt `exec-once` in hyprland.nix: das
+  # Modul legt eine systemd-User-Unit an graphical-session.target an. Die
+  # ueberlebt einen Hyprland-Reload und startet nach einem Crash von selbst
+  # neu -- ein exec-once-Prozess tut beides nicht.
+  #
+  # NACH dem Rebuild noch ein Handgriff in der App: 1Password ->
+  # Einstellungen -> Sicherheit -> "Mit Systemauthentifizierung entsperren".
+  # Die Option laesst sich ohne laufenden Agent gar nicht erst aktivieren.
+  services.hyprpolkitagent.enable = true;
+
   # --- Dateimanager-Eintrag fuer yazi ---
   # yazi ist ein TUI und bringt selbst keine .desktop-Datei mit. Ohne die kann
   # xdg-open Verzeichnisse nicht zuordnen -- "Ordner oeffnen" aus Firefox &Co
