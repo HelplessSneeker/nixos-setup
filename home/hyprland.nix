@@ -121,14 +121,22 @@ in
     # Session; aufgefallen ist es an 1Passwords Unlock per Systemauth, der
     # deshalb nie funktioniert hat. Hintergrund und Messung in home/apps.nix.
     #
-    # Voller Store-Pfad, weil das Paket KEIN bin/ hat -- die einzige Binary
-    # liegt in libexec/. Ueber home.packages waere sie in keinem PATH.
+    # soteria statt hyprpolkitagent (09.09.2026, Optik). Der erste Anlauf lief
+    # funktional einwandfrei, sah aber ungethemt aus -- und das hat einen
+    # nachvollziehbaren Grund: hyprpolkitagent ist Qt/QML. home/theme.nix
+    # koppelt Qt per `qt.platformTheme.name = "gtk3"` ans GTK-Theme, aber das
+    # greift nur fuer QWidget-Apps (qbittorrent, VLC). QtQuick-Controls laufen
+    # nicht ueber QStyle und ignorieren die Kopplung, der Dialog blieb also
+    # hell. soteria ist GTK -- es nimmt Adwaita-dark aus home/theme.nix direkt.
     #
     # exec-once statt der systemd-User-Unit des home-manager-Moduls: die
     # haengt an graphical-session.target, das diese Session nie erreicht. Als
     # exec-once-Kind von Hyprland erbt der Agent ausserdem WAYLAND_DISPLAY &
     # Co. garantiert -- der User-Manager kennt diese Variablen hier nicht.
-    exec-once = ${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent
+    #
+    # Voller Store-Pfad wie bei den Nachbarn oben: haelt die Zeile unabhaengig
+    # davon, ob das Paket je in home.packages landet.
+    exec-once = ${pkgs.soteria}/bin/soteria
     # cliphist-Mitschnitt hier entfernt (08.08.2026): noctalia bringt eine
     # EIGENE Clipboard-History mit und nutzt cliphist nachweislich nicht (im
     # noctalia-5.0.0-Binary kommt weder `cliphist` noch `wl-paste` vor). Beides
