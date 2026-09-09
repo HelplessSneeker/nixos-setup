@@ -405,15 +405,31 @@ in
   # Root-Bedarf), aufgefallen ist es nur an 1Passwords Unlock ueber die
   # System-Authentifizierung.
   #
-  # Bewusst das home-manager-Modul statt `exec-once` in hyprland.nix: das
-  # Modul legt eine systemd-User-Unit an graphical-session.target an. Die
-  # ueberlebt einen Hyprland-Reload und startet nach einem Crash von selbst
-  # neu -- ein exec-once-Prozess tut beides nicht.
+  # DER AGENT WIRD IN home/hyprland.nix PER exec-once GESTARTET, nicht hier.
+  #
+  # Erster Anlauf am 09.09.2026 war `services.hyprpolkitagent.enable = true`
+  # -- das home-manager-Modul. Es baute Paket und Unit korrekt und war
+  # trotzdem wirkungslos: die Unit haengt an `WantedBy =
+  # graphical-session.target`, und dieses Target wird in dieser Session NIE
+  # erreicht. Gegenprobe ueber alle Boots:
+  #
+  #   journalctl _UID=1000 | grep -c "graphical-session"   ->   0
+  #
+  # Grund ist die Session-Architektur: Hyprland kommt aus dem NixOS-Modul
+  # `programs.hyprland` und wird von greetd ueber start-hyprland gestartet.
+  # Die Session-Target-Kette wuerde nur das home-manager-Modul
+  # `wayland.windowManager.hyprland` aufziehen -- das nutzt diese Config
+  # nicht. Eine Unit an graphical-session.target ist hier totes Holz:
+  # installiert, aber von niemandem gestartet, auch nach Reboot nicht.
+  #
+  # MERKSATZ: ein "natives" Modul ist nur nativ, wenn die Umgebung liefert,
+  # woran es haengt. noctalia und 1password laufen in dieser Config beide
+  # ueber exec-once -- das ist eine Aussage darueber, wie diese Session
+  # Autostart macht, kein Stilmangel.
   #
   # NACH dem Rebuild noch ein Handgriff in der App: 1Password ->
   # Einstellungen -> Sicherheit -> "Mit Systemauthentifizierung entsperren".
   # Die Option laesst sich ohne laufenden Agent gar nicht erst aktivieren.
-  services.hyprpolkitagent.enable = true;
 
   # --- Dateimanager-Eintrag fuer yazi ---
   # yazi ist ein TUI und bringt selbst keine .desktop-Datei mit. Ohne die kann

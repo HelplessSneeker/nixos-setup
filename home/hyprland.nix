@@ -116,6 +116,19 @@ in
     #exec-once = mako
     exec-once = noctalia
     exec-once = 1password --silent
+    # polkit-Authentication-Agent. Ohne ihn lehnt polkitd jede Anfrage sofort
+    # ab -- kein Dialog, keine Fehlermeldung. Betrifft jede polkit-Aktion der
+    # Session; aufgefallen ist es an 1Passwords Unlock per Systemauth, der
+    # deshalb nie funktioniert hat. Hintergrund und Messung in home/apps.nix.
+    #
+    # Voller Store-Pfad, weil das Paket KEIN bin/ hat -- die einzige Binary
+    # liegt in libexec/. Ueber home.packages waere sie in keinem PATH.
+    #
+    # exec-once statt der systemd-User-Unit des home-manager-Moduls: die
+    # haengt an graphical-session.target, das diese Session nie erreicht. Als
+    # exec-once-Kind von Hyprland erbt der Agent ausserdem WAYLAND_DISPLAY &
+    # Co. garantiert -- der User-Manager kennt diese Variablen hier nicht.
+    exec-once = ${pkgs.hyprpolkitagent}/libexec/hyprpolkitagent
     # cliphist-Mitschnitt hier entfernt (08.08.2026): noctalia bringt eine
     # EIGENE Clipboard-History mit und nutzt cliphist nachweislich nicht (im
     # noctalia-5.0.0-Binary kommt weder `cliphist` noch `wl-paste` vor). Beides
