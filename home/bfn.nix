@@ -82,6 +82,37 @@
   home.sessionVariables.PNPM_HOME = "${config.home.homeDirectory}/.local/share/pnpm";
   home.sessionPath = [ "${config.home.homeDirectory}/.local/share/pnpm" ];
 
+  # --- Node-Versionen umschalten: mise ---
+  #
+  # Gewuenscht am 11.09.2026 ("nvm oder irgendwas"). nvm selbst kommt nicht in
+  # Frage: es ist ein bash/zsh-Skript, das sich per `source` in die Shell
+  # haengt -- unter fish laeuft es nur ueber Bastelloesungen. mise kann
+  # dasselbe, hat ein home-manager-Modul mit fish-Integration und deckt neben
+  # node auch python/go/... ab. Der Rest der Kette ist bei allen gleich: auch
+  # mise laedt die Binaries von nodejs.org, deshalb haengt das hier an
+  # programs.nix-ld.enable in modules/system-base.nix. Ohne nix-ld startet
+  # keine einzige dieser Versionen.
+  #
+  # Bedienung (nvm-Aequivalente):
+  #   mise use -g node@22     global setzen           (nvm alias default 22)
+  #   mise use node@20        nur dieses Projekt      (schreibt ./mise.toml)
+  #   mise ls / mise ls-remote node                   (nvm ls / nvm ls-remote)
+  #   mise install node@18.20.4                       (nvm install)
+  # Beim Betreten eines Projektverzeichnisses schaltet mise selbst um.
+  # Fuer bestehende .nvmrc-Dateien einmalig:
+  #   mise settings add idiomatic_version_file_enable_tools node
+  #
+  # BEWUSST OHNE globalConfig: die Option wuerde ~/.config/mise/config.toml als
+  # Store-Symlink schreiben (read-only) -- `mise use -g` koennte seine eigene
+  # Konfiguration dann nicht mehr aendern. Gleiche Ueberlegung wie bei tealdeer
+  # oben: das Werkzeug verwaltet seinen veraenderlichen Zustand selbst,
+  # home-manager haelt sich raus.
+  #
+  # nodejs_22 unten in home.packages bleibt und ist kein Widerspruch, sondern
+  # das Netz darunter: mise haengt eine aktive Version vorn in den PATH, ist
+  # keine gesetzt, greift weiter die reproduzierbare Nix-Version.
+  programs.mise.enable = true;
+
   home.packages = with pkgs; [
     gh nodejs_22
     # pnpm 10.15.1 aus 25.05 (geprueft am 07.08.2026 gegen den gepinnten

@@ -57,6 +57,29 @@
     tree
   ];
 
+  # --- Fremde (nicht-Nix) Binaries ausfuehrbar machen: nix-ld ---
+  #
+  # Anlass ist der Node-Versionswechsel per mise (home/bfn.nix). mise laedt die
+  # OFFIZIELLEN node-Tarballs von nodejs.org. Die sind dynamisch gelinkt und
+  # tragen den Interpreterpfad /lib64/ld-linux-x86-64.so.2 im Header -- den es
+  # auf NixOS nicht gibt. Ohne nix-ld scheitert so ein Binary mit
+  # "No such file or directory", und gemeint ist dabei der LOADER, nicht die
+  # Datei, auf die man gerade zeigt. Genau daran scheitern auf NixOS auch nvm,
+  # fnm, volta und jedes `curl | sh`-Installationsskript.
+  #
+  # nix-ld legt einen Shim auf genau diesen Pfad und setzt NIX_LD /
+  # NIX_LD_LIBRARY_PATH. Die Default-Bibliotheksliste des Moduls reicht fuer
+  # node -- sie enthaelt stdenv.cc.cc (libstdc++/libgcc), zlib und openssl;
+  # nachgelesen in nixos/modules/programs/nix-ld.nix des gepinnten 26.05, nicht
+  # geraten. Extra libraries sind deshalb hier bewusst nicht gesetzt.
+  #
+  # Der Preis, bewusst in Kauf genommen: das gilt ab jetzt fuer JEDES
+  # heruntergeladene Binary, nicht nur fuer node. NixOS' Eigenschaft "fremde
+  # Binaries laufen hier gar nicht erst" ist damit weg. Wer die behalten will,
+  # nimmt statt mise den zweiten Weg aus home/bfn.nix (direnv + nixpkgs-node)
+  # und kann diese Zeile wieder entfernen.
+  programs.nix-ld.enable = true;
+
   # --- Nix-Store-Hygiene ---
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.auto-optimise-store = true;    # dedupliziert identische Store-Pfade
