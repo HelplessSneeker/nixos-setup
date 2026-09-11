@@ -88,10 +88,12 @@
   # Frage: es ist ein bash/zsh-Skript, das sich per `source` in die Shell
   # haengt -- unter fish laeuft es nur ueber Bastelloesungen. mise kann
   # dasselbe, hat ein home-manager-Modul mit fish-Integration und deckt neben
-  # node auch python/go/... ab. Der Rest der Kette ist bei allen gleich: auch
-  # mise laedt die Binaries von nodejs.org, deshalb haengt das hier an
-  # programs.nix-ld.enable in modules/system-base.nix. Ohne nix-ld startet
-  # keine einzige dieser Versionen.
+  # node auch python/go/... ab. Der Rest der Kette ist bei allen gleich: die
+  # Fertig-Binaries kommen von nodejs.org und sind gegen glibc gelinkt, laufen
+  # also nur mit programs.nix-ld.enable aus modules/system-base.nix. mise haette
+  # dafuer einen Ausweg -- es baut auf NixOS per Default aus dem Quelltext --,
+  # aber der kostet eine halbe Stunde pro Version und scheitert hier an einer
+  # fehlenden Build-Abhaengigkeit; siehe MISE_NODE_COMPILE weiter unten.
   #
   # Bedienung (nvm-Aequivalente):
   #   mise use -g node@22     global setzen           (nvm alias default 22)
@@ -112,6 +114,28 @@
   # das Netz darunter: mise haengt eine aktive Version vorn in den PATH, ist
   # keine gesetzt, greift weiter die reproduzierbare Nix-Version.
   programs.mise.enable = true;
+
+  # MISE_NODE_COMPILE=0 -- ohne diese Zeile BAUT mise node aus dem Quelltext,
+  # statt das fertige Binary zu laden. Gemessen am 11.09.2026, nicht vermutet:
+  # `mise install node@22` bricht ab mit
+  #   ./configure: line 10: exec: python: not found
+  # und im Verbose-Log steht davor "we will fetch the source and compile".
+  # Ursache ist mises eigene Voreinstellung `all_compile`, die auf DIESER
+  # Maschine `true` ist -- mise liest /etc/os-release, sieht ID=nixos und geht
+  # davon aus, dass fremde Binaries hier ohnehin nicht starten. Diese Annahme
+  # war richtig, bis nix-ld dazukam (modules/system-base.nix).
+  #
+  # Bewusst nur node und nicht MISE_ALL_COMPILE: fuer python/ruby/erlang ist
+  # ungeprueft, ob deren Fertig-Binaries hier sauber laufen -- die duerfen
+  # weiter bauen, bis jemand das misst.
+  #
+  # Als Variable und nicht ueber globalConfig, aus demselben Grund wie oben:
+  # ~/.config/mise/config.toml bleibt bfns beschreibbare Datei. Wirkt erst in
+  # einer NEUEN Login-Session (home.sessionVariables landet in
+  # hm-session-vars.sh); sofort geht es mit
+  #   mise settings set node.compile false
+  # was dasselbe in bfns eigene config.toml schreibt.
+  home.sessionVariables.MISE_NODE_COMPILE = "0";
 
   home.packages = with pkgs; [
     gh nodejs_22
