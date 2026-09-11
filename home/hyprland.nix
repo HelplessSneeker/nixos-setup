@@ -77,6 +77,53 @@ in
       fi
     '')
 
+    # Rebuild per Tastendruck (bfn 11.09.2026, SUPER+R / SUPER+SHIFT+R).
+    #
+    # Bewusst ein Skript und keine `sh -c`-Kette im Bind: es braucht ein
+    # Argument (--pull), eine Auswertung des Rueckgabecodes und ein Fenster,
+    # das nach dem Lauf offen bleibt. Ohne das Letzte sieht man weder Fehler
+    # noch Erfolg -- kitty schliesst sich, sobald das Kommando durch ist.
+    #
+    # Die Abbreviation `nrs` in home/fish.nix bleibt unveraendert: eine fish-
+    # Abbreviation ist Text, der im Prompt expandiert wird, und von aussen
+    # nicht aufrufbar. Beide Wege fuehren dasselbe Kommando aus.
+    #
+    # sudo kommt bewusst OHNE Store-Pfad: das setuid-Binary liegt im Wrapper
+    # unter /run/wrappers/bin, das sudo aus dem Store waere nicht setuid und
+    # damit wirkungslos. git dagegen mit Store-Pfad, wie beim discord-web-
+    # Skript darueber.
+    (writeShellScriptBin "nixos-switch" ''
+      set -u
+
+      if [ "''${1:-}" = "--pull" ]; then
+        echo ":: git pull --ff-only in /etc/nixos"
+        # --ff-only ist Absicht: liegen dort lokale Commits oder Aenderungen,
+        # die einen Merge braeuchten, soll der Lauf STEHEN statt zu mergen.
+        # /etc/nixos gehoert bfn, der Pull laeuft deshalb ohne sudo.
+        if ! ${git}/bin/git -C /etc/nixos pull --ff-only; then
+          echo
+          echo "!! git pull fehlgeschlagen -- es wird NICHT gebaut."
+          printf 'Fenster schliessen: Enter. '
+          read -r _
+          exit 1
+        fi
+        echo
+      fi
+
+      sudo nixos-rebuild switch --flake /etc/nixos
+      rc=$?
+
+      echo
+      if [ "$rc" -eq 0 ]; then
+        echo ":: switch erfolgreich (rc=0)"
+      else
+        echo "!! switch fehlgeschlagen (rc=$rc)"
+      fi
+      printf 'Fenster schliessen: Enter. '
+      read -r _
+      exit "$rc"
+    '')
+
     # Der selbstgebaute hypr-cheatsheet ist am 09.08.2026 rausgeflogen. Ersetzt
     # durch das noctalia-Plugin kenn/keybind-cheatsheet -- gleiche Idee (Binds
     # live statt aus einer Doku-Kopie), aber im noctalia-Design statt in fuzzel.
@@ -331,7 +378,21 @@ ${gestureBlock}
     # audio, network, bluetooth, weather, system, monitor, power).
     bind = $mainMod SHIFT, N, exec, noctalia msg panel-toggle control-center notifications  # "Benachrichtigungen"
     bind = $mainMod SHIFT, E, exec, noctalia msg settings-toggle  # "noctalia-Einstellungen"
-    bind = $mainMod SHIFT, R, exec, hyprctl reload  # "Hyprland-Konfiguration neu laden"
+    # hyprctl reload ist am 11.09.2026 von SUPER+SHIFT+R auf SUPER ALT+R
+    # umgezogen -- SUPER+SHIFT+R ist jetzt der Rebuild (unten). Die beiden
+    # haetten sich sonst still gegenseitig verschluckt: bei doppelt belegter
+    # Taste nimmt Hyprland kommentarlos den ERSTEN Treffer (dieselbe Falle wie
+    # 08.08.2026 bei SUPER+P/pseudo). SUPER ALT ist als Modifier hier schon in
+    # Gebrauch (Wallpaper, ganz unten).
+    bind = SUPER ALT, R, exec, hyprctl reload  # "Hyprland-Konfiguration neu laden"
+
+    # NixOS neu bauen, ohne ins Terminal zu wechseln (bfn 11.09.2026).
+    # Beide Binds oeffnen bewusst ein eigenes kitty-Fenster: sudo fragt nach
+    # dem Passwort, und der Build-Output ist das Einzige, woran man sieht, ob
+    # der switch durch ist. Was das Skript genau tut, steht bei nixos-switch
+    # weiter oben in dieser Datei.
+    bind = $mainMod, R, exec, $terminal --title "nixos-rebuild switch" -e nixos-switch  # "NixOS neu bauen (nixos-rebuild switch)"
+    bind = $mainMod SHIFT, R, exec, $terminal --title "git pull + nixos-rebuild switch" -e nixos-switch --pull  # "NixOS: erst git pull, dann neu bauen"
     # Fremdes WLAN mit Anmeldeseite. Ohne das Skript kommt die Seite nie hoch:
     # Tailscale haelt den DNS auf 100.100.100.100, das Portal kann seinen
     # Redirect also gar nicht ausliefern. Begruendung im Kopf von
@@ -364,20 +425,51 @@ ${gestureBlock}
     bind = $mainMod, mouse_down, workspace, e+1  # "Nächster Workspace (Mausrad)"
     bind = $mainMod, mouse_up, workspace, e-1  # "Voriger Workspace (Mausrad)"
 
-    # Tastatur-Aequivalent zum 3-Finger-Wisch bzw. zum Mausrad oben (bfn
-    # 07.09.2026). `e+1`/`e-1` ist absichtlich dasselbe Ziel wie beim Rad:
-    # es springt nur auf BESTEHENDE Workspaces und legt am Rand keinen neuen
-    # an -- `r+1` wuerde genau das tun. Kein Wrap-around, am letzten belegten
-    # Workspace ist Schluss; das entspricht dem Verhalten des Wischs.
-    bind = $mainMod, left, workspace, e-1  # "Voriger Workspace"
-    bind = $mainMod, right, workspace, e+1  # "Nächster Workspace"
+    # Tastatur-Aequivalent zum 3-Finger-Wisch (bfn 07.09.2026), seit
+    # 11.09.2026 monitor-lokal: `m±1` statt `e±1`.
+    #
+    # Der Unterschied zaehlt erst mit zwei Bildschirmen. Beide Formen laufen
+    # durch denselben Parser, aber `e` setzt onAllMonitors -- die Liste der
+    # Sprungziele sind dann die Workspaces ALLER Monitore, und wer dort landet,
+    # nimmt den Fokus auf den Nachbarmonitor mit. `m` filtert auf
+    # `ws->m_monitor == focusState()->monitor()`, bleibt also auf dem
+    # fokussierten Bildschirm -- und ist exakt das, was der Wisch tut:
+    # CUnifiedWorkspaceSwipeGesture holt seine Ziele als "m-1"/"m+1" (mit
+    # gestures:workspace_swipe_use_r waeren es "r±1", Default ist aus).
+    # Geprueft im Quelltext des laufenden Tags v0.56.1, nicht in der Doku:
+    # src/helpers/MiscFunctions.cpp (getWorkspaceIDNameFromString) und
+    # src/managers/input/UnifiedWorkspaceSwipeGesture.cpp.
+    #
+    # Zwei Eigenheiten, die dabei aufgefallen sind:
+    #   * `m±1` springt NUR auf bestehende Workspaces, legt also nie einen
+    #     neuen an. Ein neuer kommt per SUPER++ (unten).
+    #   * Es WICKELT am Ende der Liste um (currentItem % validWSes.size()).
+    #     Der Kommentar, der hier bis 11.09.2026 stand ("kein Wrap-around"),
+    #     war falsch -- `e±1` laeuft durch denselben Modulo und wickelt
+    #     genauso. Der Wisch legt an dieser Stelle stattdessen einen neuen
+    #     Workspace an (gestures:workspace_swipe_create_new, Default an); das
+    #     ist der eine Punkt, in dem Tastatur und Trackpad sich unterscheiden.
+    bind = $mainMod, left, workspace, m-1  # "Voriger Workspace (auf diesem Bildschirm)"
+    bind = $mainMod, right, workspace, m+1  # "Nächster Workspace (auf diesem Bildschirm)"
 
     # Dasselbe mit Fenster im Schlepptau (bfn 07.09.2026). `movetoworkspace`
     # (nicht ...silent) nimmt den Fokus mit -- man landet beim Fenster, wie bei
-    # SUPER+SHIFT+1..0 darueber. Auch hier `e±1`: am letzten belegten Workspace
-    # passiert nichts, es wird KEIN neuer angelegt.
-    bind = $mainMod SHIFT, left, movetoworkspace, e-1  # "Fenster einen Workspace nach links"
-    bind = $mainMod SHIFT, right, movetoworkspace, e+1  # "Fenster einen Workspace nach rechts"
+    # SUPER+SHIFT+1..0 darueber. `m±1` aus demselben Grund wie eine Zeile
+    # darueber: das Fenster bleibt auf dem Bildschirm, auf dem es war.
+    bind = $mainMod SHIFT, left, movetoworkspace, m-1  # "Fenster einen Workspace nach links"
+    bind = $mainMod SHIFT, right, movetoworkspace, m+1  # "Fenster einen Workspace nach rechts"
+
+    # Neuer leerer Workspace auf dem fokussierten Bildschirm (bfn 11.09.2026).
+    # `emptynm` liest der Parser buchstabenweise: n = der naechste freie HINTER
+    # dem aktuellen (ohne n waere es die niedrigste freie Nummer ueberhaupt,
+    # also eine Luecke weiter vorn), m = keine Nummer, die per workspace-Regel
+    # an einen anderen Monitor gebunden ist. Damit fuehlt es sich an wie der
+    # Wisch nach rechts ueber das Ende hinaus.
+    #
+    # Taste: auf dem de-Layout liegt `+` auf der BASIS-Ebene, der Bind heisst
+    # deshalb `plus` -- dieselbe Regel wie bei `ssharp` weiter oben, und aus
+    # demselben Grund steht SHIFT hier nicht im Modifier-Feld.
+    bind = $mainMod, plus, workspace, emptynm  # "Neuer leerer Workspace auf diesem Bildschirm"
 
     # SUPER+Tab oeffnet noctalias Fenster-Switcher statt blind einen Workspace
     # weiterzuschalten (bfn 09.08.2026: getestet, reicht ihm -- damit ist
