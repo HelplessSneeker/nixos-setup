@@ -83,6 +83,26 @@ in
         IdentitiesOnly = true;
       };
 
+      # Notzugang zu cogitator ueber das Heim-LAN, gleicher Key, gleicher
+      # Host-Key -- nur ohne Tailnet.
+      #
+      # Ab dem Tag, an dem auf cogitator `tailscale set --ssh` laeuft, klaut
+      # Tailscale SSH Port 22 fuer *alle* Tailnet-Absender, und die Policy
+      # steht dort auf `check`: `ssh cogitator-prime` verlangt dann alle 12 h
+      # eine Browser-Bestaetigung. Verbindungen, die NICHT ueber das Tailnet
+      # kommen, laesst Tailscale unangetastet -- die landen weiter bei sshd
+      # mit ~/.ssh/authorized_keys.
+      #
+      # Darum dieser Alias auf die LAN-IP (statisch 192.168.0.233 auf enp3s0).
+      # Er funktioniert nur im Heimnetz -- genau so gewollt: ufw laesst Port 22
+      # ausschliesslich aus 192.168.0.0/24 und ueber tailscale0 herein.
+      cogitator-lan = {
+        HostName = "192.168.0.233";
+        User = "bfn";
+        IdentityFile = "~/.ssh/cogitator-prime.pub";
+        IdentitiesOnly = true;
+      };
+
       # Coolify-Host. Laeuft Tailscale SSH (Auth ueber Tailnet-Identity),
       # daher bewusst KEIN Key/IdentitiesOnly -- nur der User zaehlt.
       personal-server = {
@@ -136,7 +156,7 @@ in
   # (SHA256:BjloS3/zAZKfflsTmmmDTZ+TJr90V2cAz0zchRW6Xx8).
   home.file.".ssh/known_hosts_nix".text = ''
     primus,primus.${tailnet},100.73.119.56 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG9nn1+O1p2FLVtEN3PINm948NQu2hVpGxXWPbopTSCH
-    cogitator-prime,cogitator-prime.${tailnet},100.123.62.126 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBhGLbay2eMoV9Ls4G1I2X6YdKmdigXHFkXdXdqqkYyO
+    cogitator-prime,cogitator-prime.${tailnet},100.123.62.126,192.168.0.233 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBhGLbay2eMoV9Ls4G1I2X6YdKmdigXHFkXdXdqqkYyO
     personal-server,personal-server.${tailnet},100.116.251.104 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINjiKE7VILsFyUI3FL7wsM4ztlGlN7SRjWBAjhbhyWzp
     fabricus,fabricus.${tailnet},100.105.13.78 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICTh8W7s/z53sSUJoRjZUlNuiAkB5RaZYTtac2WpMj+w
     fabricus-itinerans,fabricus-itinerans.${tailnet},100.99.116.48 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID4IcFf4c71HIIIDSEuPBdgyqZ6Jz5I78p05dNL2dqvY
