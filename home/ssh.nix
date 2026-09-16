@@ -154,9 +154,22 @@ in
   # doppelt bestaetigt: ssh-keyscan von primus und der TOFU-Prompt auf fabricus
   # zeigen denselben Fingerprint
   # (SHA256:BjloS3/zAZKfflsTmmmDTZ+TJr90V2cAz0zchRW6Xx8).
+  #
+  # ACHTUNG, was hier gepinnt wird, ist der Key dessen, der Port 22 beantwortet
+  # -- nicht zwingend sshd. Auf personal-server antwortet dort seit jeher
+  # Tailscale SSH (Banner `SSH-2.0-Tailscale`), der Eintrag unten ist also
+  # Tailscales eigener Host-Key, nicht der von sshd.
+  #
+  # Genau deshalb steht cogitator seit 16.09.2026 nur noch mit der LAN-IP hier:
+  # sobald dort `tailscale set --ssh` laeuft, praesentiert Port 22 aus dem
+  # Tailnet Tailscales Host-Key, der sshd-Eintrag wuerde dann als
+  # "REMOTE HOST IDENTIFICATION HAS CHANGED" hart abweisen. Den Tailnet-Namen
+  # traegt tailscaled dem Client zur Laufzeit selbst in die schreibbare
+  # known_hosts ein; der feste Eintrag kommt erst zurueck, wenn der neue Key
+  # per ssh-keyscan bestaetigt ist.
   home.file.".ssh/known_hosts_nix".text = ''
     primus,primus.${tailnet},100.73.119.56 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG9nn1+O1p2FLVtEN3PINm948NQu2hVpGxXWPbopTSCH
-    cogitator-prime,cogitator-prime.${tailnet},100.123.62.126,192.168.0.233 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBhGLbay2eMoV9Ls4G1I2X6YdKmdigXHFkXdXdqqkYyO
+    192.168.0.233 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBhGLbay2eMoV9Ls4G1I2X6YdKmdigXHFkXdXdqqkYyO
     personal-server,personal-server.${tailnet},100.116.251.104 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINjiKE7VILsFyUI3FL7wsM4ztlGlN7SRjWBAjhbhyWzp
     fabricus,fabricus.${tailnet},100.105.13.78 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICTh8W7s/z53sSUJoRjZUlNuiAkB5RaZYTtac2WpMj+w
     fabricus-itinerans,fabricus-itinerans.${tailnet},100.99.116.48 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID4IcFf4c71HIIIDSEuPBdgyqZ6Jz5I78p05dNL2dqvY
