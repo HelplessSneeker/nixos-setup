@@ -110,6 +110,23 @@ in
         User = "bfn";
       };
 
+      # GitHub. Ohne Pinning laeuft ssh alle acht Keys des 1Password-Agents der
+      # Reihe nach durch und GitHub bricht mit "Too many authentication
+      # failures" ab -- am 09.08.2026 genau so passiert, damals mit sshd.
+      #
+      # Der richtige Key ist der 1Password-Eintrag "GitHub",
+      # Fingerprint SHA256:bMiBtvTn1sY/OEuLGSWo3cb3PDFGr8Ky73TL8ltE1VQ.
+      # Am 18.09.2026 gegengeprueft: identisch mit dem ersten Key auf
+      # https://github.com/HelplessSneeker.keys. Die beiden anderen
+      # GitHub-klingenden Agent-Keys ("Github MA01", "1pw-Github") liegen NICHT
+      # auf diesem Account und gehoeren zu einem anderen Kontext -- sie hier
+      # anzubieten kostet nur Versuche.
+      "github.com" = {
+        User = "git";
+        IdentityFile = "~/.ssh/github.pub";
+        IdentitiesOnly = true;
+      };
+
       # Hier standen bis zum 12.08.2026 Bloecke fuer `fabricus` und
       # `fabricus-itinerans`, gepinnt auf `openclaw-lab`. Von diesem Key hat
       # nie ein privater Teil existiert -- der 1Password-Agent listet ihn
@@ -145,6 +162,12 @@ in
   # Nur oeffentlich, gehoert nicht zu den Secrets.
   home.file.".ssh/cogitator-prime.pub".text =
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIESznCeiuvFIcwB58RTCMe3ALD6kn95vn0KKDhk5pNVV cogitator-prime\n";
+
+  # Public Key des 1Password-Eintrags "GitHub". Gegenstueck liegt bei GitHub
+  # selbst (Account HelplessSneeker), nicht auf einer eigenen Maschine.
+  # Nur oeffentlich -- darf im public Repo stehen.
+  home.file.".ssh/github.pub".text =
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBz+hmPv5OqkNOzvhVaV6a0PCW2bgA0vVyiVzIVgVM0r GitHub\n";
 
   # Host-Keys, verifiziert am 06.08.2026 per ssh-keyscan aus dem Tailnet heraus.
   # Bei Neuinstallation eines Hosts hier den Eintrag aktualisieren, sonst
