@@ -9,6 +9,10 @@
 #                      ein stiller Bypass um jede sudo-Regel herum
 #   - `systemd-journal` -> volle Log-Diagnose, aber rein lesend
 #
+# ZUGANGSWEG seit 19.09.2026: ausschliesslich Tailscale SSH. Es gibt keinen
+# sshd-Key mehr (siehe authorizedKeys.keys unten); wer hereindarf, entscheidet
+# die SSH-Policy der Tailnet-ACL, nicht eine Datei auf dieser Maschine.
+#
 # Config-Aenderungen laufen deshalb NICHT ueber diesen Account, sondern als
 # Commits im Flake-Repo (github.com/HelplessSneeker/nixos-setup). Der Agent
 # liefert Diffs, `nixos-rebuild switch` macht bfn. Damit ist der Audit-Trail
@@ -22,17 +26,33 @@
     extraGroups = [ "systemd-journal" ];
     shell = pkgs.bashInteractive;
 
-    # Kein Passwort gesetzt -> Login ausschliesslich per SSH-Key.
+    # Kein Passwort gesetzt -> kein lokaler Login, kein `su`.
     # Ohne Passwort ist auch `su skitarii` -> `sudo` sinnlos, selbst wenn der
     # Account je versehentlich in wheel landet.
     hashedPassword = null;
 
-    openssh.authorizedKeys.keys = [
-      # from=  : nur von primus' Tailnet-IP; der Key allein reicht nicht.
-      # no-*-forwarding: verhindert, dass die Agent-Session als Sprungbrett
-      #                  oder Port-Tunnel ins LAN missbraucht wird.
-      ''from="100.73.119.56",no-agent-forwarding,no-port-forwarding,no-X11-forwarding ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJgwlg6AR8S63vxQnvfkQZ+kpm7LhqhIQig49+dXJNSJ skitarii@primus''
-    ];
+    # BEWUSST LEER (19.09.2026). Der Zugang laeuft ausschliesslich ueber
+    # Tailscale SSH -- dieselbe Bauart wie auf cogitator-prime (seit 16.09.)
+    # und personal-server.
+    #
+    # Warum der Key weg muss, obwohl er seit `--ssh` ohnehin tot ist:
+    # tailscaled faengt Port 22 im Tailnet ab, sshd sieht die Verbindung gar
+    # nicht mehr. Der Eintrag waere also kein zweiter Weg, sondern ein
+    # SCHLAFENDER -- er wuerde in genau dem Moment wieder scharf, in dem
+    # Tailscale SSH ausfaellt oder abgeschaltet wird, und zwar lautlos und
+    # ohne die ACL-Bestaetigung, die der ganze Umbau bezwecken soll.
+    #
+    # PREIS, bewusst akzeptiert: damit gibt es fuer den Agenten keinen
+    # Rueckweg auf diese Maschine. Kein LAN-Notzugang wie `cogitator-lan` --
+    # `services.openssh.openFirewall = false` (modules/ssh-hardening.nix)
+    # laesst Port 22 nur ueber tailscale0 zu, und dort sitzt tailscaled davor.
+    # Auf einem Desktop, vor dem bfn sitzt, ist das der richtige Tausch:
+    # der Notzugang ist die Tastatur.
+    #
+    # Wer den Zugang wiederherstellen will, aktiviert Tailscale SSH
+    # (services.tailscale.extraSetFlags in modules/tailscale.nix) -- nicht
+    # diesen Key.
+    openssh.authorizedKeys.keys = [ ];
   };
 
   # NOTFALL-SPERRE (kompromittierter primus), wirkt sofort ohne Rebuild:

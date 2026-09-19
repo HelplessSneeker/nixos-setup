@@ -343,6 +343,22 @@ ${gestureBlock}
     # Repo aus einer Notiz holen; die Shell hat den Kontext schon.
 
     # System
+    # Prozess-Uebersicht (`procs`, deklariert in home/procs.nix).
+    #
+    # `--hold` ist der Kern der Sache: procs gibt EINMAL aus und beendet sich.
+    # Ohne --hold waere das Fenster im selben Moment wieder zu, in dem es
+    # aufgeht -- kitty schliesst sich, sobald das Kindkommando fertig ist.
+    #
+    # Kein Komma im Befehl, und das ist kein Zufall: Hyprland splittet die
+    # bind-Zeile an Kommas, und das keybind-cheatsheet-Plugin erwartet genau
+    # vier Felder (siehe Kommentar am Anfang dieses Blocks). `kitty --hold -e
+    # procs` bleibt deshalb komma-frei.
+    #
+    # Abgrenzung: fuer das Zuschauen waehrend etwas laeuft ist `btop` (schon in
+    # home/bfn.nix) das bessere Werkzeug. procs beantwortet "was war gerade
+    # los" als Momentaufnahme -- inklusive NixOS-Generation, laufendem Build,
+    # failed user-units und GPU, und in einer Form, die man weiterreichen kann.
+    bind = $mainMod, U, exec, $terminal --hold -e procs  # "Prozess-Übersicht (Momentaufnahme)"
     bind = $mainMod SHIFT, Escape, exec, hyprlock  # "Bildschirm sperren"
     # Hilfe auf SUPER+ss. Voraus gingen zwei tote Varianten: `SHIFT, question`
     # und `SHIFT, ssharp`. Gelernt (verifiziert im Test 09.08.2026): auf
