@@ -34,31 +34,31 @@
 { ... }:
 {
   home-manager.users.bfn.xdg.configFile."hypr/monitors.conf".text = ''
-    # Managed by home-manager (hosts/fabricus-itinerans/monitors.nix)
+        # Managed by home-manager (hosts/fabricus-itinerans/monitors.nix)
 
-    # Dock-Aufstellung von links nach rechts, alle drei oberkantenbuendig:
-    #
-    #   [ eDP-1 14" ][ DP-5 22" ][ DP-4 27" ]
-    #   0        1920         3840        5760
-    #
-    # scale 1 ueberall, KEIN 1.25 wie am Desktop -- die 1.25 dort teilt 4k
-    # sauber auf, auf 1080p waere derselbe Faktor fractional und damit unscharf.
-    # Deshalb ist jeder Schirm genau 1920 logische px breit, auch der 27er.
-    #Feldkircheken Bildschirme 
-#	monitor = DP-5,  1680x1050@59.954, -1680x0, 1
-#	monitor = DP-3,  1680x1050@59.954, -3360x0, 1
+        # Dock-Aufstellung von links nach rechts, alle drei oberkantenbuendig:
+        #
+        #   [ eDP-1 14" ][ DP-5 22" ][ DP-4 27" ]
+        #   0        1920         3840        5760
+        #
+        # scale 1 ueberall, KEIN 1.25 wie am Desktop -- die 1.25 dort teilt 4k
+        # sauber auf, auf 1080p waere derselbe Faktor fractional und damit unscharf.
+        # Deshalb ist jeder Schirm genau 1920 logische px breit, auch der 27er.
+        #Feldkircheken Bildschirme 
+      #monitor = DP-5,  1680x1050@59.954, -1680x0, 1
+      #monitor = DP-3,  1680x1050@59.954, -3360x0, 1
 
-	monitor = DP-5,  preferred, 1920x0, 1
-	monitor = DP-4,  preferred, 3840x0, 1
+    	monitor = DP-5,  preferred, 1920x0, 1
+    	monitor = DP-6,  preferred, 3840x0, 1
 
-    # Internes Panel ganz links, bei 0x0 -- NICHT mittig darunter.
-    # Deckel zu / Panel aus: die eDP-1-Zeile durch `monitor = eDP-1, disable`
-    # ersetzen. Die beiden Externen behalten dabei ihre Offsets, die Flaeche
-    # beginnt dann erst bei 1920 -- unproblematisch, links davon liegt schlicht
-    # kein Schirm mehr. Kein Nachruecken noetig.
-    monitor = eDP-1, preferred, 0x0, 1
+        # Internes Panel ganz links, bei 0x0 -- NICHT mittig darunter.
+        # Deckel zu / Panel aus: die eDP-1-Zeile durch `monitor = eDP-1, disable`
+        # ersetzen. Die beiden Externen behalten dabei ihre Offsets, die Flaeche
+        # beginnt dann erst bei 1920 -- unproblematisch, links davon liegt schlicht
+        # kein Schirm mehr. Kein Nachruecken noetig.
+        monitor = eDP-1, preferred, 0x0, 1
 
-    # Unbekannter Schirm (Beamer, fremdes Dock): rechts dran, native Aufloesung.
-    monitor = , preferred, auto, 1
+        # Unbekannter Schirm (Beamer, fremdes Dock): rechts dran, native Aufloesung.
+        monitor = , preferred, auto, 1
   '';
 }
