@@ -39,10 +39,12 @@
 # dorthin, wo home/hyprland.nix ohnehin schon `source =` hinzeigt. Deswegen
 # braucht es keinen `-m`-Pfad und keine Aenderung an hyprland.nix.
 #
-# WICHTIG, falls jemand spaeter an den Hyprland-Settings dreht:
-# `disable_autoreload` darf NICHT auf true -- sonst wirkt "Apply" erst nach
-# einem manuellen Reload. Aktuell nirgends im Flake gesetzt, geprueft
-# 21.09.2026.
+# "Apply" wirkt sofort, ein `hyprctl reload` ist NICHT noetig -- von bfn am
+# 21.09.2026 im Betrieb bestaetigt.
+#
+# WICHTIG, falls jemand spaeter an den Hyprland-Settings dreht: genau das haengt
+# daran, dass `disable_autoreload` NICHT auf true steht. Wird es gesetzt, wirkt
+# "Apply" erst nach einem manuellen Reload. Aktuell nirgends im Flake gesetzt.
 #
 # nwg-displays legt zusaetzlich ~/.config/hypr/workspaces.conf an (Zuordnung
 # Workspace -> Output). Die wird bewusst NICHT gesourct: die Workspace-Binds
