@@ -40,6 +40,24 @@ let
       # 3 Finger horizontal = Workspace wechseln (kontinuierlich, mit Animation).
       gesture = 3, horizontal, workspace
     '' else "";
+
+  # Monitor-Anordnung als GUI -- nur am Laptop, weil nur dort die Schirme
+  # wechseln. Der Desktop erzeugt sein Layout weiter deklarativ und koennte
+  # seine monitors.conf gar nicht ueberschreiben (read-only Store-Symlink).
+  #
+  # Warum ein Werkzeug statt einer Regel: die Connector-Namen aendern sich mit
+  # Dock und Kabelport, und bfns beide externen Schirme sind ueber die EDID
+  # nicht unterscheidbar (gleicher Hersteller-/Modellstring "BK550Y"). Damit
+  # gibt es kein stabiles Merkmal, an dem eine Config die Reihenfolge vorab
+  # festmachen koennte. Die lange Begruendung steht in
+  # hosts/fabricus-itinerans/monitors.nix, die auch das Paket installiert.
+  #
+  # nwg-displays schreibt sein Ergebnis nach ~/.config/hypr/monitors.conf --
+  # genau die Datei, die weiter unten per `source` hereinkommt.
+  monitorToolBind =
+    if isLaptop then ''
+      bind = $mainMod SHIFT, M, exec, nwg-displays  # "Monitore anordnen (Drag-and-drop, dann Apply)"
+    '' else "";
 in
 {
   # Screenshot-Ordner anlegen. Bewusst NICHT ueber xdg.userDirs: das Modul
@@ -137,11 +155,19 @@ in
     # Catppuccin Mocha - clean & ruhig
 
     ### Monitor ###
-    # Host-spezifisch, deshalb ausgelagert: hosts/<host>/monitors.nix schreibt
-    # diese Datei (xdg.configFile, also Store-Symlink und read-only). Sie ist
-    # der EINZIGE Ort mit monitor=-Regeln -- hier steht bewusst keine, auch kein
-    # Catch-all, sonst gewinnt je nach Reihenfolge mal die eine, mal die andere.
-    # Fehlt die Datei, warnt Hyprland nur (wie bei noctalia.conf weiter unten).
+    # Diese Datei ist der EINZIGE Ort mit monitor=-Regeln -- hier steht bewusst
+    # keine, auch kein Catch-all, sonst gewinnt je nach Reihenfolge mal die
+    # eine, mal die andere. Fehlt die Datei, warnt Hyprland nur (wie bei
+    # noctalia.conf weiter unten).
+    #
+    # WER SIE SCHREIBT, IST SEIT 21.09.2026 JE HOST VERSCHIEDEN:
+    #   fabricus            -> hosts/fabricus/monitors.nix, deklarativ ueber
+    #                          home-manager (Store-Symlink, read-only). Zwei
+    #                          feste Schirme an festen Ports.
+    #   fabricus-itinerans  -> nwg-displays, per Hand (SUPER+SHIFT+M). Eine
+    #                          echte, veraenderliche Datei. Am Laptop wechseln
+    #                          Schirme und Connector-Namen staendig; Begruendung
+    #                          in hosts/fabricus-itinerans/monitors.nix.
     source = ~/.config/hypr/monitors.conf
 
     ### Programme ###
@@ -436,7 +462,7 @@ ${gestureBlock}
     # Redirect also gar nicht ausliefern. Begruendung im Kopf von
     # modules/captive-portal.nix.
     bind = $mainMod SHIFT, W, exec, wifi-portal  # "WLAN-Anmeldeseite öffnen (Hotel, Café, Bahn)"
-
+${monitorToolBind}
     # Workspaces
     bind = $mainMod, 1, workspace, 1  # "Zu Workspace 1"
     bind = $mainMod, 2, workspace, 2  # "Zu Workspace 2"
