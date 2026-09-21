@@ -58,6 +58,21 @@ let
     if isLaptop then ''
       bind = $mainMod SHIFT, M, exec, nwg-displays  # "Monitore anordnen (Drag-and-drop, dann Apply)"
     '' else "";
+
+  # Startinhalt fuer ~/.config/hypr/monitors.conf am Laptop, siehe
+  # home.activation.seedMonitorsConf weiter unten. Wird nur benutzt, wenn die
+  # Datei fehlt -- nwg-displays ueberschreibt sie beim ersten "Apply".
+  monitorsSeed = pkgs.writeText "monitors-seed.conf" ''
+    # Notnagel-Layout, angelegt von home/hyprland.nix beim ersten Start.
+    # Ab dem ersten "Apply" in nwg-displays (SUPER+SHIFT+M) gehoert diese
+    # Datei dem Werkzeug -- hier steht dann nichts davon mehr drin.
+    #
+    # Bewusst ohne Connector-Namen: die aendern sich am Laptop mit Dock und
+    # Kabelport. auto-right haengt jeden unbekannten Schirm deterministisch
+    # rechts an, damit kann nichts uebereinander landen.
+    monitor = eDP-1, preferred, 0x0, 1
+    monitor = , preferred, auto-right, 1
+  '';
 in
 {
   # Screenshot-Ordner anlegen. Bewusst NICHT ueber xdg.userDirs: das Modul
@@ -65,6 +80,34 @@ in
   # und wuerde bestehende Eintraege dieser Datei ueberschreiben.
   home.activation.screenshotDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     run mkdir -p ${lib.escapeShellArg screenshotDir}
+  '';
+
+  # monitors.conf anlegen, falls sie fehlt -- NUR am Laptop, wo nwg-displays
+  # die Datei besitzt und home-manager sie deshalb nicht mehr erzeugt.
+  #
+  # WARUM DAS NOETIG IST (21.09.2026, auf die harte Tour gelernt): ein `source`
+  # auf eine nicht existierende Datei ist in Hyprland KEINE Warnung, sondern
+  # ein Config-Fehler --
+  #   "source= globbing error: found no match"
+  # als rote Leiste im Bild. Der Kommentar an der source-Zeile weiter unten
+  # hat bis heute das Gegenteil behauptet und ist mit korrigiert.
+  #
+  # Der Inhalt hier ist bewusst nur ein Notnagel fuer den allerersten Start:
+  # internes Panel links, alles andere deterministisch rechts angehaengt, keine
+  # Connector-Namen. Sobald bfn einmal SUPER+SHIFT+M drueckt und "Apply"
+  # klickt, ueberschreibt nwg-displays die Datei -- danach fasst diese
+  # Aktivierung sie nie wieder an, weil sie dann existiert.
+  # Keine isLaptop-Weiche noetig, und bewusst keine: am Desktop erzeugt
+  # home-manager die Datei weiterhin selbst, sie existiert dort also zum
+  # Zeitpunkt dieser Aktivierung (writeBoundary liegt nach dem Verlinken) und
+  # die Bedingung unten greift gar nicht erst. Eine mkIf-Weiche auf einem
+  # DAG-Eintrag waere nur eine zusaetzliche Stelle, die brechen kann.
+  home.activation.seedMonitorsConf = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ ! -e "$HOME/.config/hypr/monitors.conf" ]; then
+      run mkdir -p "$HOME/.config/hypr"
+      run cp ${monitorsSeed} "$HOME/.config/hypr/monitors.conf"
+      run chmod 644 "$HOME/.config/hypr/monitors.conf"
+    fi
   '';
 
   home.packages = with pkgs; [
@@ -157,8 +200,18 @@ in
     ### Monitor ###
     # Diese Datei ist der EINZIGE Ort mit monitor=-Regeln -- hier steht bewusst
     # keine, auch kein Catch-all, sonst gewinnt je nach Reihenfolge mal die
-    # eine, mal die andere. Fehlt die Datei, warnt Hyprland nur (wie bei
-    # noctalia.conf weiter unten).
+    # eine, mal die andere.
+    #
+    # ACHTUNG, hier stand bis 21.09.2026 das Gegenteil: "Fehlt die Datei, warnt
+    # Hyprland nur." DAS IST FALSCH. Ein source= auf eine nicht existierende
+    # Datei ist ein Config-Fehler und erscheint als rote Leiste im Bild:
+    #   "source= globbing error: found no match"
+    # Hyprland behandelt source-Pfade als Glob, und ein Glob ohne Treffer ist
+    # ein Fehler. Deshalb legt home.activation.seedMonitorsConf die Datei am
+    # Laptop an, falls sie fehlt. Dasselbe gilt fuer noctalia.conf weiter
+    # unten -- die schreibt noctalia beim Start selbst, auf einem frisch
+    # aufgesetzten System ist sie beim allerersten Hyprland-Start aber noch
+    # nicht da.
     #
     # WER SIE SCHREIBT, IST SEIT 21.09.2026 JE HOST VERSCHIEDEN:
     #   fabricus            -> hosts/fabricus/monitors.nix, deklarativ ueber
