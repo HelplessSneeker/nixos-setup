@@ -161,7 +161,29 @@ in
     ### Autostart ###
     #exec-once = waybar
     #exec-once = mako
-    exec-once = noctalia
+    # noctalia durch systemd-cat, damit seine Ausgabe ins Journal geht statt in
+    # eine tmpfs-Datei (21.09.2026).
+    #
+    # VORHER: `exec-once = noctalia`. Hyprland leitet die Ausgabe seiner Kinder
+    # in $XDG_RUNTIME_DIR/hypr/<instance>/hyprland.log um -- tmpfs, also weg bei
+    # Logout und Reboot, ohne Rotation und ohne Historie. Als noctalia am
+    # 21.09. nach einem Resume-Hotplug ausgestiegen ist, war die Meldung nach
+    # dem Neustart unwiederbringlich verloren; gemessen hatte
+    # `journalctl -b -1 -u greetd.service` fuer den ganzen Boot 7 Zeilen, keine
+    # davon von Hyprland oder noctalia.
+    #
+    # WARUM KEINE systemd-User-Unit: aus demselben Grund wie bei soteria weiter
+    # unten -- graphical-session.target wird in dieser Session nie erreicht
+    # (nachgezaehlt: 0 Treffer im User-Journal), eine daran haengende Unit
+    # wuerde also nie starten, und der User-Manager kennt WAYLAND_DISPLAY hier
+    # nicht. systemd-cat loest genau das Log-Problem und laesst Startreihenfolge
+    # und Umgebungsvererbung unveraendert: es exec't noctalia direkt, nur mit
+    # stdout/stderr am Journal.
+    #
+    # Lesen:  journalctl --user -t noctalia -b        (als bfn)
+    #         journalctl _UID=1000 -t noctalia -b     (als Agent, der auf
+    #                                                  /home/bfn keinen Zugriff hat)
+    exec-once = ${pkgs.systemd}/bin/systemd-cat -t noctalia noctalia
     exec-once = 1password --silent
     # polkit-Authentication-Agent. Ohne ihn lehnt polkitd jede Anfrage sofort
     # ab -- kein Dialog, keine Fehlermeldung. Betrifft jede polkit-Aktion der
