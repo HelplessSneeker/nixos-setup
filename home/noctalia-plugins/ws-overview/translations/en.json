@@ -1,0 +1,10 @@
+{
+  "settings.interval_seconds.label": "Snapshot interval (seconds)",
+  "settings.interval_seconds.description": "How often the visible workspace is captured. A tile shows the newest capture taken while that workspace was visible.",
+  "settings.capture_scale.label": "Capture scale",
+  "settings.capture_scale.description": "grim scale factor. 0.25 captures a 1920x1080 output as 480x270 - cheaper to encode, blurrier in large tiles.",
+  "settings.columns.label": "Columns",
+  "settings.columns.description": "Tiles per row in the overview grid.",
+  "settings.tile_width.label": "Tile width (px)",
+  "settings.tile_width.description": "Width of one preview tile; the height follows at 16:9."
+}

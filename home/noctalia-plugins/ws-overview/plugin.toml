@@ -1,0 +1,75 @@
+id = "bfn/ws-overview"
+name = "Workspace Overview"
+version = "0.1.0"
+# 9 = Luau-Closures direkt in UI-Callback-Props. Das ist die aelteste Stufe, die
+# dieses Plugin braucht (pro Kachel ein eigener onClick). Deine noctalia kann 3-23,
+# also bewusst niedrig gehalten: je kleiner die Zahl, desto mehr Versionen laufen.
+plugin_api = 9
+author = "bfn"
+license = "MIT"
+icon = "layout-grid"
+description = "Alle Workspaces als Kachelraster mit Vorschaubild, Klick wechselt."
+tags = ["hyprland", "workspaces"]
+# Reine Metadaten fuer die Plugin-Liste -- blockiert nichts, wenn es fehlt.
+# grim kommt aus home/bfn.nix, hyprctl aus Hyprland selbst.
+dependencies = ["grim", "hyprland"]
+
+# Wie oft der Dienst den gerade sichtbaren Workspace abschiesst. Das ist der
+# einzige Hebel fuer "wie alt darf ein Vorschaubild sein": ein Workspace zeigt
+# immer den letzten Schuss, der gemacht wurde, solange er sichtbar war.
+[[setting]]
+key = "interval_seconds"
+type = "int"
+label_key = "settings.interval_seconds.label"
+description_key = "settings.interval_seconds.description"
+default = 5
+min = 1
+max = 120
+
+# grims -s-Faktor. 0.25 heisst: 1920x1080 wird als 480x270 aufgenommen. Kleiner
+# = billiger (weniger PNG-Encode), unschaerfer in grossen Kacheln.
+[[setting]]
+key = "capture_scale"
+type = "double"
+label_key = "settings.capture_scale.label"
+description_key = "settings.capture_scale.description"
+default = 0.25
+min = 0.1
+max = 1.0
+
+[[setting]]
+key = "columns"
+type = "int"
+label_key = "settings.columns.label"
+description_key = "settings.columns.description"
+default = 3
+min = 1
+max = 6
+
+[[setting]]
+key = "tile_width"
+type = "int"
+label_key = "settings.tile_width.label"
+description_key = "settings.tile_width.description"
+default = 320
+min = 160
+max = 640
+
+# Der Knopf in der Bar. Instanz-Name und Platzierung stehen NICHT hier, sondern
+# in home/noctalia.nix ([widget.overview] + bar.default.start).
+[[widget]]
+id = "button"
+entry = "widget.luau"
+
+# Panel-Groesse ist host-owned: hier deklariert, zur Laufzeit nicht aenderbar.
+# Zu grosse Werte werden auf die Output-Groesse geklemmt, nicht abgelehnt.
+[[panel]]
+id = "overview"
+entry = "panel.luau"
+width = 1160
+height = 720
+
+# Headless: schiesst die Vorschaubilder. Singleton ohne Output.
+[[service]]
+id = "shots"
+entry = "shots.luau"

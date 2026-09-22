@@ -45,6 +45,24 @@ let
   barThickness = if isLaptop then 50 else 44;
 in
 {
+  # --- Eigenes Plugin: Workspace-Uebersicht (22.09.2026) ---
+  # Landet im "local source root" ($XDG_DATA_HOME/noctalia/plugins) -- von dort
+  # findet noctalia Plugins ohne jede [[plugins.source]]-Deklaration. Der
+  # Verzeichnisname MUSS der Teil der Plugin-ID nach dem "/" sein (bfn/ws-overview).
+  #
+  # Bewusst NICHT ueber `settings.plugins.enabled`: das Einschalten eines Plugins
+  # schreibt noctalia in die state-dir settings.toml, und die ueberlagert beim
+  # Laden die nix-verwaltete config.toml (`noctalia config validate --help` sagt
+  # es ausdruecklich: erst config dir, dann state-dir-Overrides). Ein hier
+  # deklariertes `enabled` wuerde also gegen die Laufzeit kaempfen und koennte
+  # nebenbei kenn/keybind-cheatsheet aus der Liste kippen. Einmal per GUI
+  # einschalten ist der vorgesehene Weg.
+  #
+  # Der Store-Pfad ist read-only, Hot-Reload beim Editieren gibt es damit nicht.
+  # Zum schnellen Ausprobieren: Ordner nach ~/.local/share/noctalia/plugins/
+  # kopieren (diese Zeile vorher auskommentieren, sonst gewinnt der Symlink).
+  home.file.".local/share/noctalia/plugins/ws-overview".source = ./noctalia-plugins/ws-overview;
+
   programs.noctalia = {
     enable = true;
     settings = {
@@ -90,7 +108,11 @@ in
         scale = barScale;
         thickness = barThickness;
 
-        start = [ "launcher" "wallpaper" "workspaces" ];
+        # "wallpaper" ist am 22.09.2026 raus: der Knopf oeffnete den Wallpaper-
+        # und Theme-Waehler, den bfn nie benutzt hat. An seiner Stelle jetzt die
+        # Workspace-Uebersicht. Wallpaper wechseln geht weiter ueber den Launcher
+        # und das Control-Center, die Automatik laeuft ohnehin alle 30 Minuten.
+        start = [ "launcher" "overview" "workspaces" ];
         center = [ "clock" ];
         end =
           [ "media" "tray" "notifications" "clipboard" "network" ]
@@ -102,6 +124,17 @@ in
       };
 
       widget = {
+        # Der Knopf der Workspace-Uebersicht. `type` ist die voll qualifizierte
+        # Entry-ID des Plugins (<author>/<plugin>:<entry>), nicht der Widget-Name.
+        #
+        # Solange das Plugin nicht eingeschaltet ist, kennt noctalia den Typ
+        # nicht. Das ist beim Validieren nur eine WARNUNG ("unrecognized widget
+        # type") -- `noctalia config validate` bricht nur bei Fehlern ab, der
+        # Rebuild laeuft also durch. In der Bar fehlt der Knopf dann einfach.
+        overview = {
+          type = "bfn/ws-overview:button";
+        };
+
         # Uhrzeit oben, Datum darunter. Der Clock-Widget bricht am \n in eine
         # zweite, kleiner gesetzte Zeile um und skaliert automatisch herunter,
         # falls es nicht in die Bar-Hoehe passt.
