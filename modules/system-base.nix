@@ -41,6 +41,23 @@
       # den gesamten Rebuild abbricht.
       noto-fonts-color-emoji
       nerd-fonts.jetbrains-mono    # Icons fuer Waybar / nvim / Terminal
+
+      # --- Metrik-kompatible Ersatzschriften fuer MS-Office-Dokumente ---
+      # Gehoeren zu libreoffice (home/apps.nix), stehen aber bewusst HIER:
+      # fontconfig zieht fonts.packages systemweit ein, waehrend Schriften in
+      # home.packages nur greifen, wenn home-manager's fonts.fontconfig-Modul
+      # mitspielt. Zudem profitiert jede andere App davon (Firefox rendert
+      # Calibri-Webfonts dann korrekt statt mit Fallback-Metrik).
+      #
+      # Ohne die beiden oeffnet ein .docx zwar, bricht aber an anderen Stellen
+      # um: Word setzt seit 2007 Calibri/Cambria als Default, fehlt die
+      # Schrift, substituiert fontconfig eine mit anderer Laufweite ->
+      # verschobene Zeilen- und Seitenumbrueche. Beide sind OFL-lizenziert,
+      # kein unfree noetig (corefonts waere der unfreie, veraltete Weg).
+      # Arial/Times New Roman/Courier New deckt liberation_ttf ab -- das kommt
+      # schon ueber enableDefaultPackages oben mit rein.
+      carlito    # metrisch = Calibri
+      caladea    # metrisch = Cambria
     ];
   };
 

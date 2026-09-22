@@ -321,6 +321,38 @@ in
     # unten -- nicht ein Downgrade des Servers.
     anki
 
+    # --- Office: docx/xlsx/pptx lesen und schreiben (22.09.2026) ---
+    # `libreoffice` ist in 26.05 KEIN eigenes Paket, sondern ein Alias:
+    # `libreoffice = hiPrio libreoffice-still` (nachgelesen in
+    # pkgs/top-level/all-packages.nix am gelockten Rev ee48b147, nicht geraten).
+    # Das ist die GTK3-Variante -- passend zum Rest der Session (xdg-portal-gtk,
+    # dconf, NIXOS_OZONE_WL aus modules/gui-apps.nix). Die Qt-Varianten
+    # (libreoffice-qt*) zoegen den halben KDE-Stack nach.
+    #
+    # still (25.8.5.2) statt -fresh (26.2.1.2) BEWUSST: "still" ist der aeltere
+    # der beiden gepflegten Zweige und bekommt nur noch Bugfixes -- fuer eine
+    # Suite, die fremde Dokumente moeglichst unfallfrei rendern soll, ist das
+    # die richtige Seite des Handels. Wer 26.2 will, nimmt libreoffice-fresh;
+    # beide kommen aus dem Cache.
+    #
+    # NICHT per .override anfassen (z.B. withJava = false, um das jdk21 aus der
+    # Closure zu werfen): jede Aenderung an den Build-Argumenten macht den
+    # Hydra-Build ungueltig, dann kompiliert der T480 LibreOffice selbst --
+    # Stunden. Der Preis dafuer ist eine Closure von grob 2-3 GB.
+    libreoffice
+
+    # Rechtschreibung + Silbentrennung. KEIN override noetig, und das ist
+    # nachgelesen statt vermutet: wrapper.nix (selber Rev) haengt beim Start ein
+    # `--run` davor, das ueber alle $NIX_PROFILES laeuft und jedes share/hunspell
+    # bzw. share/hyphen an DICPATH anhaengt. /etc/profiles/per-user/bfn steht in
+    # NIX_PROFILES (NixOS traegt es ein, sobald ein User Pakete hat --
+    # users-groups.nix), und genau dorthin installiert home-manager mit
+    # useUserPackages. Dicts in home.packages reichen also.
+    hunspellDicts.de_AT
+    hunspellDicts.en_US
+    hyphenDicts.de_AT
+    hyphenDicts.en_US
+
     # Mail. Accounts werden in der GUI eingerichtet, nicht deklarativ --
     # programs.thunderbird bringt zwar Profile/Accounts als Nix-Optionen, die
     # Passwoerter muessen trotzdem manuell rein.
