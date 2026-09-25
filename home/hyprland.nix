@@ -110,6 +110,19 @@ in
     fi
   '';
 
+  # noctalia.conf anlegen, falls sie fehlt -- dieselbe Glob-Falle wie oben bei
+  # monitors.conf, nur auf beiden Hosts: noctalia schreibt die Datei beim
+  # Start selbst, auf einem frisch aufgesetzten System fehlt sie beim
+  # allerersten Hyprland-Start aber noch, und das `source` weiter unten waere
+  # ein Config-Fehler. Eine leere Datei reicht; noctalia ueberschreibt sie.
+  # (25.09.2026, Skitarii-Befund vom 21.09.)
+  home.activation.seedNoctaliaConf = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ ! -e "$HOME/.config/hypr/noctalia.conf" ]; then
+      run mkdir -p "$HOME/.config/hypr"
+      run touch "$HOME/.config/hypr/noctalia.conf"
+    fi
+  '';
+
   home.packages = with pkgs; [
     grimblast  # Screenshot-Wrapper (Print)
 
@@ -373,8 +386,9 @@ ${gestureBlock}
     ### Adaptive Theming (noctalia) ###
     # noctalia rendert seine Material-Palette nach ~/.config/hypr/noctalia.conf und
     # ueberschreibt damit die statischen Border-Farben aus general{} oben (source =
-    # last-wins). Fehlt die Datei (erster Boot / noctalia aus), warnt Hyprland nur
-    # und behaelt die Catppuccin-Werte. Live-Recolor beim Wallpaper-Wechsel braucht
+    # last-wins). Fehlt die Datei, ist das ein Config-Fehler, keine Warnung --
+    # home.activation.seedNoctaliaConf legt sie deshalb leer an; solange sie
+    # leer ist, bleiben die Catppuccin-Werte. Live-Recolor beim Wallpaper-Wechsel braucht
     # ggf. ein `hyprctl reload`, weil noctalias apply.sh die read-only HM-conf nicht
     # selbst nachladen kann.
     source = ~/.config/hypr/noctalia.conf

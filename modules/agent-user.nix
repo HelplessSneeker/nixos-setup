@@ -65,18 +65,7 @@
   #      sonst lehnt Tailscale die Policy ab)
   #   2. global ueber alle Hosts: primus im Tailscale-Admin disablen
   #
-  # FALSCH, stand hier bis 21.09.2026 und hat etwas versprochen, das es nicht
-  # haelt:
-  #   sudo usermod --expire 1 skitarii
-  # Account-Ablauf wird von PAM in der account-Phase durchgesetzt. Tailscale
-  # SSH geht aber nicht ueber sshd und erreicht PAM hier auf keinem der beiden
-  # moeglichen Wege: `login` braucht ein TTY (Agent-Kommandos laufen mit
-  # --has-tty=false), und `su` ist durch --force-v1-behavior ausgeschlossen,
-  # das im tailscaled-Journal bei jeder Session steht. Der Inkubator setzt
-  # danach setuid und exec't ohne PAM (ssh/tailssh/incubator.go). Belegt am
-  # 19.09.2026, siehe memory/2026-09-19.md.
-  #
-  # Seit `openssh.authorizedKeys.keys = [ ]` und `--ssh` ist die Zeile ohnehin
-  # gegenstandslos -- sie bleibt hier nur als Warnung stehen, damit sie nicht
-  # ein drittes Mal als Sperre vorgeschlagen wird.
+  # `usermod --expire` stand hier frueher und ist entfernt (bfn 25.09.2026):
+  # Tailscale SSH umgeht PAM, die Zeile hat nie gesperrt. Zugang hat Skitarii
+  # ohnehin nur, wenn bfn ihn ueber die Tailnet-Policy freischaltet.
 }
