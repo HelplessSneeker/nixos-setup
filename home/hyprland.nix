@@ -509,6 +509,12 @@ ${gestureBlock}
     # audio, network, bluetooth, weather, system, monitor, power).
     bind = $mainMod SHIFT, N, exec, noctalia msg panel-toggle control-center notifications  # "Benachrichtigungen"
     bind = $mainMod SHIFT, E, exec, noctalia msg settings-toggle  # "noctalia-Einstellungen"
+    # Notbremse, falls noctalia weg ist (bfn 29.09.2026). Hyprland wirft es
+    # selten raus, wenn der Deckel angedockt zugeht und die Monitore mitten im
+    # Lock verschwinden. Der Prozessname ist der des Nix-Wrappers
+    # (.noctalia-wrapped, auf 15 Zeichen gekuerzt) -- `pkill -x noctalia`
+    # trifft ihn NICHT. Keine Kommas im Befehl, siehe Parser-Hinweis oben.
+    bind = SUPER ALT, N, exec, pkill -x .noctalia-wrapp; sleep 1; noctalia  # "noctalia neu starten (Bar weg)"
     # hyprctl reload ist am 11.09.2026 von SUPER+SHIFT+R auf SUPER ALT+R
     # umgezogen -- SUPER+SHIFT+R ist jetzt der Rebuild (unten). Die beiden
     # haetten sich sonst still gegenseitig verschluckt: bei doppelt belegter
