@@ -73,6 +73,61 @@ let
     monitor = eDP-1, preferred, 0x0, 1
     monitor = , preferred, auto-right, 1
   '';
+
+  # Aufpasser fuer noctalia (30.09.2026). noctalia ist Bar UND Sperrbildschirm.
+  # Stirbt es, waehrend die Session gesperrt ist, bleibt Hyprland absichtlich
+  # gesperrt -- ohne Oberflaeche zum Entsperren, nur tty2 + Reboot halfen.
+  # Passiert am 30.09. um 09:56: Deckel zu und Dock ab in derselben Sekunde,
+  # die Outputs verschwinden mitten im Lock-Aufbau, noctalia 5.0.0 steigt mit
+  # `invalid object 62` / `fatal: failed to dispatch pending Wayland events` aus.
+  #
+  # Die Schleife startet noctalia neu, solange der Compositor lebt. Nach einem
+  # Absturz (alles ausser SIGTERM = rc 143, das kommt von SUPER ALT+N) sperrt
+  # sie sofort wieder: nur so uebernimmt der neue Prozess eine verwaiste Sperre
+  # (braucht misc:allow_session_lock_restore). Nebenwirkung: auch ein Absturz
+  # im entsperrten Zustand endet mit Sperrbildschirm -- bewusst, lieber einmal
+  # zu viel entsperren als eine offene Session.
+  #
+  # Keine systemd-User-Unit, Begruendung beim exec-once unten. Bremse: mehr als
+  # 5 Neustarts in 60 s -> aufgeben, damit ein kaputtes noctalia nicht im
+  # Sekundentakt das Journal flutet.
+  noctaliaSupervisor = pkgs.writeShellScript "noctalia-supervisor" ''
+    restarts=0
+    window_start=$(${pkgs.coreutils}/bin/date +%s)
+    while :; do
+      ${pkgs.systemd}/bin/systemd-cat -t noctalia noctalia
+      rc=$?
+      # Compositor weg (Logout/Shutdown) -> nicht neu starten.
+      [ -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ] || exit 0
+
+      now=$(${pkgs.coreutils}/bin/date +%s)
+      if [ $((now - window_start)) -gt 60 ]; then
+        window_start=$now
+        restarts=0
+      fi
+      restarts=$((restarts + 1))
+      if [ "$restarts" -gt 5 ]; then
+        echo "noctalia: $restarts Neustarts in 60 s, gebe auf (rc=$rc)" \
+          | ${pkgs.systemd}/bin/systemd-cat -t noctalia -p err
+        exit 1
+      fi
+      echo "noctalia beendet (rc=$rc), starte neu" \
+        | ${pkgs.systemd}/bin/systemd-cat -t noctalia -p warning
+      sleep 1
+
+      if [ "$rc" -ne 143 ]; then
+        # Sperre erst absetzen, wenn der neue Prozess die IPC bedient.
+        (
+          for _ in $(${pkgs.coreutils}/bin/seq 20); do
+            sleep 0.5
+            noctalia msg session lock >/dev/null 2>&1 && exit 0
+          done
+          echo "noctalia: Wiedersperren nach Absturz gescheitert" \
+            | ${pkgs.systemd}/bin/systemd-cat -t noctalia -p err
+        ) &
+      fi
+    done
+  '';
 in
 {
   # Screenshot-Ordner anlegen. Bewusst NICHT ueber xdg.userDirs: das Modul
@@ -275,7 +330,10 @@ in
     # Lesen:  journalctl --user -t noctalia -b        (als bfn)
     #         journalctl _UID=1000 -t noctalia -b     (als Agent, der auf
     #                                                  /home/bfn keinen Zugriff hat)
-    exec-once = ${pkgs.systemd}/bin/systemd-cat -t noctalia noctalia
+    #
+    # Seit 30.09.2026 laeuft das Ganze im noctaliaSupervisor (let-Block oben),
+    # der noctalia nach einem Absturz neu startet und wieder sperrt.
+    exec-once = ${noctaliaSupervisor}
     exec-once = 1password --silent
     # polkit-Authentication-Agent. Ohne ihn lehnt polkitd jede Anfrage sofort
     # ab -- kein Dialog, keine Fehlermeldung. Betrifft jede polkit-Aktion der
@@ -353,6 +411,11 @@ in
     misc {
         disable_hyprland_logo = true
         disable_splash_rendering = true
+        # Ein neuer Lock-Client darf eine verwaiste Sperre uebernehmen, statt
+        # dass nur noch tty2 + Reboot bleiben (30.09.2026, siehe
+        # noctaliaSupervisor). Notweg von tty2, falls auch der scheitert:
+        #   hyprctl --instance 0 dispatch exec hyprlock
+        allow_session_lock_restore = true
     }
 
     input {
@@ -514,7 +577,10 @@ ${gestureBlock}
     # Lock verschwinden. Der Prozessname ist der des Nix-Wrappers
     # (.noctalia-wrapped, auf 15 Zeichen gekuerzt) -- `pkill -x noctalia`
     # trifft ihn NICHT. Keine Kommas im Befehl, siehe Parser-Hinweis oben.
-    bind = SUPER ALT, N, exec, pkill -x .noctalia-wrapp; sleep 1; noctalia  # "noctalia neu starten (Bar weg)"
+    # Seit 30.09.2026 nur noch pkill: den Neustart macht der
+    # noctaliaSupervisor, ein eigenes `noctalia` hier gaebe zwei Instanzen.
+    # Ist noctalia schon weg, startet der Aufpasser es ohnehin von selbst.
+    bind = SUPER ALT, N, exec, pkill -x .noctalia-wrapp  # "noctalia neu starten (Bar weg)"
     # hyprctl reload ist am 11.09.2026 von SUPER+SHIFT+R auf SUPER ALT+R
     # umgezogen -- SUPER+SHIFT+R ist jetzt der Rebuild (unten). Die beiden
     # haetten sich sonst still gegenseitig verschluckt: bei doppelt belegter

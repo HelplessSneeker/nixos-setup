@@ -27,7 +27,10 @@
     };
     # Bewusst KEIN follows: noctalia braucht sein eigenes nixpkgs-unstable
     # (C++23-Deps).
-    noctalia.url = "github:noctalia-dev/noctalia";
+    # Auf ein Release-Tag gepinnt statt `main` (30.09.2026): seit v5.0.1 gibt es
+    # stabile Releases. v5.0.0-beta.8/.9 beheben den Lock-Absturz beim Abdocken
+    # ("locking proceeds while outputs disconnect"). Update = Tag hier anheben.
+    noctalia.url = "github:noctalia-dev/noctalia/v5.2.0";
 
     # Bleibt auch nach dem 26.05-Umstieg noetig, das ist geprueft: 26.05 hat
     # Hyprland nur in 0.55.4, hier laeuft 0.56.1. Ebenso godot 4.7,
