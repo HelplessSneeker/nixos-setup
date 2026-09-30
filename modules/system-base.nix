@@ -101,6 +101,16 @@
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.auto-optimise-store = true;    # dedupliziert identische Store-Pfade
 
+  # noctalias Binary-Cache (30.09.2026). Ohne ihn baut jeder Bump noctalia
+  # lokal: am T480 ~40 min Vollast, 8 GB Peak -- sah am Laptop aus wie ein
+  # haengender Rebuild. Trifft nur, weil der noctalia-Input bewusst KEIN
+  # follows hat (flake.nix); mit follows aendert sich der Hash -> Cache-Miss.
+  # Schluessel aus docs/user/getting-started/nixos.mdx des v5.2.0-Tags.
+  nix.settings.extra-substituters = [ "https://noctalia.cachix.org" ];
+  nix.settings.extra-trusted-public-keys = [
+    "noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4="
+  ];
+
   # --- Ausdauer bei Downloads, die NICHT aus dem Binary-Cache kommen ---
   #
   # Anlass (09.08.2026): der NVIDIA-Treiber. Er ist unfree und darf deshalb
