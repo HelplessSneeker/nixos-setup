@@ -82,9 +82,11 @@ let
   # `invalid object 62` / `fatal: failed to dispatch pending Wayland events` aus.
   #
   # Die Schleife startet noctalia neu, solange der Compositor lebt. Nach einem
-  # Absturz (alles ausser SIGTERM = rc 143, das kommt von SUPER ALT+N) sperrt
-  # sie sofort wieder: nur so uebernimmt der neue Prozess eine verwaiste Sperre
-  # (braucht misc:allow_session_lock_restore). Nebenwirkung: auch ein Absturz
+  # Absturz (rc != 0) sperrt sie sofort wieder: nur so uebernimmt der neue
+  # Prozess eine verwaiste Sperre. SUPER ALT+N schickt SIGTERM, das faengt
+  # noctalia ab und endet mit rc 0 (gemessen 30.09.2026, nicht 143 wie zuerst
+  # angenommen) -- dieser Weg sperrt also nicht. Die Uebernahme braucht
+  # misc:allow_session_lock_restore. Nebenwirkung: auch ein Absturz
   # im entsperrten Zustand endet mit Sperrbildschirm -- bewusst, lieber einmal
   # zu viel entsperren als eine offene Session.
   #
@@ -115,7 +117,7 @@ let
         | ${pkgs.systemd}/bin/systemd-cat -t noctalia -p warning
       sleep 1
 
-      if [ "$rc" -ne 143 ]; then
+      if [ "$rc" -ne 0 ]; then
         # Sperre erst absetzen, wenn der neue Prozess die IPC bedient.
         (
           for _ in $(${pkgs.coreutils}/bin/seq 20); do
