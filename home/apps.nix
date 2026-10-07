@@ -200,6 +200,19 @@ in
             default_area = "menupanel";
           };
 
+          # uBlock Origin (1.75.0, GPL-3.0, 07.10.2026). GUID ebenfalls aus der
+          # AMO-API, nicht geraten:
+          #   curl -s https://addons.mozilla.org/api/v5/addons/addon/ublock-origin/
+          #
+          # Anlass: YouTube Premium wird gekuendigt (Runbook "Musik und
+          # Hoerbuecher auf cogitator", 07.10.2026) -- uBlock haelt YouTube am
+          # Rechner werbefrei. force_installed wie bei Vimium; Filterlisten und
+          # Ausnahmen pro Seite stellt bfn in uBlocks eigenem Dashboard ein.
+          "uBlock0@raymondhill.net" = {
+            install_url = "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi";
+            installation_mode = "force_installed";
+          };
+
           # New Tab Override: raus am 27.08.2026 auf bfns Wunsch.
           #
           # ERSTER ANLAUF WAR ZU WENIG, und das ist der eigentliche Merksatz
