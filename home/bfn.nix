@@ -5,6 +5,7 @@
     ./apps.nix
     ./nvim            # nixvim-Config; ersetzt den frueheren programs.neovim-Block
     ./ssh.nix
+    ./lfcs.nix        # `lfcs`: LFCS-Lab-VM starten/stoppen/zuruecksetzen
     ./hyprland.nix
     ./theme.nix
     ./fish.nix

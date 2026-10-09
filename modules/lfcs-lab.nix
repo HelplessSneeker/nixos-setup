@@ -14,21 +14,29 @@
 #     gepinnten Ubuntu-Cloud-Image und cloud-init. Nie von Hand aendern --
 #     Aenderungen laufen ueber userData unten und einen neuen Build.
 #   - User-Netz statt Bridge: kein NetworkManager, keine Firewall-Ports.
-#     Gast-sshd am Host nur auf 127.0.0.1:2222. primus kommt per
-#     `ssh -J fabricus-itinerans` hin -- Tailscale SSH erlaubt das
-#     Port-Forwarding, am 09.10.2026 vor dem Bau gemessen.
-#   - skitarii darf genau die zwei Units starten/stoppen (Polkit unten),
-#     sonst nichts -- kein sudo, kein wheel.
+#     primus kommt per `ssh -J fabricus-itinerans` hin -- Tailscale SSH
+#     erlaubt das Port-Forwarding, am 09.10.2026 vor dem Bau gemessen.
+#   - Start bei Bedarf (seit 09.10.2026): systemd lauscht selbst auf
+#     127.0.0.1:2222. Die erste Verbindung startet die VM, wartet auf den
+#     Gast-sshd und reicht dann an QEMUs internen Port 2322 weiter
+#     (systemd-socket-proxyd). Gestoppt wird NIE automatisch -- ein
+#     Leerlauf-Stopp wuerde nach einer Pause die Arbeit im Gast verwerfen.
+#   - skitarii und bfn duerfen die drei Dienste starten/stoppen (Polkit
+#     unten), sonst nichts -- skitarii ohne sudo, ohne wheel.
 #
-# Bedienung:
+# Bedienung: Befehl `lfcs` aus home/lfcs.nix (up/down/reset/status/build),
+# oder direkt:
+#   ssh lfcs                         # startet die VM bei Bedarf, ~10 s
 #   systemctl start lfcs-lab-build   # Golden-Image (neu) bauen, ~2 min (gemessen 76 s)
-#   systemctl start lfcs-lab         # VM an,  danach `ssh lfcs`
 #   systemctl restart lfcs-lab       # Reset auf das Golden-Image
 #   systemctl stop lfcs-lab          # VM aus, Overlays weg
 { config, pkgs, lib, ... }:
 let
   stateDir = "/var/lib/lfcs-lab";
   runDir = "/run/lfcs-lab";
+  # Aussen lauscht systemd (Socket unten), innen QEMUs hostfwd.
+  sshPort = 2222;
+  innerPort = 2322;
   qemu = pkgs.qemu_kvm;
 
   # Fester Release-Pfad, NICHT current/ -- sonst bricht der Hash beim naechsten
@@ -114,7 +122,7 @@ let
   ] ++ lib.concatMap (d: [ "-drive" "file=${stateDir}/${d}.qcow2${sfx},if=virtio,format=qcow2" ])
     [ "root" "vdb" "vdc" ];
   nicArgs = [
-    "-nic" "user,model=virtio-net-pci,mac=${builtins.elemAt macs 0},hostfwd=tcp:127.0.0.1:2222-:22"
+    "-nic" "user,model=virtio-net-pci,mac=${builtins.elemAt macs 0},hostfwd=tcp:127.0.0.1:${toString innerPort}-:22"
     "-nic" "user,model=virtio-net-pci,mac=${builtins.elemAt macs 1},restrict=on"
     "-nic" "user,model=virtio-net-pci,mac=${builtins.elemAt macs 2},restrict=on"
   ];
@@ -159,6 +167,32 @@ let
     chmod 0640 root.qcow2 vdb.qcow2 vdc.qcow2
     echo "Golden-Image fertig: $(stat -c '%y' root.qcow2)"
   '';
+
+  # Build und Betrieb schliessen sich aus: der Build ueberschreibt die Images,
+  # auf denen die VM sitzt. Frueher per `conflicts` -- das hat aber die
+  # falsche Richtung: eine ssh-Verbindung waehrend eines Builds haette ueber
+  # den Socket die VM gestartet und damit den Build abgeschossen.
+  guard = other: pkgs.writeShellScript "lfcs-lab-guard-${other}" ''
+    state=$(systemctl show -p ActiveState --value ${other}.service)
+    case "$state" in inactive|failed) exit 0 ;; esac
+    echo "${other}.service ist $state -- erst abwarten oder stoppen" >&2
+    exit 1
+  '';
+
+  # Haelt die erste Verbindung im Socket fest, bis der Gast-sshd sein Banner
+  # schickt. Ohne das nimmt slirp die Verbindung waehrend des Boots an und
+  # schliesst sie sofort wieder -- ssh meldet dann "Connection closed".
+  waitSsh = pkgs.writeShellScript "lfcs-lab-wait-ssh" ''
+    for _ in $(seq 1 120); do
+      if timeout 2 ${pkgs.bash}/bin/bash -c 'exec 3<>/dev/tcp/127.0.0.1/${toString innerPort} && head -c 4 <&3' 2>/dev/null \
+          | grep -q '^SSH-'; then
+        exit 0
+      fi
+      sleep 1
+    done
+    echo "Gast-sshd nach 120 s nicht erreichbar" >&2
+    exit 1
+  '';
 in
 {
   users.groups.lfcs-lab = { };
@@ -181,14 +215,13 @@ in
     description = "LFCS-Lab: Golden-Image aus Ubuntu-Cloud-Image bauen";
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
-    # Ein Build ueberschreibt die Images, auf denen eine laufende VM sitzt.
-    conflicts = [ "lfcs-lab.service" ];
     path = [ qemu pkgs.cdrkit pkgs.coreutils pkgs.gnugrep ];
     serviceConfig = {
       Type = "oneshot";
       User = "lfcs-lab";
       Group = "lfcs-lab";
       WorkingDirectory = stateDir;
+      ExecStartPre = guard "lfcs-lab";
       ExecStart = buildScript;
       TimeoutStartSec = "50min";
       PrivateTmp = true;
@@ -197,7 +230,7 @@ in
   };
 
   systemd.services.lfcs-lab = {
-    description = "LFCS-Lab-VM (QEMU, -snapshot, ssh auf 127.0.0.1:2222)";
+    description = "LFCS-Lab-VM (QEMU, -snapshot, Gast-ssh intern auf 127.0.0.1:${toString innerPort})";
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     unitConfig.ConditionPathExists = "${stateDir}/root.qcow2";
@@ -213,21 +246,49 @@ in
       # Die -snapshot-Overlays landen in $TMPDIR bzw. /var/tmp -- privat fuer
       # den Dienst und mit ihm weg.
       PrivateTmp = true;
+      ExecStartPre = guard "lfcs-lab-build";
       ExecStart = "${qemu}/bin/qemu-system-x86_64 ${lib.escapeShellArgs (baseArgs "" ++ [ "-snapshot" ] ++ nicArgs ++ qgaArgs)}";
       Restart = "no";
     };
-    # Kein wantedBy -- die VM laeuft nur, wenn jemand sie startet.
+    # Kein wantedBy -- die VM laeuft nur, wenn jemand sie startet, direkt
+    # oder ueber den Socket unten.
   };
 
-  # skitarii darf genau diese zwei Units starten, stoppen, neu starten.
+  # Eingang fuer `ssh lfcs`. Der Socket laeuft immer (nur Loopback), die VM
+  # erst bei der ersten Verbindung.
+  systemd.sockets.lfcs-lab-ssh = {
+    description = "LFCS-Lab: ssh-Eingang 127.0.0.1:${toString sshPort}, startet die VM bei Bedarf";
+    wantedBy = [ "sockets.target" ];
+    listenStreams = [ "127.0.0.1:${toString sshPort}" ];
+  };
+
+  # bindsTo: geht die VM aus (stop/restart), geht der Proxy mit. Die naechste
+  # Verbindung startet ihn ueber den Socket neu.
+  systemd.services.lfcs-lab-ssh = {
+    description = "LFCS-Lab: ssh-Weiterleitung in den Gast";
+    bindsTo = [ "lfcs-lab.service" ];
+    after = [ "lfcs-lab.service" ];
+    path = [ pkgs.coreutils pkgs.gnugrep ];
+    serviceConfig = {
+      DynamicUser = true;
+      ExecStartPre = waitSsh;
+      ExecStart = "${config.systemd.package}/lib/systemd/systemd-socket-proxyd 127.0.0.1:${toString innerPort}";
+      TimeoutStartSec = "150s";
+    };
+  };
+
+  # skitarii und bfn duerfen genau diese drei Units starten, stoppen, neu
+  # starten. bfn hat zwar wheel, braeuchte dafuer aber sudo bzw. einen
+  # Polkit-Dialog -- ueber ssh von fabricus aus gibt es keinen.
   security.polkit.enable = true;
   security.polkit.extraConfig = ''
     polkit.addRule(function(action, subject) {
       if (action.id == "org.freedesktop.systemd1.manage-units" &&
-          subject.user == "skitarii") {
+          (subject.user == "skitarii" || subject.user == "bfn")) {
         var unit = action.lookup("unit");
         var verb = action.lookup("verb");
-        if ((unit == "lfcs-lab.service" || unit == "lfcs-lab-build.service") &&
+        if ((unit == "lfcs-lab.service" || unit == "lfcs-lab-build.service" ||
+             unit == "lfcs-lab-ssh.service") &&
             (verb == "start" || verb == "stop" || verb == "restart")) {
           return polkit.Result.YES;
         }
