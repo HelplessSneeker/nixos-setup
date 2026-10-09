@@ -130,6 +130,21 @@ let
       fi
     done
   '';
+
+  # Kommentarzeilen fliegen beim Bauen aus der hyprland.conf (09.10.2026).
+  # Grund ist das keybind-cheatsheet-Plugin: es parst die Datei beim noctalia-
+  # Start in EINEM Luau-Aufruf mit 100 ms CPU-Budget ('chunk', luau_host.cpp).
+  # Mit ~275 Kommentarzeilen von 449 riss es das Budget bei jedem Start seit
+  # mindestens 21.09. (Journal: "exceeded its CPU budget"), und das Panel zeigte
+  # still den Cache vom letzten Erfolg -- SUPER+plus und SUPER+U fehlten.
+  # Ohne Kommentare halbiert sich der Parse-Aufwand (gemessen: 1,31 -> 0,74 ms
+  # nativ, gleiche 80 Binds). Nebeneffekt: Datums-Kommentare wie "# 21.09. ..."
+  # las das Plugin als nummerierte Kategorie.
+  # Die Kommentare bleiben HIER die Doku; die erzeugte Datei liest niemand.
+  # Nur ganze Zeilen -- `# "Text"` am Bind-Ende bleibt, davon lebt das Panel.
+  stripComments = text: lib.concatStringsSep "\n"
+    (builtins.filter (l: builtins.match "[[:space:]]*#.*" l == null)
+      (lib.splitString "\n" text));
 in
 {
   # Screenshot-Ordner anlegen. Bewusst NICHT ueber xdg.userDirs: das Modul
@@ -263,7 +278,7 @@ in
     # verliert fuzzel seinen letzten Nutzer und fliegt ebenfalls raus.
   ];
 
-  xdg.configFile."hypr/hyprland.conf".text = ''
+  xdg.configFile."hypr/hyprland.conf".text = stripComments ''
     # Managed by home-manager (nixos-prep/home/hyprland.nix)
     # Catppuccin Mocha - clean & ruhig
 
