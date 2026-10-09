@@ -7,9 +7,10 @@
 #     -> Server bricht vorher mit "Too many authentication failures" ab.
 #     Trick: IdentityFile zeigt auf den *public* Key, IdentitiesOnly=yes
 #     schraenkt damit die Agent-Auswahl auf genau diesen einen Key ein.
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, osConfig, ... }:
 let
   tailnet = "tail872491.ts.net";
+  isLaptop = osConfig.networking.hostName == "fabricus-itinerans";
 in
 {
   # Ab home-manager 26.05: `settings` statt `matchBlocks`, und die Schluessel
@@ -125,6 +126,29 @@ in
         User = "git";
         IdentityFile = "~/.ssh/github.pub";
         IdentitiesOnly = true;
+      };
+
+      # LFCS-Lab-VM (modules/lfcs-lab.nix). Der Gast-sshd lauscht nur auf
+      # 127.0.0.1:2222 des Laptops -- von fabricus aus also ueber den Laptop
+      # springen, auf dem Laptop direkt. `ssh lfcs` auf beiden Maschinen.
+      #
+      # HostKeyAlias, weil "127.0.0.1" sonst mit jedem anderen lokalen
+      # Port-Forward um denselben known_hosts-Eintrag streitet. Nach einem
+      # neuen Golden-Image (lfcs-lab-build) hat der Gast einen neuen Host-Key:
+      #   ssh-keygen -R lfcs-lab
+      # Ein Reset per `systemctl restart lfcs-lab` aendert ihn NICHT.
+      #
+      # Key-Pinning wie bei cogitator-prime, sonst bietet der 1Password-Agent
+      # alle Keys an und sshd bricht vorher ab. Der Gast kennt genau diesen.
+      lfcs = {
+        HostName = "127.0.0.1";
+        Port = 2222;
+        User = "bfn";
+        HostKeyAlias = "lfcs-lab";
+        IdentityFile = "~/.ssh/cogitator-prime.pub";
+        IdentitiesOnly = true;
+      } // lib.optionalAttrs (!isLaptop) {
+        ProxyJump = "fabricus-itinerans";
       };
 
       # Hier standen bis zum 12.08.2026 Bloecke fuer `fabricus` und

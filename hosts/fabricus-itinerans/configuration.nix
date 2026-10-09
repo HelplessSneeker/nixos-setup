@@ -33,6 +33,11 @@
     # /mnt, dort konnte die Datei gar nicht liegen -- mit aktivem Import waere
     # `nixos-install` selbst gescheitert, nicht erst ein spaeterer Rebuild.
     ../../modules/citrix.nix
+
+    # LFCS-Lab-VM (QEMU als eigener System-User, Reset per Neustart). Nur auf
+    # dem Laptop: genug freier RAM, nested KVM, und die Kiste ist in den
+    # Linux-Slots an. Runbook im bfn-wiki, Entscheidung 06.10.2026.
+    ../../modules/lfcs-lab.nix
   ];
 
   # --- Boot ------------------------------------------------------------------
