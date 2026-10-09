@@ -20,17 +20,20 @@ let
       vm               ssh in die VM. Ist sie aus, startet sie von selbst
                        (~10 s), danach geht es direkt weiter.
       vm up            VM starten und warten, bis ssh bereit ist.
+      vm down          VM sauber herunterfahren. Der Arbeitsstand bleibt.
       vm reset [-y]    Zurueck auf das Golden-Image. Alles, was im Gast
                        geaendert wurde, ist weg. Fragt nach, -y nicht.
-      vm down  [-y]    VM aus. Aenderungen sind ebenfalls weg.
-      vm status        Laeuft die VM, laeuft der Build, wie alt ist das Image.
+      vm status        Laeuft die VM, wie gross und alt ist der Arbeitsstand.
       vm build         Golden-Image neu bauen (~2 min, VM muss aus sein).
+                       Verwirft dabei auch den Arbeitsstand.
       vm help          Diese Hilfe.
 
     WAS MAN WISSEN MUSS
-      - Jeder Start beginnt beim Golden-Image. Reboots IM Gast ueberleben
-        die Aenderungen, erst vm reset/down oder ein Neustart des Laptops
-        verwirft sie.
+      - Aenderungen bleiben erhalten: ueber vm down, poweroff im Gast und
+        Neustarts des Laptops hinweg. Weg sind sie nur nach vm reset oder
+        vm build.
+      - Vor einer Pruefungsrunde vm reset -- sonst stecken Reste frueherer
+        Uebungen in der Bewertung.
       - Die VM stoppt nie von selbst. Nach dem Slot: vm down.
       - Im Gast: User bfn, sudo ohne Passwort (sudo -i wie in der Pruefung).
         Leere Platten vdb und vdc (je 5G), Netzwerkkarten ens2 (Internet),
@@ -60,24 +63,30 @@ let
 
   local = ''
     confirm() {
-      [ "''${2:-}" = "-y" ] && return 0
-      [ -t 0 ] || { echo "vm $1: ohne Terminal nur mit -y" >&2; exit 2; }
-      read -r -p "vm $1 verwirft alles, was in der VM geaendert wurde. Weiter? [j/N] " a
+      [ "''${1:-}" = "-y" ] && return 0
+      [ -t 0 ] || { echo "vm reset: ohne Terminal nur mit -y" >&2; exit 2; }
+      read -r -p "vm reset verwirft alles, was in der VM geaendert wurde. Weiter? [j/N] " a
       [ "$a" = j ] || [ "$a" = J ] || exit 1
     }
     case "$1" in
       up)
         systemctl start lfcs-lab-ssh.service && echo "VM laeuft, vm bzw. ssh lfcs ist bereit." ;;
       reset)
-        confirm reset "''${2:-}"
-        systemctl restart lfcs-lab.service && systemctl start lfcs-lab-ssh.service \
+        confirm "''${2:-}"
+        systemctl start lfcs-lab-reset.service && systemctl start lfcs-lab-ssh.service \
           && echo "Zurueckgesetzt, vm bzw. ssh lfcs ist bereit." ;;
       down)
-        confirm down "''${2:-}"
-        systemctl stop lfcs-lab.service && echo "VM aus." ;;
+        echo "Fahre den Gast herunter ..."
+        systemctl stop lfcs-lab.service && echo "VM aus, der Arbeitsstand bleibt." ;;
       status)
         echo "VM:    $(systemctl is-active lfcs-lab.service)"
         echo "ssh:   $(systemctl is-active lfcs-lab-ssh.service) (Socket: $(systemctl is-active lfcs-lab-ssh.socket))"
+        w=/var/lib/lfcs-lab/work-root.qcow2
+        if [ -e "$w" ]; then
+          echo "Stand: Aenderungen seit dem letzten Reset, zuletzt $(date -r "$w" '+%d.%m.%Y %H:%M'), $(du -ch /var/lib/lfcs-lab/work-*.qcow2 | tail -1 | cut -f1)"
+        else
+          echo "Stand: frisch, naechster Start beginnt beim Golden-Image"
+        fi
         echo "Build: $(systemctl is-active lfcs-lab-build.service), Golden-Image vom $(date -r /var/lib/lfcs-lab/root.qcow2 '+%d.%m.%Y %H:%M' 2>/dev/null || echo '?')" ;;
       build)
         systemctl start lfcs-lab-build.service \

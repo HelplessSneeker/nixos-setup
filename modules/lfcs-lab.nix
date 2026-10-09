@@ -6,10 +6,14 @@
 #   - kein libvirt: die Gruppe libvirtd ist root-gleich, aus demselben Grund
 #     wie docker (siehe modules/agent-user.nix). QEMU laeuft direkt als
 #     unprivilegierter System-User `lfcs-lab`.
-#   - Reset = Neustart. lfcs-lab.service startet QEMU mit `-snapshot`, alle
-#     Schreibzugriffe landen in Overlays unter dem privaten /var/tmp des
-#     Dienstes. Reboots IM Gast ueberleben sie (der QEMU-Prozess laeuft
-#     weiter), erst `systemctl restart lfcs-lab` verwirft alles.
+#   - Arbeitsstand bleibt, bis jemand zuruecksetzt (seit 09.10.2026, davor
+#     `-snapshot`). Jede Platte bekommt ein eigenes qcow2-Overlay
+#     work-<platte>.qcow2 mit dem Golden-Image als Backing-File; QEMU schreibt
+#     nur dorthin. Stop, Neustart des Laptops, `poweroff` im Gast: alles
+#     bleibt. Stoppen faehrt den Gast per ACPI sauber herunter (QMP
+#     system_powerdown), erst nach 60 s hart.
+#     Reset = lfcs-lab-reset.service: stoppt die VM, loescht die Overlays,
+#     der naechste Start legt sie leer neu an.
 #   - Das Golden-Image baut lfcs-lab-build.service aus einem per Hash
 #     gepinnten Ubuntu-Cloud-Image und cloud-init. Nie von Hand aendern --
 #     Aenderungen laufen ueber userData unten und einen neuen Build.
@@ -27,9 +31,10 @@
 # Bedienung: Befehl `vm` aus home/lfcs.nix (`vm help`),
 # oder direkt:
 #   ssh lfcs                         # startet die VM bei Bedarf, ~10 s
+#   systemctl stop lfcs-lab          # VM sauber aus, Arbeitsstand bleibt
+#   systemctl start lfcs-lab-reset   # zurueck auf das Golden-Image
 #   systemctl start lfcs-lab-build   # Golden-Image (neu) bauen, ~2 min (gemessen 76 s)
-#   systemctl restart lfcs-lab       # Reset auf das Golden-Image
-#   systemctl stop lfcs-lab          # VM aus, Overlays weg
+#   (`systemctl restart lfcs-lab` ist nur noch ein Neustart, KEIN Reset)
 { config, pkgs, lib, ... }:
 let
   stateDir = "/var/lib/lfcs-lab";
@@ -110,22 +115,26 @@ let
     local-hostname: lfcs-lab
   '';
 
+  disks = [ "root" "vdb" "vdc" ];
+
   # Gemeinsame QEMU-Argumente fuer Build und Betrieb. vda/vdb/vdc folgen der
   # Reihenfolge auf der Kommandozeile -- nicht umsortieren.
-  # `sfx` haengt der Build an (".new"), der Betrieb nicht.
+  # `file` bildet den Plattennamen auf die Datei ab: der Build schreibt in
+  # <platte>.qcow2.new, der Betrieb in die Overlays work-<platte>.qcow2.
   # -nodefaults: ohne ihn haengt QEMU Diskette (fd0) und CD-Laufwerk (sr0) an,
   # die dann in jedem `lsblk` der Storage-Aufgaben herumstehen.
-  baseArgs = sfx: [
+  baseArgs = file: [
     "-nodefaults"
     "-enable-kvm" "-cpu" "host" "-smp" "2" "-m" "2048"
     "-display" "none" "-monitor" "none" "-serial" "stdio"
-  ] ++ lib.concatMap (d: [ "-drive" "file=${stateDir}/${d}.qcow2${sfx},if=virtio,format=qcow2" ])
-    [ "root" "vdb" "vdc" ];
+  ] ++ lib.concatMap (d: [ "-drive" "file=${stateDir}/${file d},if=virtio,format=qcow2" ]) disks;
   nicArgs = [
     "-nic" "user,model=virtio-net-pci,mac=${builtins.elemAt macs 0},hostfwd=tcp:127.0.0.1:${toString innerPort}-:22"
     "-nic" "user,model=virtio-net-pci,mac=${builtins.elemAt macs 1},restrict=on"
     "-nic" "user,model=virtio-net-pci,mac=${builtins.elemAt macs 2},restrict=on"
   ];
+  # QMP nur fuer das saubere Herunterfahren beim Stop (stopScript unten).
+  qmpArgs = [ "-qmp" "unix:${runDir}/qmp.sock,server=on,wait=off" ];
   qgaArgs = [
     "-chardev" "socket,path=${runDir}/qga.sock,server=on,wait=off,id=qga0"
     "-device" "virtio-serial"
@@ -152,7 +161,7 @@ let
     # Ohne -snapshot: cloud-init schreibt ins Golden-Image. Seed als vierte
     # Platte (vdd), damit vda-vdc dieselben bleiben wie im Betrieb.
     timeout 45m qemu-system-x86_64 \
-      ${lib.escapeShellArgs (baseArgs ".new")} \
+      ${lib.escapeShellArgs (baseArgs (d: "${d}.qcow2.new"))} \
       -drive file=seed.iso,if=virtio,format=raw,readonly=on \
       ${lib.escapeShellArgs nicArgs} \
       | tee build-serial.log
@@ -165,6 +174,8 @@ let
     fi
     for f in root vdb vdc; do mv -f "$f.qcow2.new" "$f.qcow2"; done
     chmod 0640 root.qcow2 vdb.qcow2 vdc.qcow2
+    # Die Overlays haengen am alten Golden-Image und waeren jetzt Muell.
+    rm -f work-root.qcow2 work-vdb.qcow2 work-vdc.qcow2
     echo "Golden-Image fertig: $(stat -c '%y' root.qcow2)"
   '';
 
@@ -177,6 +188,42 @@ let
     case "$state" in inactive|failed) exit 0 ;; esac
     echo "${other}.service ist $state -- erst abwarten oder stoppen" >&2
     exit 1
+  '';
+
+  # Legt fehlende Overlays an -- nach einem Reset oder dem ersten Build.
+  # Backing-Pfad absolut, damit qemu-img/QEMU ihn unabhaengig vom cwd finden.
+  overlayScript = pkgs.writeShellScript "lfcs-lab-overlays" ''
+    set -eu
+    cd ${stateDir}
+    for d in ${toString disks}; do
+      [ -e "work-$d.qcow2" ] && continue
+      qemu-img create -q -f qcow2 -b "${stateDir}/$d.qcow2" -F qcow2 "work-$d.qcow2"
+      echo "Overlay work-$d.qcow2 neu angelegt"
+    done
+  '';
+
+  # ACPI-Power-Knopf statt SIGTERM: der Gast faehrt sauber herunter, QEMU
+  # beendet sich dann selbst. Haengt der Gast, kommt nach 60 s systemds
+  # SIGTERM -- das Overlay bleibt dabei lesbar, der Gast sieht einen Stromausfall.
+  # stdin bleibt eine Sekunde offen, sonst schliesst socat vor der Antwort
+  # (dieselbe Falle wie beim Guest-Agent).
+  stopScript = pkgs.writeShellScript "lfcs-lab-stop" ''
+    (printf '{"execute":"qmp_capabilities"}\n{"execute":"system_powerdown"}\n'; sleep 1) \
+      | socat - UNIX-CONNECT:${runDir}/qmp.sock >/dev/null 2>&1 || true
+    pid=''${MAINPID:-}
+    [ -n "$pid" ] || exit 0
+    for _ in $(seq 1 60); do
+      kill -0 "$pid" 2>/dev/null || exit 0
+      sleep 1
+    done
+    echo "Gast nach 60 s nicht heruntergefahren -- harter Stopp" >&2
+  '';
+
+  resetScript = pkgs.writeShellScript "lfcs-lab-reset" ''
+    set -eu
+    cd ${stateDir}
+    rm -f work-root.qcow2 work-vdb.qcow2 work-vdc.qcow2
+    echo "Arbeitsstand verworfen, naechster Start beginnt beim Golden-Image"
   '';
 
   # Haelt die erste Verbindung im Socket fest, bis der Gast-sshd sein Banner
@@ -208,6 +255,8 @@ in
   # Gruppe lfcs-lab gibt skitarii Zugriff auf den Guest-Agent-Socket -- sonst
   # auf nichts (stateDir ist 0750, die Images 0640, lesend reicht).
   users.users.skitarii.extraGroups = [ "lfcs-lab" ];
+  # bfn: damit `vm status` Golden-Image und Arbeitsstand sehen kann.
+  users.users.bfn.extraGroups = [ "lfcs-lab" ];
 
   systemd.tmpfiles.rules = [ "d ${stateDir} 0750 lfcs-lab lfcs-lab -" ];
 
@@ -230,10 +279,11 @@ in
   };
 
   systemd.services.lfcs-lab = {
-    description = "LFCS-Lab-VM (QEMU, -snapshot, Gast-ssh intern auf 127.0.0.1:${toString innerPort})";
+    description = "LFCS-Lab-VM (QEMU, Arbeitsstand in Overlays, Gast-ssh intern auf 127.0.0.1:${toString innerPort})";
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     unitConfig.ConditionPathExists = "${stateDir}/root.qcow2";
+    path = [ qemu pkgs.coreutils pkgs.socat ];
     serviceConfig = {
       User = "lfcs-lab";
       Group = "lfcs-lab";
@@ -243,15 +293,29 @@ in
       # Socket gruppenschreibbar, sonst kann skitarii den Guest-Agent nicht
       # ansprechen.
       UMask = "0007";
-      # Die -snapshot-Overlays landen in $TMPDIR bzw. /var/tmp -- privat fuer
-      # den Dienst und mit ihm weg.
       PrivateTmp = true;
-      ExecStartPre = guard "lfcs-lab-build";
-      ExecStart = "${qemu}/bin/qemu-system-x86_64 ${lib.escapeShellArgs (baseArgs "" ++ [ "-snapshot" ] ++ nicArgs ++ qgaArgs)}";
+      ExecStartPre = [ (guard "lfcs-lab-build") overlayScript ];
+      ExecStart = "${qemu}/bin/qemu-system-x86_64 ${lib.escapeShellArgs (baseArgs (d: "work-${d}.qcow2") ++ nicArgs ++ qmpArgs ++ qgaArgs)}";
+      ExecStop = stopScript;
+      TimeoutStopSec = "90s";
       Restart = "no";
     };
     # Kein wantedBy -- die VM laeuft nur, wenn jemand sie startet, direkt
     # oder ueber den Socket unten.
+  };
+
+  # Reset: Conflicts stoppt die VM (sauber, ueber ExecStop), After sorgt
+  # dafuer, dass das Loeschen erst danach laeuft.
+  systemd.services.lfcs-lab-reset = {
+    description = "LFCS-Lab: Arbeitsstand verwerfen, zurueck auf das Golden-Image";
+    conflicts = [ "lfcs-lab.service" ];
+    after = [ "lfcs-lab.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "lfcs-lab";
+      Group = "lfcs-lab";
+      ExecStart = resetScript;
+    };
   };
 
   # Eingang fuer `ssh lfcs`. Der Socket laeuft immer (nur Loopback), die VM
@@ -277,7 +341,7 @@ in
     };
   };
 
-  # skitarii und bfn duerfen genau diese drei Units starten, stoppen, neu
+  # skitarii und bfn duerfen genau diese vier Units starten, stoppen, neu
   # starten. bfn hat zwar wheel, braeuchte dafuer aber sudo bzw. einen
   # Polkit-Dialog -- ueber ssh von fabricus aus gibt es keinen.
   security.polkit.enable = true;
@@ -288,7 +352,7 @@ in
         var unit = action.lookup("unit");
         var verb = action.lookup("verb");
         if ((unit == "lfcs-lab.service" || unit == "lfcs-lab-build.service" ||
-             unit == "lfcs-lab-ssh.service") &&
+             unit == "lfcs-lab-ssh.service" || unit == "lfcs-lab-reset.service") &&
             (verb == "start" || verb == "stop" || verb == "restart")) {
           return polkit.Result.YES;
         }
