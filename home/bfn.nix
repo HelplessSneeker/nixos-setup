@@ -9,7 +9,6 @@
     ./hyprland.nix
     ./theme.nix
     ./fish.nix
-    ./procs.nix       # `procs`: Prozess-/Lastuebersicht, haengt an SUPER+U
     ./noctalia.nix
     inputs.noctalia.homeModules.default
   ];
