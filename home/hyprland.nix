@@ -542,11 +542,13 @@ ${gestureBlock}
     # das selbstgebaute `procs` (Momentaufnahme-Skript) -- bfn will die
     # interaktive Live-Ansicht. Kein `--hold`: btop laeuft, bis man es mit q
     # beendet, und dann soll das Fenster auch zugehen.
+    # --override=confirm_os_window_close=0 wie bei yazi ($fileManager): sonst
+    # fragt kitty beim Schliessen per SUPER+W nach, weil btop noch laeuft.
     #
     # Kein Komma im Befehl: Hyprland splittet die bind-Zeile an Kommas, und das
     # keybind-cheatsheet-Plugin erwartet genau vier Felder (siehe Kommentar am
     # Anfang dieses Blocks).
-    bind = $mainMod, U, exec, $terminal -e btop  # "Prozess-Übersicht (btop)"
+    bind = $mainMod, U, exec, $terminal --override=confirm_os_window_close=0 -e btop  # "Prozess-Übersicht (btop)"
     bind = $mainMod SHIFT, Escape, exec, hyprlock  # "Bildschirm sperren"
     # Hilfe auf SUPER+ss. Voraus gingen zwei tote Varianten: `SHIFT, question`
     # und `SHIFT, ssharp`. Gelernt (verifiziert im Test 09.08.2026): auf
