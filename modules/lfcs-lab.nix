@@ -24,7 +24,7 @@
 #   - skitarii und bfn duerfen die drei Dienste starten/stoppen (Polkit
 #     unten), sonst nichts -- skitarii ohne sudo, ohne wheel.
 #
-# Bedienung: Befehl `lfcs` aus home/lfcs.nix (up/down/reset/status/build),
+# Bedienung: Befehl `vm` aus home/lfcs.nix (`vm help`),
 # oder direkt:
 #   ssh lfcs                         # startet die VM bei Bedarf, ~10 s
 #   systemctl start lfcs-lab-build   # Golden-Image (neu) bauen, ~2 min (gemessen 76 s)
