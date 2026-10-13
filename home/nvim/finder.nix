@@ -45,10 +45,18 @@
               max_depth = 2;
             }
             {
+              path = "~/work";
+              max_depth = 3;
+            }
+            {
               path = "/etc/nixos";
               max_depth = 1;
             }
           ];
+          # Repos ausserhalb dieser Ordner: Datei aus dem Repo offen haben,
+          # Projektwahl oeffnen, <C-a> -- nimmt das Repo dauerhaft in die
+          # Liste (~/.local/share/nvim/telescope-projects.txt).
+          #
           # Fehlt einer der Ordner auf einem Host, still ueberspringen. Ohne
           # das meldet plenary ab nvim 0.12 bei JEDEM Start "<pfad> is not
           # accessible by the current user!" und wartet auf Enter -- auch

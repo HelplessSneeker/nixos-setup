@@ -145,6 +145,12 @@
     # laedt die Manager zur Laufzeit nach und wird ab Node 25 nicht mehr
     # mitgeliefert; das Nix-Paket ist reproduzierbar und rollback-faehig.
     pnpm
+    # Nacktes Python fuer REPL und Einwegskripte, bewusst OHNE Bibliotheken.
+    # Projekte bringen ihre eigenen ueber shell.nix + .envrc (direnv), z.B.
+    # ~/projects/quant -- dort schiebt sich deren Python vorn in den PATH.
+    # Ein globales pandas wuerde Projekte ohne shell.nix zufaellig laufen
+    # lassen, bis sie auf dem anderen Rechner nicht mehr laufen.
+    python3
     ripgrep fd fzf bat eza jq btop tmux unzip wget
     # lazygit: TUI fuer git. Bewusst nur das Paket, kein programs.lazygit --
     # das home-manager-Modul schreibt eine config.yml als Store-Symlink, damit
