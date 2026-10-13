@@ -31,6 +31,24 @@
       # Auf anderen Distributionen ist das die Stelle, an der man ein
       # `make`-Kommando ausfuehren muss; hier ist es eine fertige Ableitung.
       fzf-native.enable = true;
+
+      # Projektwahl: listet jedes Git-Repo unter ~/projects (bis zwei Ebenen
+      # tief). Enter wechselt nvims Arbeitsverzeichnis dorthin und oeffnet
+      # gleich die Dateisuche im Projekt. Ein neues Repo taucht von selbst
+      # auf, es gibt keine Liste zu pflegen.
+      project = {
+        enable = true;
+        settings = {
+          base_dirs = [
+            {
+              path = "~/projects";
+              max_depth = 2;
+            }
+          ];
+          hidden_files = true;
+          order_by = "recent";
+        };
+      };
     };
 
     # telescope bringt eine eigene keymaps-Option mit: links die Taste, rechts
@@ -72,6 +90,10 @@
         action = "keymaps";
         options.desc = "Keymaps durchsuchen";
       };
+      "<leader>fp" = {
+        action = "project";
+        options.desc = "Projekt oeffnen";
+      };
     };
   };
 
@@ -101,9 +123,15 @@
   # Dateimanagers, und massenhaftes Umbenennen mit vim-Bordmitteln (Makro,
   # Visual-Block, :s) ist genau das, was ein Sidebar-Baum nicht kann.
   #
-  # oil ersetzt netrw (nvims eingebauten Explorer) per Default -- ein
-  # aufgerufenes Verzeichnis landet also automatisch in oil.
-  plugins.oil.enable = true;
+  # oil ersetzt netrw (nvims eingebauten Explorer) per Default. Hier bewusst
+  # AUS (13.10.2026): `nvim .` landete damit in einer nackten Dateiliste, die
+  # wie ein Textpuffer aussieht -- fuer "Projekt oeffnen" das falsche Bild.
+  # Verzeichnisse beim Start uebernimmt jetzt neo-tree (unten), oil bleibt
+  # das Werkzeug fuer `-`.
+  plugins.oil = {
+    enable = true;
+    settings.default_file_explorer = false;
+  };
 
   # ---------------------------------------------------------------------------
   # neo-tree -- die Seitenleiste
@@ -121,14 +149,12 @@
       close_if_last_window = true;
 
       filesystem = {
-        # WICHTIG, sonst streiten sich zwei Plugins um dieselbe Aufgabe:
-        # neo-tree wuerde per Default netrw kapern ("open_default") und damit
-        # jedes geoeffnete Verzeichnis an sich ziehen -- genau das macht aber
-        # schon oil (Schicht 3, `-`). Wer gewinnt, haengt sonst an der
-        # Ladereihenfolge, was ein schoen unzuverlaessiger Fehler waere.
-        #
-        # "disabled" heisst: neo-tree kommt NUR, wenn du es rufst.
-        hijack_netrw_behavior = "disabled";
+        # `nvim .` oder `nvim ~/projects/quant` oeffnet den Baum als
+        # Seitenleiste links, rechts bleibt Platz fuer die erste Datei.
+        # Das geht nur, weil oil oben default_file_explorer = false hat --
+        # sonst streiten sich beide ums Verzeichnis, und wer gewinnt, haengt
+        # an der Ladereihenfolge.
+        hijack_netrw_behavior = "open_default";
 
         # Der Baum markiert automatisch die Datei, in der du gerade bist --
         # praktisch, wenn du per Fuzzy-Finder irgendwohin gesprungen bist und

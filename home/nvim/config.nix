@@ -14,6 +14,7 @@
 #   3  Navigation          -> ./finder.nix (telescope, oil)
 #   4  LSP + Completion    -> ./lsp.nix (ts_ls, basedpyright, nixd, lua_ls)
 #   5  Formatieren/Linten  -> ./format.nix (conform, ruff, eslint)
+#   6  Start               -> ./start.nix (Startbildschirm, `nvim <ordner>`)
 # Was hier NICHT steht, fehlt noch nicht -- es ist noch nicht dran.
 {
   # Ab Schicht 2 bekommt jede Schicht eine eigene Datei. Diese hier bleibt die
@@ -23,6 +24,7 @@
     ./finder.nix
     ./lsp.nix
     ./format.nix
+    ./start.nix
   ];
 
   # --- Provider ---
