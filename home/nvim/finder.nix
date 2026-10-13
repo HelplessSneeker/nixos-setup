@@ -33,9 +33,9 @@
       fzf-native.enable = true;
 
       # Projektwahl: listet jedes Git-Repo unter ~/projects (bis zwei Ebenen
-      # tief). Enter wechselt nvims Arbeitsverzeichnis dorthin und oeffnet
-      # gleich die Dateisuche im Projekt. Ein neues Repo taucht von selbst
-      # auf, es gibt keine Liste zu pflegen.
+      # tief) plus diese Flake. Enter wechselt nvims Arbeitsverzeichnis
+      # dorthin und oeffnet gleich die Dateisuche im Projekt. Ein neues Repo
+      # taucht von selbst auf, es gibt keine Liste zu pflegen.
       project = {
         enable = true;
         settings = {
@@ -44,7 +44,17 @@
               path = "~/projects";
               max_depth = 2;
             }
+            {
+              path = "/etc/nixos";
+              max_depth = 1;
+            }
           ];
+          # Fehlt einer der Ordner auf einem Host, still ueberspringen. Ohne
+          # das meldet plenary ab nvim 0.12 bei JEDEM Start "<pfad> is not
+          # accessible by the current user!" und wartet auf Enter -- auch
+          # wenn der Ordner schlicht nicht existiert (fs_access liefert dort
+          # seit 0.12 false statt nil; gesehen 13.10.2026 auf fabricus).
+          ignore_missing_dirs = true;
           hidden_files = true;
           order_by = "recent";
         };
