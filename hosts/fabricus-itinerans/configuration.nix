@@ -131,6 +131,18 @@
     HandleLidSwitchExternalPower = "ignore";
   };
 
+  # nix-gc nicht direkt nach dem Aufwachen und nur am Netzteil. Am 12.10.2026
+  # hat der Timer seinen verpassten Lauf beim Aufwachen nachgeholt, und der
+  # naechste Suspend hat ihn mitten im Loeschen abgewuergt: ueber 1000 Pfade
+  # in der Store-DB gueltig, aber weg, dazu ein halb geloeschter nixpkgs-
+  # Quellbaum -- der naechste Rebuild scheiterte an "flake.nix does not exist".
+  # Am Netzteil zieht der Deckel keinen Suspend (siehe oben), und die Stunde
+  # Verzoegerung laesst Zeit, die Kiste gleich wieder zuzuklappen, bevor er
+  # startet. Ohne Netzteil faellt der Lauf aus und kommt beim naechsten
+  # Termin wieder.
+  nix.gc.randomizedDelaySec = "1h";
+  systemd.services.nix-gc.unitConfig.ConditionACPower = true;
+
   # --- Bluetooth -------------------------------------------------------------
   # Am Desktop bewusst weggelassen (kein Adapter), hier onboard vorhanden.
   # blueman ist das Backend, das noctalias Bluetooth-Widget anspricht.
