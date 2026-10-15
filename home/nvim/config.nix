@@ -176,6 +176,16 @@
       options.desc = "Fenster rechts";
     }
 
+    # Neuer leerer Puffer zum Losschreiben, wie `n` auf dem Startbildschirm.
+    # Mit Leader, weil das nackte `n` "naechster Suchtreffer" ist -- das zu
+    # ueberschreiben wuerde die Suche halbieren.
+    {
+      mode = "n";
+      key = "<leader>n";
+      action = "<cmd>enew<CR><cmd>startinsert<CR>";
+      options.desc = "Neuer Puffer";
+    }
+
     # Aus dem Terminal-Mode zurueck in den Normal-Mode. Ohne das sitzt du in
     # `:terminal` fest -- der eingebaute Weg ist <C-\><C-n>, was niemand
     # freiwillig tippt.

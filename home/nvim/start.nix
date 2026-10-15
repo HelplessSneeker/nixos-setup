@@ -34,7 +34,18 @@
           cwd_only = false;
         };
 
+        # Die Zuletzt-Liste darunter bekommt ihre Buchstaben automatisch und
+        # laesst die Tasten hier aus -- ein neuer Eintrag kollidiert also nicht.
         shortcut = [
+          {
+            # Leerer Puffer, direkt im Insert-Mode: erst schreiben, beim
+            # Speichern (:w name) entscheiden, wohin. Gleiche Aktion wie
+            # <leader>n in ./config.nix.
+            desc = " Neu";
+            group = "Label";
+            action = "enew | startinsert";
+            key = "n";
+          }
           {
             desc = " Projekte";
             group = "Label";
