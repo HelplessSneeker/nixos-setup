@@ -138,6 +138,29 @@
   # was dasselbe in bfns eigene config.toml schreibt.
   home.sessionVariables.MISE_NODE_COMPILE = "0";
 
+  # --- Java: JDK 21 + Maven als feste Toolchain ---
+  #
+  # Entscheidung bfn 15.10.2026: Java global wie Node, nicht pro Projekt per
+  # shell.nix. Bibliotheken holt ohnehin Maven pro Projekt (~/.m2), anders als
+  # bei Python gibt es hier also nichts, was ein globales Paket "zufaellig"
+  # mitliefern koennte.
+  #
+  # programs.java statt jdk21 in home.packages, weil das Modul zusaetzlich
+  # JAVA_HOME setzt. Maven braucht das: der Wrapper aus nixpkgs bringt sein
+  # eigenes jdk_headless mit und setzt JAVA_HOME nur per --set-default --
+  # unsere Variable gewinnt, `mvn -v` zeigt dann dasselbe JDK wie `java`.
+  # Wie alle sessionVariables wirkt das erst in einer NEUEN Login-Session.
+  #
+  # jdk21 ausdruecklich und nicht `jdk`: das zeigt heute zwar auch auf 21,
+  # wandert aber beim naechsten Release-Sprung still mit. 21 ist LTS und die
+  # Basis des Bewerbungsprojekts; andere Versionen pro Projekt.
+  # home/nvim/lsp.nix gibt jdtls dasselbe pkgs.jdk21 als Projekt-JDK --
+  # bei einem Wechsel beide Stellen anfassen.
+  programs.java = {
+    enable = true;
+    package = pkgs.jdk21;
+  };
+
   home.packages = with pkgs; [
     gh nodejs_22
     # pnpm 10.15.1 aus 25.05 (geprueft am 07.08.2026 gegen den gepinnten
@@ -151,6 +174,11 @@
     # Ein globales pandas wuerde Projekte ohne shell.nix zufaellig laufen
     # lassen, bis sie auf dem anderen Rechner nicht mehr laufen.
     python3
+    # Maven fuer Projekte ohne Wrapper und fuer `mvn archetype:generate`.
+    # Projekte von start.spring.io bringen ./mvnw mit und laden sich ihre
+    # eigene Maven-Version -- das globale mvn ist das Netz darunter, wie
+    # nodejs_22 fuer Node. JDK und JAVA_HOME: programs.java oben.
+    maven
     ripgrep fd fzf bat eza jq btop tmux unzip wget
     # lazygit: TUI fuer git. Bewusst nur das Paket, kein programs.lazygit --
     # das home-manager-Modul schreibt eine config.yml als Store-Symlink, damit

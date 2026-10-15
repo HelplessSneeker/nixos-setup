@@ -13,6 +13,26 @@
 #
 # Eingehaengt von ./config.nix.
 { pkgs, ... }:
+let
+  # jdtls-Einstellungen, zweimal gebraucht (siehe jdtls unten).
+  javaSettings.java = {
+    # Gegen welches JDK der Projektcode geprueft wird -- getrennt vom JDK, auf
+    # dem jdtls selbst laeuft. Dasselbe pkgs.jdk21 wie programs.java in
+    # home/bfn.nix, damit Editor und `mvn` dieselbe Standardbibliothek sehen.
+    # Der Name muss exakt "JavaSE-21" lauten, jdtls kennt nur diese Bezeichner.
+    configuration.runtimes = [
+      {
+        name = "JavaSE-21";
+        path = "${pkgs.jdk21.home}";
+        default = true;
+      }
+    ];
+    # Quell-JARs der Abhaengigkeiten mitladen. Erst damit zeigt K auf
+    # @SpringBootApplication die Javadoc und gd den echten Spring-Quelltext
+    # statt einer dekompilierten Klasse ohne Kommentare.
+    maven.downloadSources = true;
+  };
+in
 {
   # ---------------------------------------------------------------------------
   # Die Sprachserver
@@ -121,7 +141,79 @@
       # wissen. Die Warnung waere korrekt und trotzdem nur Laerm.
       config.settings.Lua.diagnostics.globals = [ "vim" ];
     };
+
+    # Java. Paket: jdt-language-server (Eclipse JDT LS, das Herz von VS Codes
+    # Java-Extension). Laeuft selbst auf dem JDK, das nixpkgs ihm fest
+    # einbaut -- unabhaengig davon, welches java gerade im PATH steht.
+    #
+    # Bewusst der native Weg und NICHT nvim-jdtls, das sonst ueberall
+    # empfohlen wird. nvim-jdtls startet den Server per ftplugin selbst, waere
+    # also ein zweiter Mechanismus neben lsp.servers. Was es zusaetzlich kann
+    # (Test-Runner, Debugger-Anbindung, Refactorings wie "Methode
+    # extrahieren"), braucht das Bewerbungsprojekt erst mal nicht. Die eine
+    # Luecke, die der native Weg hat, schliesst der autoCmd unter diesem
+    # Block.
+    #
+    # Projektwurzel und Arbeitsverzeichnis regelt die Definition aus
+    # nvim-lspconfig: Wurzel ist der Ordner mit mvnw/pom.xml, der Index pro
+    # Projekt liegt unter ~/.cache/nvim/jdtls/workspace/<ordnername>. Haengt
+    # der Server mal in einem kaputten Zustand: Ordner loeschen, nvim neu
+    # starten. Maven-Projekte importiert jdtls von selbst.
+    #
+    # Der erste Start in einem Projekt dauert: jdtls laedt die Abhaengigkeiten
+    # samt Quellen und baut den Index. Bis dahin keine Diagnostics -- kein
+    # Fehler, nur Geduld (Fortschritt: :LspLog oder `:checkhealth vim.lsp`).
+    jdtls = {
+      enable = true;
+      config = {
+        init_options = {
+          # Ohne das liefert jdtls fuer Spruenge in eine Bibliothek (gd auf
+          # @SpringBootApplication) gar nichts. Mit ihm kommt eine jdt://-
+          # Adresse zurueck -- die oeffnet der autoCmd unten.
+          extendedClientCapabilities.classFileContentsSupport = true;
+          # Schon beim Start, nicht erst per didChangeConfiguration danach --
+          # sonst importiert jdtls das Projekt zweimal.
+          settings = javaSettings;
+        };
+        settings = javaSettings;
+      };
+    };
   };
+
+  # jdt://-Adressen oeffnen. Eine Klasse aus einem JAR ist keine Datei auf der
+  # Platte; jdtls liefert ihren Quelltext auf Anfrage (java/classFileContents).
+  # Ohne diesen Handler oeffnet gd auf eine Spring-Klasse einen leeren Puffer.
+  # Genau das ist der Teil, den sonst nvim-jdtls mitbringt.
+  #
+  # buftype=nofile VOR filetype=java: vim.lsp.enable haengt Server nur an
+  # Puffer mit echter Datei. Sonst startete fuer jeden geoeffneten JAR-Puffer
+  # ein ZWEITER jdtls ohne Projekt. Stattdessen wird der laufende Server
+  # angehaengt, damit K und gd auch in der Spring-Klasse weiter gehen.
+  autoCmd = [
+    {
+      event = "BufReadCmd";
+      pattern = "jdt://*";
+      callback.__raw = ''
+        function(args)
+          local buf = args.buf
+          local client = vim.lsp.get_clients({ name = "jdtls" })[1]
+          vim.bo[buf].buftype = "nofile"
+          vim.bo[buf].swapfile = false
+          if not client then
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "// jdtls laeuft nicht" })
+            return
+          end
+          local res = client:request_sync("java/classFileContents", { uri = args.match }, 10000, buf)
+          local text = res and res.result
+            or ("// jdtls lieferte keinen Quelltext: " .. vim.inspect(res and res.err))
+          vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(text, "\n", { plain = true }))
+          vim.bo[buf].modifiable = false
+          vim.bo[buf].filetype = "java"
+          vim.lsp.buf_attach_client(buf, client.id)
+        end
+      '';
+    }
+  ];
 
   # ---------------------------------------------------------------------------
   # Was der Server dir sagt -- Darstellung der Diagnostics
