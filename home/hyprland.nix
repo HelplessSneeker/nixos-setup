@@ -18,6 +18,28 @@ let
   # Deshalb weiter unten die home.activation.
   screenshotDir = "${config.home.homeDirectory}/Pictures/screenshots";
 
+  # SUPER+Return: neues Terminal im Verzeichnis des fokussierten kitty (bfn
+  # 15.10.2026). Kein Widerspruch zur lazygit-Lehre in home/fish.nix -- dort
+  # holte sich ein Bind den Kontext aus einer Notizdatei (Vermutung), hier ist
+  # er das fokussierte Fenster selbst: dessen Shell-Prozess und /proc/<pid>/cwd.
+  # Jeder kitty-Start ist ein eigener Prozess (kein --single-instance), die pid
+  # aus hyprctl gehoert also genau zu diesem Fenster; sein juengstes Kind ist
+  # fish. Laeuft in fish gerade nvim o.ae., zaehlt trotzdem fishs cwd. Ist kein
+  # kitty fokussiert oder das Verzeichnis weg -> normales Terminal im Home.
+  # hyprctl bewusst aus dem PATH: muss zur laufenden Hyprland-Version passen.
+  terminalHere = pkgs.writeShellScript "terminal-here" ''
+    dir=""
+    pid=$(hyprctl activewindow -j | ${pkgs.jq}/bin/jq -r 'select(.class == "kitty") | .pid')
+    if [ -n "$pid" ]; then
+      child=$(${pkgs.procps}/bin/pgrep -n -P "$pid")
+      [ -n "$child" ] && dir=$(${pkgs.coreutils}/bin/readlink "/proc/$child/cwd")
+    fi
+    if [ -n "$dir" ] && [ -d "$dir" ]; then
+      exec kitty --directory "$dir"
+    fi
+    exec kitty
+  '';
+
   # Trackpad-Gesten -- nur der Laptop hat ueberhaupt ein Trackpad.
   #
   # Syntax ist die NEUE aus Hyprland 0.51+ (hier laeuft 0.56.1, verifiziert:
@@ -487,7 +509,7 @@ ${gestureBlock}
     # Beschreibung landet dann im Dispatcher-Feld und die Anzeige ist kaputt.
     #
     # Fenster & Session
-    bind = $mainMod, Return, exec, $terminal  # "Terminal öffnen"
+    bind = $mainMod, Return, exec, ${terminalHere}  # "Terminal öffnen (im Ordner des aktiven Terminals)"
     bind = $mainMod, Space, exec, $menu  # "Anwendungen suchen und starten"
     bind = $mainMod, W, killactive  # "Aktives Fenster schließen"
     bind = $mainMod SHIFT, Q, exit  # "Hyprland beenden (abmelden)"
