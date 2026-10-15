@@ -23,15 +23,20 @@ let
   # holte sich ein Bind den Kontext aus einer Notizdatei (Vermutung), hier ist
   # er das fokussierte Fenster selbst: dessen Shell-Prozess und /proc/<pid>/cwd.
   # Jeder kitty-Start ist ein eigener Prozess (kein --single-instance), die pid
-  # aus hyprctl gehoert also genau zu diesem Fenster; sein juengstes Kind ist
-  # fish. Laeuft in fish gerade nvim o.ae., zaehlt trotzdem fishs cwd. Ist kein
+  # aus hyprctl gehoert also genau zu diesem Fenster; sein Kind (ausser kittys
+  # eigenen kitten-Helfern) ist fish. Laeuft in fish gerade nvim o.ae., zaehlt trotzdem fishs cwd. Ist kein
   # kitty fokussiert oder das Verzeichnis weg -> normales Terminal im Home.
   # hyprctl bewusst aus dem PATH: muss zur laufenden Hyprland-Version passen.
   terminalHere = pkgs.writeShellScript "terminal-here" ''
     dir=""
     pid=$(hyprctl activewindow -j | ${pkgs.jq}/bin/jq -r 'select(.class == "kitty") | .pid')
     if [ -n "$pid" ]; then
-      child=$(${pkgs.procps}/bin/pgrep -n -P "$pid")
+      # Nicht einfach `pgrep -n -P`: kitty startet neben der Shell eigene
+      # Helfer (`kitten __atexit__`, `kitten __watch_conf__`), und der juengste
+      # davon ist der Watcher -- dessen cwd ist immer das Startverzeichnis
+      # (gemessen 15.10.2026, erster Versuch landete deshalb stets im Home).
+      child=$(${pkgs.procps}/bin/ps -o pid=,comm= --ppid "$pid" \
+        | ${pkgs.gawk}/bin/awk '$2 != "kitten" { p = $1 } END { print p }')
       [ -n "$child" ] && dir=$(${pkgs.coreutils}/bin/readlink "/proc/$child/cwd")
     fi
     if [ -n "$dir" ] && [ -d "$dir" ]; then
