@@ -190,9 +190,40 @@
         # Hier bewusst aus: die Tasten unten geben das Verzeichnis explizit
         # vor, und sonst aendert sich nichts hinter deinem Ruecken.
         bind_to_cwd = false;
+
+        # --- Java-Pakete (16.10.2026) ---
+        # Ist die Baumwurzel ein Java-Projekt (pom.xml / build.gradle dort
+        # oder einen Ordner tiefer), klappt neo-tree Ordnerketten ohne
+        # Dateien zu einer Zeile zusammen, und Ordner unter src/*/java
+        # erscheinen als Pakete:
+        #
+        #    main                        statt   main
+        #   │ 󰏖 java/com.example.app             │  java
+        #   │ │ 󰏖 model.dto                      │ │  com
+        #   │ │ 󰏖 service                        │ │ │  example ...
+        #
+        # In allen anderen Projekten bleibt der Baum wie er war. Die Logik
+        # steht in ./neotree-java.lua (unten ins runtimepath gelegt).
+        #
+        # scan_mode "deep": neo-tree schaut beim Aufklappen eine Ebene
+        # weiter, ob ein Ordner nur einen Unterordner hat. Ohne das (Default
+        # "shallow") entstuende die Kette erst Klick fuer Klick -- java/com,
+        # dann java/com/example ... Kostet ein readdir pro Unterordner, das
+        # merkt man nur in Riesenordnern wie node_modules.
+        scan_mode = "deep";
+        before_render.__raw = ''require("neotree_java").before_render'';
+        components = {
+          name.__raw = ''require("neotree_java").name'';
+          icon.__raw = ''require("neotree_java").icon'';
+        };
       };
     };
   };
+
+  # Liegt als lua/neotree_java.lua im runtimepath, damit die Zeilen oben es
+  # per require finden -- auch im Standalone-Paket aus flake.nix. Neue Datei:
+  # vor dem Rebuild `git add`, sonst sieht die Flake sie nicht.
+  extraFiles."lua/neotree_java.lua".source = ./neotree-java.lua;
 
   keymaps = [
     # `-` ist die oil-Konvention: oeffnet das VERZEICHNIS der aktuellen Datei,

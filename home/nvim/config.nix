@@ -11,7 +11,7 @@
 # Aufbau in Schichten, jede fuer sich benutzbar:
 #   1  Basis (hier)        Optionen, Leader, Keymaps, Farben, Clipboard
 #   2  Sichtbarkeit        -> ./ui.nix (Treesitter, which-key, lualine, gitsigns)
-#   3  Navigation          -> ./finder.nix (telescope, oil)
+#   3  Navigation          -> ./finder.nix (telescope, oil, neo-tree)
 #   4  LSP + Completion    -> ./lsp.nix (ts_ls, basedpyright, nixd, lua_ls)
 #   5  Formatieren/Linten  -> ./format.nix (conform, ruff, eslint)
 #   6  Start               -> ./start.nix (Startbildschirm, `nvim <ordner>`)
