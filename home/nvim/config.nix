@@ -80,7 +80,15 @@
     termguicolors = true; # 24-Bit-Farben. OHNE DAS sieht catppuccin falsch aus.
     cursorline = true;
     scrolloff = 8; # Nie naeher als 8 Zeilen an den Rand scrollen
-    wrap = false; # Lange Zeilen laufen raus statt umzubrechen
+
+    # --- Umbruch (seit 16.10.2026 an) ---
+    # Lange Zeilen werden am Fensterrand UMGEBROCHEN ANGEZEIGT -- die Datei
+    # selbst bleibt unveraendert, es kommt kein Zeilenumbruch hinein.
+    # Fuer eine Sitzung abschalten (breite Tabellen, CSV): `:set nowrap`.
+    wrap = true;
+    linebreak = true; # Umbruch zwischen Woertern, nicht mitten im Wort
+    breakindent = true; # Fortsetzung bleibt auf der Einrueckung der Zeile
+    showbreak = "↪ "; # Markiert die Fortsetzung, damit sie nicht wie eine eigene Zeile aussieht
 
     # Signspalte dauerhaft an. Klingt nach Kosmetik, ist aber gegen ein
     # konkretes Aergernis: ab Schicht 4 setzen LSP und Git dort Zeichen, und
@@ -146,6 +154,29 @@
       key = "<Esc>";
       action = "<cmd>nohlsearch<CR>";
       options.desc = "Suchmarkierung aus";
+    }
+
+    # j/k bei umgebrochenen Zeilen: ohne Zahl eine BILDSCHIRMzeile weiter
+    # (gj/gk), sonst sprang der Cursor ueber den ganzen Umbruch. MIT Zahl
+    # (5j) weiter echte Zeilen -- sonst passen die relativen Zeilennummern
+    # nicht mehr zum Sprung.
+    {
+      mode = [ "n" "x" ];
+      key = "j";
+      action = "v:count == 0 ? 'gj' : 'j'";
+      options = {
+        expr = true;
+        desc = "Runter (Bildschirmzeile)";
+      };
+    }
+    {
+      mode = [ "n" "x" ];
+      key = "k";
+      action = "v:count == 0 ? 'gk' : 'k'";
+      options = {
+        expr = true;
+        desc = "Hoch (Bildschirmzeile)";
+      };
     }
 
     # Fenster-Navigation. Bewusst DASSELBE Muster wie deine Hyprland-Binds
