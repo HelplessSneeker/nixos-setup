@@ -124,6 +124,10 @@
       # Eine Liste, ein Ort.
       spec = [
         {
+          __unkeyed-1 = "<leader>b";
+          group = "Tabs";
+        }
+        {
           __unkeyed-1 = "<leader>c";
           group = "Code";
         }
@@ -161,6 +165,47 @@
   # deprecated"). Aufgefallen beim Eval-Test zu Schicht 4 -- eingeschleppt hat
   # es Schicht 3.
   plugins.web-devicons.enable = true;
+
+  # ---------------------------------------------------------------------------
+  # bufferline -- Tabs oben (16.10.2026)
+  # ---------------------------------------------------------------------------
+  # Eine Leiste mit allen offenen Dateien, wie die Tabs in IntelliJ/VS Code.
+  # Technisch sind das vims PUFFER, nicht vims eigene Tabs (:tabnew): die sind
+  # in vim ganze Fensteranordnungen, nicht "eine Datei pro Reiter" -- wer sie
+  # als Datei-Tabs benutzt, kaempft gegen den Editor.
+  #
+  # Jede Datei, die du oeffnest (gd, telescope, neo-tree), bekommt damit einen
+  # Reiter. Tasten unten bei den keymaps: <S-h>/<S-l> blaettern, <leader>bd
+  # schliesst.
+  plugins.bufferline = {
+    enable = true;
+    settings.options = {
+      # Fehler/Warnungen vom Sprachserver als Zahl am Reiter.
+      diagnostics = "nvim_lsp";
+
+      # Ueber der neo-tree-Seitenleiste keinen Reiter zeichnen, sondern die
+      # Leiste dort einruecken -- sonst klebt der erste Tab ueber dem Baum.
+      offsets = [
+        {
+          filetype = "neo-tree";
+          text = "Dateien";
+          highlight = "Directory";
+          text_align = "left";
+          separator = true;
+        }
+      ];
+
+      # Das x am Reiter (Maus) schliesst ueber mini.bufremove, siehe unten.
+      close_command.__raw = ''function(n) require("mini.bufremove").delete(n, false) end'';
+      right_mouse_command.__raw = ''function(n) require("mini.bufremove").delete(n, false) end'';
+    };
+  };
+
+  # Puffer schliessen, OHNE das Fenster zu schliessen. Vims :bdelete nimmt das
+  # Fenster mit, wenn darin die letzte Datei war -- mit der neo-tree-Leiste
+  # daneben bliebe dann nur noch der Baum uebrig, ueber die ganze Breite.
+  # mini.bufremove zeigt stattdessen den naechsten Puffer im selben Fenster.
+  plugins.mini-bufremove.enable = true;
 
   # ---------------------------------------------------------------------------
   # gitsigns -- Aenderungen am Rand
@@ -202,6 +247,56 @@
       key = "<leader>hb";
       action = "<cmd>Gitsigns blame_line<CR>";
       options.desc = "Wer war das? (blame)";
+    }
+
+    # --- Tabs (bufferline) ---
+    # <S-h>/<S-l> wie in LazyVim. Ersetzt vims H/L (Cursor an den oberen/
+    # unteren Bildschirmrand) -- die braucht kaum jemand, zum Springen gibt
+    # es <C-u>/<C-d>.
+    {
+      mode = "n";
+      key = "<S-h>";
+      action = "<cmd>BufferLineCyclePrev<CR>";
+      options.desc = "Tab links";
+    }
+    {
+      mode = "n";
+      key = "<S-l>";
+      action = "<cmd>BufferLineCycleNext<CR>";
+      options.desc = "Tab rechts";
+    }
+    {
+      mode = "n";
+      key = "<leader>bd";
+      action.__raw = ''function() require("mini.bufremove").delete(0, false) end'';
+      options.desc = "Tab schliessen";
+    }
+    {
+      mode = "n";
+      key = "<leader>bo";
+      action = "<cmd>BufferLineCloseOthers<CR>";
+      options.desc = "Alle anderen Tabs schliessen";
+    }
+    # Blendet an jedem Reiter einen Buchstaben ein, Tippen springt hin --
+    # schneller als blaettern, sobald mehr als vier Tabs offen sind.
+    {
+      mode = "n";
+      key = "<leader>bp";
+      action = "<cmd>BufferLinePick<CR>";
+      options.desc = "Tab waehlen";
+    }
+    # Tab mit nach links/rechts schieben, um die Reihenfolge zu ordnen.
+    {
+      mode = "n";
+      key = "<leader>b<";
+      action = "<cmd>BufferLineMovePrev<CR>";
+      options.desc = "Tab nach links schieben";
+    }
+    {
+      mode = "n";
+      key = "<leader>b>";
+      action = "<cmd>BufferLineMoveNext<CR>";
+      options.desc = "Tab nach rechts schieben";
     }
   ];
 }
