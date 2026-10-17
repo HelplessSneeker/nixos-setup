@@ -34,8 +34,9 @@
 
       # Projektwahl: listet jedes Git-Repo unter ~/projects (bis zwei Ebenen
       # tief) plus diese Flake. Enter wechselt nvims Arbeitsverzeichnis
-      # dorthin und oeffnet gleich die Dateisuche im Projekt. Ein neues Repo
-      # taucht von selbst auf, es gibt keine Liste zu pflegen.
+      # dorthin und oeffnet die Seitenleiste mit dem Projekt neben einem
+      # leeren Puffer (on_project_selected unten). Ein neues Repo taucht von
+      # selbst auf, es gibt keine Liste zu pflegen.
       project = {
         enable = true;
         settings = {
@@ -65,6 +66,21 @@
           ignore_missing_dirs = true;
           hidden_files = true;
           order_by = "recent";
+
+          # Projekt oeffnen = Baum statt Dateisuche (17.10.2026). Ohne diesen
+          # Haken springt Enter direkt in telescopes find_files. So: cwd ins
+          # Projekt (tcd, wie der Default des Plugins), ein leerer Puffer
+          # rechts, neo-tree links mit dem Cursor drin. Schon offene Puffer
+          # bleiben als Tabs stehen. Die Dateisuche ist weiter <leader>ff.
+          on_project_selected.__raw = ''
+            function(prompt_bufnr)
+              local path = require("telescope._extensions.project.actions").get_selected_path(prompt_bufnr)
+              require("telescope.actions").close(prompt_bufnr)
+              vim.cmd.tcd(vim.fn.fnameescape(path))
+              vim.cmd.enew()
+              vim.cmd("Neotree dir=" .. vim.fn.fnameescape(path))
+            end
+          '';
         };
       };
     };
