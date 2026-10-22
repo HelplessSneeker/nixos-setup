@@ -9,6 +9,7 @@
 # Terminal ist simpler.
 #
 # Eingehaengt von ./config.nix.
+{ lib, pkgs, ... }:
 let
   # Host-Wahl fuer die beiden SSH-Tasten unten. Liest die Host-Aliase zur
   # LAUFZEIT aus ~/.ssh/config, die home/ssh.nix erzeugt. Ein neuer Host dort
@@ -77,6 +78,26 @@ in
   # ist absolut. oil schreibt mit den Rechten deines Users, fuer /etc bleibt
   # sudoedit in der Shell. Sprachserver starten in solchen Puffern nicht --
   # sie laufen lokal und saehen die Datei gar nicht.
+  #
+  # Fix aus oil-Upstream fuer genau diese Dateien (22.10.2026). oil 2.15.0
+  # haelt jeden Puffer mit oil-ssh://-Namen fuer einen oil-Ordner, auch eine
+  # ganz normale Datei auf dem Server. Geht daneben ein neues Fenster auf --
+  # das Vorschlagsmenue von blink beim Tippen, ein :vsplit --, meldet oil
+  # "Oil split could not find parent window ... report a bug on github".
+  # Behoben in Commit 548587d, einen Monat nach 2.15.0, und nixpkgs hat
+  # noch 2.15.0. Ab oil 2.16 ist der Fix drin, die Bedingung greift dann
+  # nicht mehr, und der Block kann weg.
+  plugins.oil.package = pkgs.vimPlugins.oil-nvim.overrideAttrs (old: {
+    patches =
+      (old.patches or [ ])
+      ++ lib.optional (lib.versionOlder old.version "2.16") (
+        pkgs.fetchpatch {
+          url = "https://github.com/stevearc/oil.nvim/commit/548587d68b55e632d8a69c92cefd981f360634fa.patch";
+          hash = "sha256-OyBBQY0V7lzGLV5CoyBZ44LzvLKkAIJDViB+tXxFrCg=";
+        }
+      );
+  });
+
   keymaps = [
     {
       mode = "n";
