@@ -103,9 +103,23 @@
       # vim.b[bufnr] wird mitgeprueft, damit sich die Automatik spaeter auch
       # fuer einen EINZELNEN Puffer abschalten laesst (:lua vim.b.disable_autoformat = true),
       # ohne sie global auszuschalten.
+      #
+      # Obsidian-Vaults bleiben beim Speichern ganz unangetastet (22.10.2026).
+      # prettier baut dort Tabellen um und macht aus Templaters `<%*` ein
+      # `<%\*` -- an einer Vault-Kopie probiert: 240 von 262 Notizen geaendert.
+      # Und LiveSync verteilt jede Aenderung im Vault auf alle Geraete, ein
+      # Speichern bliebe also kein lokaler Unfall. Einen Vault erkennt vim.fs.root am
+      # Ordner `.obsidian`, gesucht wird von der Datei aus aufwaerts. Von Hand
+      # formatieren (<leader>cf) geht dort weiterhin.
+      # Bleibt das Formatieren irgendwo unerwartet aus:
+      # `:lua print(vim.fs.root(0, ".obsidian"))` zeigt, welcher Ordner als
+      # Vault gilt.
       format_on_save.__raw = ''
         function(bufnr)
           if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
+            return
+          end
+          if vim.fs.root(bufnr, ".obsidian") then
             return
           end
           return { timeout_ms = 3000, lsp_format = "fallback" }
