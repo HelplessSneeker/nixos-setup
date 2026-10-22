@@ -68,6 +68,9 @@
         g.yaml
         g.toml
         g.dockerfile
+        # HTML mitten in Markdown (<!-- Kommentare -->, <br>). Ohne den Parser
+        # laesst render-markdown (unten) solche Stellen roh stehen.
+        g.html
 
         # Git -- greift, wenn nvim als $EDITOR fuer commit/rebase aufgeht
         g.gitcommit
@@ -82,6 +85,41 @@
         g.query
         g.regex
       ];
+  };
+
+  # ---------------------------------------------------------------------------
+  # render-markdown -- Markdown gerendert statt als Quelltext (22.10.2026)
+  # ---------------------------------------------------------------------------
+  # Ueberschriften, Tabellen, Checkboxen, Codebloecke, Obsidian-Callouts
+  # (> [!note]) und [[Wikilinks]] erscheinen im Puffer so, wie sie gemeint
+  # sind -- wie die Live-Vorschau in Obsidian. Die Datei bleibt dabei
+  # unveraendert, das Plugin legt nur Markierungen ueber den Text. Es baut auf
+  # den markdown-Parsern von Treesitter oben auf.
+  #
+  # preset = "obsidian" heisst: in jedem Modus rendern, auch beim Tippen. Roh
+  # bleibt nur die Zeile mit dem Cursor, damit du siehst, was du schreibst.
+  # Ohne das Preset waere im Insert-Mode die ganze Datei roh.
+  # Fuer eine Sitzung abschalten: `:RenderMarkdown toggle`.
+  #
+  # Eine Grenze setzt nvim selbst, kein Plugin kommt drumherum: mit `wrap`
+  # (Schicht 1) bricht verdeckter Text an der alten Stelle um. Tabellen mit
+  # Links sehen dann zerrupft aus -- `:set nowrap` fuer die Sitzung hilft.
+  plugins.render-markdown = {
+    enable = true;
+
+    settings = {
+      preset = "obsidian";
+
+      # Vorschlaege fuer Checkboxen (- [ ]) und Callouts (> [!...]) in der
+      # blink-Liste aus Schicht 4. Laeuft als eingebauter Sprachserver, der
+      # nur an Markdown-Puffern haengt -- blink braucht dafuer nichts extra.
+      completions.lsp.enabled = true;
+
+      # Formeln ($...$) braeuchten ein externes Konvertierprogramm (utftex
+      # oder latex2text). Ohne eins warnt :checkhealth bei jedem Aufruf, und
+      # gerendert wuerde trotzdem nichts.
+      latex.enabled = false;
+    };
   };
 
   # ---------------------------------------------------------------------------
