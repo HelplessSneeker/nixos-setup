@@ -56,6 +56,12 @@
         g.javascript
         g.python
 
+        # Angular-Frontend (22.10.2026): Templates (Dateityp htmlangular,
+        # Erkennung unten) und die Styles der Komponenten.
+        g.angular
+        g.css
+        g.scss
+
         # Was du taeglich editierst
         g.nix
         g.lua # auch die Voraussetzung fuer die Hyprland-Lua-Migration
@@ -86,6 +92,26 @@
         g.regex
       ];
   };
+
+  # ---------------------------------------------------------------------------
+  # Angular-Templates erkennen (22.10.2026)
+  # ---------------------------------------------------------------------------
+  # nvim erkennt ein Angular-Template nur am Inhalt: steht in den ersten 40
+  # Zeilen kein @if, @for, *ngIf o.ae., ist die Datei fuer nvim normales
+  # HTML. Den Dateinamen benutzt nvim bewusst nicht -- seit Angular 20 heisst
+  # das Template ohnehin `kopf.html` statt `kopf.component.html`.
+  #
+  # Darum hier: jede .html-Datei in einem Projekt mit angular.json ist ein
+  # Template. Danach richten sich Farben (Grammatik `angular` oben),
+  # Sprachserver und Formatierer. Ausserhalb eines Angular-Projekts kommt
+  # nichts zurueck, und nvim entscheidet wie bisher.
+  filetype.pattern.".*%.html".__raw = ''
+    function(path)
+      if vim.fs.root(path, "angular.json") then
+        return "htmlangular"
+      end
+    end
+  '';
 
   # ---------------------------------------------------------------------------
   # render-markdown -- Markdown gerendert statt als Quelltext (22.10.2026)

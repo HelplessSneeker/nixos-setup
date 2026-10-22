@@ -77,6 +77,25 @@ in
     # Deckt .ts/.tsx/.js/.jsx ab.
     ts_ls.enable = true;
 
+    # Angular (22.10.2026). Paket: angular-language-server, derselbe Server
+    # wie in VS Codes Angular-Extension. Er versteht die Templates: Fehler wie
+    # ein vertippter Property-Name schon im HTML, Vorschlaege fuer Signale und
+    # Inputs, gd vom Template in die Komponente.
+    #
+    # Laeuft NEBEN ts_ls, nicht statt ihm: ts_ls macht das TypeScript,
+    # angularls das, was Angular daraus macht. Er startet nur in einem Projekt
+    # mit angular.json -- im Java-Backend passiert also nichts.
+    #
+    # Ohne `npm install` im Frontend findet er @angular/core nicht und meldet
+    # nur Fehler, genau wie ts_ls. Den Angular-Sprachdienst bringt das Paket
+    # selbst mit (Version 21.2), TypeScript nimmt er aus dem Projekt.
+    angularls.enable = true;
+
+    # CSS und SCSS, also die Styles der Komponenten: Vorschlaege fuer
+    # Eigenschaften und Werte, Fehler bei Tippfehlern wie `colr`. Paket:
+    # vscode-langservers-extracted, das ESLint aus Schicht 5 schon mitbringt.
+    cssls.enable = true;
+
     # Python. basedpyright statt pyright: gleiche Grundlage, aber mit
     # zusaetzlichen Pruefungen und -- der eigentliche Grund -- ohne die
     # proprietaeren Teile, die pyright an VS Code bindet.

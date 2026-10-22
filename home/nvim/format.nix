@@ -60,6 +60,9 @@
         css = [ "prettier" ];
         scss = [ "prettier" ];
         html = [ "prettier" ];
+        # Angular-Templates (Dateityp htmlangular, siehe ui.nix). prettier mit
+        # Angulars eigenem Parser, siehe `formatters` unten.
+        htmlangular = [ "prettier" ];
         yaml = [ "prettier" ];
         markdown = [ "prettier" ];
 
@@ -114,6 +117,20 @@
       # Bleibt das Formatieren irgendwo unerwartet aus:
       # `:lua print(vim.fs.root(0, ".obsidian"))` zeigt, welcher Ordner als
       # Vault gilt.
+      # prettier waehlt den Parser nach der Dateiendung, bei .html also den
+      # fuer reines HTML. Der kennt Angulars @if/@for nicht und laesst sie als
+      # Text stehen. Fuer Templates darum ausdruecklich `--parser angular` --
+      # dasselbe, was eine prettier-Konfiguration im Projekt per `overrides`
+      # einstellen wuerde.
+      formatters.prettier.prepend_args.__raw = ''
+        function(_, ctx)
+          if vim.bo[ctx.buf].filetype == "htmlangular" then
+            return { "--parser", "angular" }
+          end
+          return {}
+        end
+      '';
+
       format_on_save.__raw = ''
         function(bufnr)
           if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
