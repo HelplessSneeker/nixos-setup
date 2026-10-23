@@ -46,4 +46,17 @@
   # zusammen -- tailscaled-set.service ruft am Ende
   # `tailscale set --operator=bfn --ssh` auf.
   services.tailscale.extraSetFlags = [ "--ssh" ];
+
+  # --- Coolify-Dashboard nur uebers Tailnet ----------------------------------
+  # Seit 23.10.2026 (php2shell-Nacharbeit) beantwortet coolify.bfnoessler.at aus
+  # dem Internet nur noch /webhooks/ (GitHub-Deploys), alles andere gibt 403.
+  # Der Filter sitzt in Traefik auf personal-server
+  # (/data/coolify/proxy/dynamic/coolify-tailnet-only.yaml) und laesst das
+  # Tailnet durch. Dieser Eintrag schickt den Namen auf diesen Rechnern direkt
+  # an personal-servers Tailnet-IP: gleiche Adresse, gleiches Zertifikat,
+  # Echtzeit-Logs und Terminal wie bisher. Ohne Tailscale ist das Dashboard
+  # dann nicht erreichbar, das ist Absicht. Geraete ohne Eintrag (Handy):
+  # http://personal-server:8000. Aendert sich die Tailnet-IP von
+  # personal-server, hier nachziehen.
+  networking.hosts."100.116.251.104" = [ "coolify.bfnoessler.at" ];
 }
