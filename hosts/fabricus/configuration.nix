@@ -5,8 +5,9 @@
     # Monitor-Layout dieses Hosts. Host-lokal statt in home/, weil Desktop und
     # Laptop sich hier nichts mehr teilen (siehe Kopf der Datei).
     ./monitors.nix
-    # Gaming (Steam/Proton, GameMode, Gamescope, MangoHud). Nur hier, nicht im
-    # shared Stack in flake.nix -- der Laptop-Host soll das nicht bekommen.
+    # Gaming (Steam/Proton, GameMode, Gamescope, MangoHud). Per Host importiert,
+    # nicht im shared Stack in flake.nix -- seit 26.10.2026 zieht es auch
+    # fabricus-itinerans.
     # Der home-manager-Teil haengt am Modul selbst und kommt automatisch mit.
     ../../modules/gaming.nix
     # Citrix Workspace. Ebenfalls per-Host statt shared -- das Modul erklaert

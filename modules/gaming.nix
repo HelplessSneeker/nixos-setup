@@ -1,8 +1,7 @@
 # Gaming: Steam/Proton, GameMode, Gamescope, MangoHud.
 #
-# NICHT im shared mkHost-Stack -- Gaming ist reine Stand-PC-Sache und wird
-# ausschliesslich von hosts/fabricus/configuration.nix importiert. Ein
-# Laptop-Host (fabricus-itinerans) bekommt davon bewusst nichts.
+# NICHT im shared mkHost-Stack -- jeder Host importiert es einzeln. Stand
+# 26.10.2026: fabricus (RTX 2060) und fabricus-itinerans (UHD 620).
 #
 # Das Modul zieht seinen home-manager-Teil (MangoHud-Overlay) am Ende der
 # Datei selbst nach. Damit ist der Host-Import der EINZIGE Schalter -- es gibt
@@ -10,15 +9,15 @@
 # Host-Stack geladen ist (macht mkHost in flake.nix fuer jeden Host).
 #
 # VORAUSSETZUNG: nixpkgs.config.allowUnfree = true im Host -- Steam und
-# proton-ge-bin sind unfree. Steht auf fabricus schon in der Host-Config;
+# proton-ge-bin sind unfree. Steht auf beiden Hosts schon in der Host-Config;
 # fuer einen NEUEN Host nicht vergessen, sonst bricht die Eval.
 #
 # Was programs.steam AUTOMATISCH mitbringt (also hier bewusst NICHT nochmal):
 #   - hardware.graphics.enable32Bit = true   (32-Bit-Vulkan/GL fuer Proton)
 #   - hardware.steam-hardware.enable = true  (udev-Regeln: Controller, Index, Deck)
 #   - services.pipewire.alsa.support32Bit    (32-Bit-Audio)
-# Beides ist auf fabricus schon anderweitig gesetzt -- gleicher Wert, also
-# kein Options-Konflikt.
+# enable32Bit ist auf beiden Hosts schon anderweitig gesetzt -- gleicher Wert,
+# also kein Options-Konflikt.
 { config, pkgs, lib, ... }:
 {
   programs.steam = {
@@ -120,8 +119,8 @@
   #   Permissions). Empfehlung: Bibliothek auf ext4 unter /home.
 
   # User-Teil (MangoHud-Overlay). Bewusst hier statt in home/bfn.nix:
-  # home/bfn.nix ist shared, das Overlay soll aber nur auf dem Gaming-Host
-  # existieren. home-manager.users.bfn wird in flake.nix schon definiert --
+  # home/bfn.nix ist shared, das Overlay soll aber nur auf Hosts mit diesem
+  # Modul existieren. home-manager.users.bfn wird in flake.nix schon definiert --
   # diese zweite Definition wird dazugemerged, nicht ueberschrieben.
   home-manager.users.bfn.imports = [ ../home/gaming.nix ];
 }

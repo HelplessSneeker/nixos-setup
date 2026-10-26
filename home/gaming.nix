@@ -1,10 +1,9 @@
 # Gaming auf User-Ebene: Overlay-Config + optionale Launcher.
 #
-# ACHTUNG: Wird NICHT von home/bfn.nix importiert (das ist shared und gilt
-# auch fuer einen kuenftigen Laptop-Host). Der Import kommt aus
-# modules/gaming.nix, das wiederum nur hosts/fabricus zieht -- Gaming ist
-# reine Stand-PC-Sache. Der System-Teil (Steam, Proton-GE, GameMode,
-# Gamescope) steht ebenfalls dort.
+# ACHTUNG: Wird NICHT von home/bfn.nix importiert (das ist shared). Der
+# Import kommt aus modules/gaming.nix und damit nur auf Hosts, die dieses
+# Modul ziehen (fabricus, fabricus-itinerans). Der System-Teil (Steam,
+# Proton-GE, GameMode, Gamescope) steht ebenfalls dort.
 { config, pkgs, lib, ... }:
 {
   # MangoHud-Overlay. Schreibt ~/.config/MangoHud/MangoHud.conf deklarativ.

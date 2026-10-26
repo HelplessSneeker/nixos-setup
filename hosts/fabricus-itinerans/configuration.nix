@@ -3,10 +3,6 @@
 # (Kaby Lake-R, Intel UHD 620). Teilt sich den kompletten Modul-Stack aus
 # flake.nix mit dem Desktop; hier steht ausschliesslich, was sich zwischen den
 # beiden Maschinen unterscheidet.
-#
-# BEWUSST NICHT importiert: ../../modules/gaming.nix. Steam/Proton auf einer
-# UHD 620 waere Selbstbetrug -- das Modul bleibt desktop-only (siehe den
-# Import-Block in hosts/fabricus/configuration.nix).
 {
   imports = [
     ./hardware-configuration.nix
@@ -38,6 +34,13 @@
     # dem Laptop: genug freier RAM, nested KVM, und die Kiste ist in den
     # Linux-Slots an. Runbook im bfn-wiki, Entscheidung 06.10.2026.
     ../../modules/lfcs-lab.nix
+
+    # Gaming (Steam/Proton, GameMode, Gamescope, MangoHud) -- seit 26.10.2026
+    # auch hier, auf bfns Wunsch. Erwartung an die UHD 620 bleibt bescheiden:
+    # Indie-Titel, aeltere Spiele, Streaming vom Desktop -- keine AAA-Titel.
+    # Das Modul ist treiberneutral (NVIDIA-Spezifisches steht dort nur als
+    # Kommentar); enable32Bit ist oben ohnehin schon gesetzt, gleicher Wert.
+    ../../modules/gaming.nix
   ];
 
   # --- Boot ------------------------------------------------------------------
