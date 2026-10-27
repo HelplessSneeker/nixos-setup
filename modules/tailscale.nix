@@ -24,6 +24,13 @@
   # tailscaled zwingen, nftables direkt zu nutzen (iptables-compat-Bruch vermeiden)
   systemd.services.tailscaled.serviceConfig.Environment = [
     "TS_DEBUG_FIREWALL_MODE=nftables"
+    # Tailworm (25.10.2026): Ueber SSH-Forwarding auf Unix-Sockets kommt eine
+    # ganz normale Tailscale-SSH-Sitzung an root (docker.sock liegt hier).
+    # Bis der gepatchte Client laeuft, ist Forwarding aus, so empfiehlt es
+    # Tailscale selbst (tailscale.com/ssh-investigation-update). Kostet
+    # `ssh -L` und `ssh -J` ueber diesen Rechner, also auch primus -> lfcs-lab.
+    # nixos-26.05 hat noch 1.98.10; der Patch kommt wohl nur ueber unstable.
+    "TS_SSH_DISABLE_FORWARDING=1"
   ];
 
   # --- Tailscale SSH ---------------------------------------------------------
