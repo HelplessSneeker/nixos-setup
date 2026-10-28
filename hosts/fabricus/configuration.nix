@@ -98,7 +98,8 @@
   users.users.bfn = {
     isNormalUser = true;
     description = "Benjamin Nößler";
-    extraGroups = [ "wheel" "networkmanager" "docker" "video" ];
+    # Ohne "docker" seit 28.10.2026: Docker laeuft rootless (modules/docker.nix).
+    extraGroups = [ "wheel" "networkmanager" "video" ];
     shell = pkgs.fish;
 
     # KEIN eigener SSH-Zugang fuer bfn auf dieser Maschine.
@@ -119,7 +120,7 @@
   };
   programs.zsh.enable = true;
 
-  virtualisation.docker.enable = true;
+  # Docker: rootless und shared, siehe modules/docker.nix.
   services.openssh.enable = true;
 
   # Nur der Host-Extra-Font; noto + jetbrains-mono kommen aus modules/system-base.nix (Liste merged).

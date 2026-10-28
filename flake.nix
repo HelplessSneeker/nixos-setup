@@ -125,6 +125,9 @@
           # auf einem Host fehlt, taucht im Cheatsheet trotzdem auf und laeuft
           # dann ins Leere. Ein ungenutztes Skript ist billiger als das.
           ./modules/captive-portal.nix
+          # Rootless Docker statt des System-Daemons, die Gruppe `docker` war
+          # root ohne Passwort. Begruendung im Modulkopf.
+          ./modules/docker.nix
           home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
