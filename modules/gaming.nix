@@ -87,6 +87,20 @@
     # capSysNice = true;
   };
 
+  # Flatpak: NUR fuer Prism Launcher (Minecraft), seit 28.10.2026. Grund ist
+  # die Sandbox, nicht die Paketquelle: Minecraft-Mods (und Hacked Clients wie
+  # Meteor) sind fremde Jars mit vollen User-Rechten -- prismlauncher aus
+  # nixpkgs saehe ~/.ssh, Browser-Profile und 1Password. Der Flathub-Build
+  # sieht nur seinen eigenen Ordner und ~/Downloads (read-only).
+  # Remote + App installiert bfn user-level (kein Nix-Teil):
+  #   flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+  #   flatpak install --user flathub org.prismlauncher.PrismLauncher
+  #   flatpak override --user --nosocket=x11 org.prismlauncher.PrismLauncher   # optional, s.u.
+  # X11 aus, weil ein X11-Client andere XWayland-Fenster mitlesen kann. Ob MC
+  # auf NVIDIA dann rein unter Wayland laeuft, ist NICHT getestet -- wenn
+  # nicht: `flatpak override --user --reset org.prismlauncher.PrismLauncher`.
+  services.flatpak.enable = true;
+
   # Diagnose-Werkzeug: `vulkaninfo --summary` zeigt, welchen Treiber/GPU
   # Vulkan tatsaechlich sieht -- erste Frage bei "Spiel startet nicht".
   environment.systemPackages = with pkgs; [
