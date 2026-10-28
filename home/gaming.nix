@@ -47,4 +47,23 @@
     # protonup-qt # nur noetig, wenn du GE-Builds AUSSERHALB von Nix pflegen willst
     #             # (extraCompatPackages in modules/gaming.nix macht das schon)
   ];
+
+  # Minecraft im noctalia-Launcher (28.10.2026). Prism kommt als Flatpak
+  # (Begruendung in modules/gaming.nix); dessen eigene .desktop-Datei liegt in
+  # ~/.local/share/flatpak/exports und taucht nur auf, wenn dieser Pfad in
+  # XDG_DATA_DIRS der Hyprland-Session steht -- unter greetd/start-hyprland
+  # nicht verlaesslich. Dieser Eintrag haengt davon nicht ab: flatpak liegt im
+  # System-PATH, das Icon wird per absolutem Pfad referenziert.
+  # Ziel ist nur der Launcher, nicht eine bestimmte Instanz -- Account und
+  # Instanz (Vanilla/Meteor) waehlt bfn in Prism. Direktstart einer Instanz
+  # waere: --launch "<Instanzname>" an exec anhaengen.
+  xdg.desktopEntries.minecraft = {
+    name = "Minecraft";
+    genericName = "Minecraft-Launcher";
+    comment = "Prism Launcher (Flatpak, Sandbox)";
+    exec = "flatpak run org.prismlauncher.PrismLauncher";
+    icon = "${config.home.homeDirectory}/.local/share/flatpak/exports/share/icons/hicolor/scalable/apps/org.prismlauncher.PrismLauncher.svg";
+    terminal = false;
+    categories = [ "Game" ];
+  };
 }
