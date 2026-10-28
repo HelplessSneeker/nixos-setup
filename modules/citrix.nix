@@ -27,7 +27,17 @@
 #
 # Der Store ist pro Maschine: fuer Desktop und Laptop faellt das jeweils
 # getrennt an (oder einmal machen und `nix copy` benutzen).
-{ config, pkgs, pkgsUnstable, lib, ... }:
+{ config, pkgs, inputs, lib, ... }:
+let
+  # Eigene Instanz auf dem festen Stand nixpkgs-citrix (flake.nix), nicht
+  # pkgsUnstable: sonst wanderte die Version und damit der noetige Tarball mit
+  # jedem Wochen-Update. Mit config wie pkgsUnstable, sonst scheitert das
+  # unfree-Paket.
+  pkgsCitrix = import inputs.nixpkgs-citrix {
+    inherit (pkgs.stdenv.hostPlatform) system;
+    config.allowUnfree = true;
+  };
+in
 {
   # Aus unstable, nicht aus 25.05: dort ist `citrix_workspace` auf 24.11.0.85
   # (Nov 2024) eingefroren, haengt an webkitgtk_4_0 + libsoup 2.4 und ist sowohl
@@ -43,7 +53,7 @@
   # application/x-ica nicht -- dann ist die aus dem Browser geladene .ica-Datei
   # fuer Firefox ein anonymer Blob und Citrix taucht im "Oeffnen mit" nicht auf.
   # Der Handler-Eintrag dazu steht in home/apps.nix (xdg.mimeApps).
-  environment.systemPackages = [ pkgsUnstable.citrix-workspace ];
+  environment.systemPackages = [ pkgsCitrix.citrix-workspace ];
 
   # XWayland muss NICHT extra angefasst werden: wfica ist ein X11-Client, und
   # der nixpkgs-Wrapper setzt dafuer schon GDK_BACKEND=x11 + EGL_PLATFORM=x11.
@@ -55,7 +65,7 @@
   # Firmen-CA: liefert das Gateway ein intern signiertes Zertifikat aus, bricht
   # die Verbindung mit einem TLS-Fehler ab (klassisch "SSL error 61"). Der
   # vorgesehene Weg waere
-  #   (pkgsUnstable.citrix-workspace.override { extraCerts = [ ./firma-ca.pem ]; })
+  #   (pkgsCitrix.citrix-workspace.override { extraCerts = [ ./firma-ca.pem ]; })
   # ACHTUNG: dieses Repo ist PUBLIC. Eine Firmen-Root-CA hier drin gibt interne
   # PKI- und Hostnamen preis. Also erst pruefen, ob es ueberhaupt noetig ist --
   # und wenn ja, den Weg vorher besprechen.

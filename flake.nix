@@ -38,6 +38,23 @@
     # aktuelle nixpkgs-Instanz.
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
+    # Citrix auf einem festen unstable-Stand, seit 28.10.2026. Das Paket holt
+    # seinen Tarball ueber requireFile (Citrix-EULA, kein Download durch Nix),
+    # die Datei liegt von Hand im Store jeder Maschine. Wanderte Citrix mit
+    # nixpkgs-unstable mit, scheiterte nach jedem Versionssprung jeder Rebuild,
+    # bis jemand den neuen Tarball laedt, und mit ihm jedes Sicherheitsupdate.
+    # Am 28.10. waere es soweit gewesen: unstable bringt 26.08.0.153, im Store
+    # liegt 26.04.0.105.
+    #
+    # Die Rev in der URL haelt `nix flake update` davon ab, den Input anzuheben
+    # (Wochen-Update samstags, ~/tools/nixos-lockbump auf primus). Diese Rev ist
+    # derselbe Stand wie nixpkgs-unstable bis zum 28.10., der Wechsel hierher
+    # aendert also kein einziges Paket. Citrix-Update: neuen Tarball laden
+    # (Kopf von modules/citrix.nix), dann hier eine unstable-Rev mit dieser
+    # Version eintragen. Preis: Citrix' eigene Abhaengigkeiten (webkitgtk,
+    # libsoup) bleiben bis dahin auf diesem Stand.
+    nixpkgs-citrix.url = "github:NixOS/nixpkgs/104240a772428cc2e20d8fd86c9ddbb886bbaff2";
+
     # Hardware-Quirks fuer den ThinkPad T480 (nur vom Laptop-Host importiert).
     # Modulkette am 09.08.2026 gegen upstream gelesen, sie bringt:
     #   - services.throttled        gegen Lenovos BIOS-Power-Limit-Drosselung
