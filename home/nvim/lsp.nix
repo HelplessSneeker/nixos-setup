@@ -31,6 +31,34 @@ let
     # @SpringBootApplication die Javadoc und gd den echten Spring-Quelltext
     # statt einer dekompilierten Klasse ohne Kommentare.
     maven.downloadSources = true;
+    # Inlay-Hints (siehe lsp.inlayHints unten): der Typ hinter `var` und
+    # hinter Lambda-Parametern. Parameternamen bewusst AUS -- mit "literals"
+    # bekaeme jedes println("...") ein `x:` davor, das ist Laerm.
+    inlayHints = {
+      variableTypes.enabled = true;
+      parameterTypes.enabled = true;
+      parameterNames.enabled = "none";
+    };
+  };
+
+  # Was ts_ls als Inlay-Hint zeigt. Gilt fuer TypeScript und JavaScript gleich,
+  # deshalb einmal hier und unten zweimal eingesetzt. Ohne diesen Block meldet
+  # ts_ls GAR KEINE Hints -- anders als basedpyright, das von sich aus welche
+  # schickt.
+  tsInlayHints = {
+    # Abgeleitete Typen dort, wo du keinen hingeschrieben hast:
+    # `const user = await load()` bekommt grau `: User` dahinter.
+    includeInlayVariableTypeHints = true;
+    # ... aber nicht, wenn der Name es schon sagt (`const user: User`).
+    includeInlayVariableTypeHintsWhenTypeMatchesName = false;
+    includeInlayFunctionLikeReturnTypeHints = true;
+    includeInlayPropertyDeclarationTypeHints = true;
+    # Parameter von Callbacks: `.map((u) => ...)` zeigt den Typ von `u`.
+    includeInlayFunctionParameterTypeHints = true;
+    # Parameternamen AUS, wie bei Java. Getestet 29.10.2026: mit "literals"
+    # steht vor jedem console.log("...") ein `...data:`.
+    includeInlayParameterNameHints = "none";
+    includeInlayEnumMemberValueHints = true;
   };
 in
 {
@@ -75,7 +103,13 @@ in
   lsp.servers = {
     # TypeScript/JavaScript. Paket: typescript-language-server.
     # Deckt .ts/.tsx/.js/.jsx ab.
-    ts_ls.enable = true;
+    ts_ls = {
+      enable = true;
+      config.settings = {
+        typescript.inlayHints = tsInlayHints;
+        javascript.inlayHints = tsInlayHints;
+      };
+    };
 
     # Angular (22.10.2026). Paket: angular-language-server, derselbe Server
     # wie in VS Codes Angular-Extension. Er versteht die Templates: Fehler wie
@@ -102,6 +136,25 @@ in
     # dort nicht, sonst kaeme jeder Vorschlag doppelt. Das Schliessen von Tags
     # macht nicht der Server, sondern ts-autotag in ./editing.nix.
     html.enable = true;
+
+    # Emmet (29.10.2026): Kuerzel, die zu fertigem Markup werden.
+    # `div.card>h2+ul>li*3` tippen, den Vorschlag mit Tab annehmen, und da
+    # steht das komplette Geruest samt Einrueckung. `p.lead{Text}` fuellt auch
+    # gleich den Inhalt. Laeuft als Sprachserver, deshalb erscheint das Ergebnis
+    # als ganz normaler Eintrag in der blink-Liste -- keine eigene Taste.
+    #
+    # Dateitypen enger als die lspconfig-Vorgabe: dort sind auch css/scss
+    # dabei, und dann schlaegt emmet bei jedem zweiten Buchstaben eine
+    # CSS-Abkuerzung vor (`m` -> `margin: ;`). cssls kann das besser.
+    emmet_language_server = {
+      enable = true;
+      config.filetypes = [
+        "html"
+        "htmlangular"
+        "javascriptreact"
+        "typescriptreact"
+      ];
+    };
 
     # Python. basedpyright statt pyright: gleiche Grundlage, aber mit
     # zusaetzlichen Pruefungen und -- der eigentliche Grund -- ohne die
@@ -165,7 +218,11 @@ in
       # jeder nvim- oder Hyprland-Lua-Datei "Undefined global `vim`" --
       # `vim` existiert nur zur Laufzeit im Editor, der Server kann es nicht
       # wissen. Die Warnung waere korrekt und trotzdem nur Laerm.
-      config.settings.Lua.diagnostics.globals = [ "vim" ];
+      config.settings.Lua = {
+        diagnostics.globals = [ "vim" ];
+        # Ohne das schickt lua_ls keine Inlay-Hints.
+        hint.enable = true;
+      };
     };
 
     # Java. Paket: jdt-language-server (Eclipse JDT LS, das Herz von VS Codes
@@ -262,6 +319,16 @@ in
     # Insert-Modus. Verhindert, dass eine halbfertige Zeile rot blinkt.
     update_in_insert = false;
   };
+
+  # ---------------------------------------------------------------------------
+  # Inlay-Hints -- Typen und Parameternamen grau im Code
+  # ---------------------------------------------------------------------------
+  # Der Server schreibt, was er abgeleitet hat, direkt in die Zeile, ohne dass
+  # es im Text steht: `const total = sum(items)` zeigt `: number`. Was genau
+  # erscheint, stellt jeder Server selbst ein (tsInlayHints/javaSettings oben,
+  # basedpyright von sich aus). An per Default, aus mit <leader>ct, wenn es
+  # beim Lesen stoert.
+  lsp.inlayHints.enable = true;
 
   # ---------------------------------------------------------------------------
   # Tastenbelegung -- gilt nur, wenn ein Server am Puffer haengt
@@ -394,6 +461,15 @@ in
     }
     # Die volle Meldung in einem Fenster -- fuer die Faelle, in denen der
     # virtual_text rechts abgeschnitten ist.
+    # Inlay-Hints an/aus, fuer alle Puffer. Bewusst global statt pro Puffer:
+    # wer sie beim Lesen stoerend findet, findet sie es in der naechsten Datei
+    # auch.
+    {
+      mode = "n";
+      key = "<leader>ct";
+      action = "<cmd>lua vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())<CR>";
+      options.desc = "Typen einblenden an/aus";
+    }
     {
       mode = "n";
       key = "<leader>cd";

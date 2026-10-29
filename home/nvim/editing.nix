@@ -52,4 +52,25 @@
     # Plugin-Quelltext, 29.10.2026). Genau das ist der `</`-Fall.
     settings.opts.enable_close_on_slash = true;
   };
+
+  # ---------------------------------------------------------------------------
+  # nvim-surround -- Klammern, Anfuehrungszeichen und Tags um Text legen
+  # ---------------------------------------------------------------------------
+  # Ein Verb mehr fuer die vim-Grammatik, nach dem Muster Verb + Bewegung +
+  # Zeichen. Die Bewegung ist dieselbe wie bei d/c/y:
+  #
+  #   ysiw"        Wort in "..." legen         (you surround inner word)
+  #   ysiw<span>   Wort in <span>...</span>   -- ein ganzes Tag geht auch
+  #   yss)         ganze Zeile in (...)
+  #   cs"'         "..." wird '...'           (change surrounding)
+  #   cst<p>       umgebendes Tag wird <p>    -- t steht fuer "Tag"
+  #   ds(          Klammern um den Cursor weg (delete surrounding)
+  #   S"           im Visual-Mode: Auswahl einschliessen
+  #
+  # Oeffnende Klammer = mit Leerzeichen innen, schliessende = ohne:
+  # `ysiw(` gibt `( wort )`, `ysiw)` gibt `(wort)`.
+  #
+  # Alle Tasten sind die Plugin-Defaults und belegen nichts, was hier schon
+  # vergeben ist (ys/cs/ds sind in vim ohne Plugin keine Befehle).
+  plugins.nvim-surround.enable = true;
 }

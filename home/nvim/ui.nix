@@ -218,6 +218,29 @@
   # auf das aktive Farbschema (catppuccin). Eigene Sektionen lohnen erst,
   # wenn es etwas anzuzeigen gibt, das noch fehlt (z.B. LSP-Status ab
   # Schicht 4).
+  # ---------------------------------------------------------------------------
+  # treesitter-context -- wo bin ich gerade?
+  # ---------------------------------------------------------------------------
+  # Scrollst du in eine lange Methode, bleibt ihre Kopfzeile oben am Fenster
+  # stehen -- darueber die Klasse, darueber ggf. das describe() im Test. Bei
+  # Java-Services und Angular-Komponenten mit 200 Zeilen die Antwort auf "in
+  # welcher Funktion stehe ich eigentlich?".
+  #
+  # Arbeitet auf den Treesitter-Parsern von oben, braucht also fuer jede
+  # Sprache nur, was dort ohnehin installiert ist.
+  plugins.treesitter-context = {
+    enable = true;
+    settings = {
+      # Hoechstens drei Zeilen. Unbegrenzt (Default 0) frisst bei tief
+      # verschachteltem Code das halbe Fenster.
+      max_lines = 3;
+      # Bei Tiefe > 3 die aeusseren wegwerfen, die innersten behalten -- die
+      # Methode ist interessanter als die Datei-Ebene. Das ist upstream schon
+      # der Default; explizit, weil die nixvim-Doku "inner" nennt.
+      trim_scope = "outer";
+    };
+  };
+
   plugins.lualine.enable = true;
 
   # Dateityp-Icons (die kleinen Symbole vor Dateinamen in telescope, lualine
