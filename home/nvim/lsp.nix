@@ -96,6 +96,13 @@ in
     # vscode-langservers-extracted, das ESLint aus Schicht 5 schon mitbringt.
     cssls.enable = true;
 
+    # Reines HTML ausserhalb von Angular (29.10.2026): Vorschlaege fuer Tags
+    # und Attribute, Fehler bei kaputtem Markup. Gleiches Paket wie cssls.
+    # Angular-Templates (htmlangular) bleiben bei angularls -- html meldet sich
+    # dort nicht, sonst kaeme jeder Vorschlag doppelt. Das Schliessen von Tags
+    # macht nicht der Server, sondern ts-autotag in ./editing.nix.
+    html.enable = true;
+
     # Python. basedpyright statt pyright: gleiche Grundlage, aber mit
     # zusaetzlichen Pruefungen und -- der eigentliche Grund -- ohne die
     # proprietaeren Teile, die pyright an VS Code bindet.
@@ -306,6 +313,60 @@ in
       key = "<leader>ca";
       lspBufAction = "code_action";
       options.desc = "Code-Aktion";
+    }
+    # Imports der ganzen Datei in einem Griff: fehlende ergaenzen, unbenutzte
+    # entfernen, sortieren. Was der jeweilige Server dafuer anbietet, ist
+    # verschieden -- ts_ls hat drei getrennte Aktionen (addMissingImports,
+    # removeUnusedImports, organizeImports; letzteres sortiert dort NUR),
+    # jdtls macht mit organizeImports alles wie Eclipses Strg+Shift+O, ruff
+    # sortiert nur. Die Funktion fragt deshalb nacheinander alle drei Arten bei
+    # jedem Server an und nimmt, was kommt.
+    #
+    # Synchron statt ueber vim.lsp.buf.code_action: das waere asynchron, und
+    # zwei Aufrufe hintereinander rechneten beide auf dem alten Text -- der
+    # zweite wuerde den ersten zerschiessen.
+    #
+    # Ein einzelnes Import beim Tippen braucht diese Taste nicht: einen
+    # Vorschlag aus der blink-Liste mit Tab annehmen, und die Import-Zeile
+    # kommt mit. Ist das Wort schon ausgeschrieben und rot, <leader>ca auf ihm.
+    {
+      key = "<leader>ci";
+      action.__raw = ''
+        function()
+          local buf = vim.api.nvim_get_current_buf()
+          local last = vim.api.nvim_buf_line_count(buf)
+          local done = 0
+          for _, kind in ipairs({ "source.addMissingImports", "source.removeUnusedImports", "source.organizeImports" }) do
+            for _, client in ipairs(vim.lsp.get_clients({ bufnr = buf, method = "textDocument/codeAction" })) do
+              local res = client:request_sync("textDocument/codeAction", {
+                textDocument = vim.lsp.util.make_text_document_params(buf),
+                range = { start = { line = 0, character = 0 }, ["end"] = { line = last, character = 0 } },
+                context = { only = { kind }, diagnostics = {}, triggerKind = 1 },
+              }, 5000, buf)
+              for _, action in ipairs(res and res.result or {}) do
+                if action.kind and (action.kind == kind or vim.startswith(action.kind, kind .. ".")) then
+                  if not action.edit and not action.command and client:supports_method("codeAction/resolve") then
+                    local r = client:request_sync("codeAction/resolve", action, 5000, buf)
+                    action = r and r.result or action
+                  end
+                  if action.edit then
+                    vim.lsp.util.apply_workspace_edit(action.edit, client.offset_encoding)
+                  end
+                  local cmd = action.command
+                  if type(cmd) == "table" then
+                    client:exec_cmd(cmd, { bufnr = buf })
+                  end
+                  done = done + 1
+                end
+              end
+            end
+          end
+          if done == 0 then
+            vim.notify("Kein Server bietet hier Import-Aktionen an", vim.log.levels.INFO)
+          end
+        end
+      '';
+      options.desc = "Imports ergaenzen + aufraeumen";
     }
   ];
 

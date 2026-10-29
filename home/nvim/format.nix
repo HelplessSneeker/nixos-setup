@@ -69,7 +69,15 @@
         # Python: ruffs Formatierer, nicht black. Gleiches Ergebnis in fast
         # allen Faellen, aber es ist dasselbe Werkzeug, das oben schon linted
         # -- ein Programm weniger im Spiel.
-        python = [ "ruff_format" ];
+        #
+        # ruff_organize_imports davor: sortiert die Import-Bloecke beim
+        # Speichern (ruffs Regel I001, das isort-Verhalten). ruff_format
+        # allein fasst die Reihenfolge nicht an. Unbenutzte Imports entfernt
+        # es NICHT -- die meldet ruff als Warnung, weg mit <leader>ca auf der Zeile.
+        python = [
+          "ruff_organize_imports"
+          "ruff_format"
+        ];
 
         # Nix: nixpkgs_fmt, passend zu `formatter` in flake.nix und zu dem,
         # was nixd als formatting.command bekommt. Alle drei Wege muessen

@@ -16,6 +16,7 @@
 #   5  Formatieren/Linten  -> ./format.nix (conform, ruff, eslint)
 #   6  Start               -> ./start.nix (Startbildschirm, `nvim <ordner>`)
 #   7  Werkzeuge           -> ./tools.nix (SSH-Shell, Server-Dateien in oil)
+#   8  Tippen              -> ./editing.nix (Klammern und HTML-Tags schliessen)
 # Was hier NICHT steht, fehlt noch nicht -- es ist noch nicht dran.
 {
   # Ab Schicht 2 bekommt jede Schicht eine eigene Datei. Diese hier bleibt die
@@ -27,6 +28,7 @@
     ./format.nix
     ./start.nix
     ./tools.nix
+    ./editing.nix
   ];
 
   # --- Provider ---
