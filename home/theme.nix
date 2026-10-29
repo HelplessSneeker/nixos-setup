@@ -60,6 +60,12 @@ in
     background_opacity = "0.95";
     window_padding_width = 8;
     cursor_shape = "beam";
+    # Seit kitty 0.49 merkt sich remember_window_size auch den Maximiert-/
+    # Vollbild-Status: einmal per SUPER+F im Vollbild geschlossen, startet
+    # danach jedes neue kitty im Vollbild (fabricus, 28.10.2026, kam mit dem
+    # nixpkgs-Bump 0.47 -> 0.49). Unter Hyprland kachelt sowieso alles, die
+    # gemerkte Groesse bringt nichts.
+    remember_window_size = "no";
     # Catppuccin Mocha
     foreground = "#cdd6f4";
     background = "#1e1e2e";
