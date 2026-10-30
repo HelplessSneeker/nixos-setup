@@ -63,7 +63,7 @@ local function tile(workspace, shots)
     preview = ui.image({ path = path, width = width, height = height, fit = "contain", radius = 8 })
   else
     -- Noch kein Schuss: der Workspace war seit dem Start der Shell nie sichtbar.
-    preview = ui.column({ width = width, height = height, radius = 8, fill = "surface_variant/0.5", align = "center", justify = "center" }, {
+    preview = ui.column({ width = width, height = height, radius = 8, fill = "surface_container/0.5", align = "center", justify = "center" }, {
       ui.glyph({ name = "photo-off", size = 28, color = "on_surface/0.45" }),
     })
   end
@@ -92,7 +92,7 @@ local function tile(workspace, shots)
     subtitle = workspace.monitor .. " · " .. subtitle
   end
 
-  local fill = "surface_variant/0.30"
+  local fill = "surface_container/0.30"
   if isFocused then
     fill = "primary/0.22"
   elseif isActive then
