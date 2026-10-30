@@ -98,7 +98,56 @@ in
       );
   });
 
+  # ---------------------------------------------------------------------------
+  # lazygit (30.10.2026, bfn-Notiz 27.10.: "lazygit in nvim implementieren")
+  # ---------------------------------------------------------------------------
+  # <leader>gg oeffnet lazygit in einem schwebenden Fenster, und zwar im Repo
+  # der Datei, die du gerade offen hast, nicht im Ordner, in dem nvim
+  # gestartet wurde. Derselbe Gedanke wie `lg` in home/fish.nix: der Kontext
+  # ist schon da (dort das Verzeichnis der Shell, hier der Puffer), es muss
+  # nichts geraten werden. Dem Hyprland-Bind SUPER+G fehlte genau der, er
+  # flog am 27.08.2026 wieder raus.
+  #
+  # Das Fenster kommt von snacks.nvim. `e` auf einer Datei in lazygit
+  # schliesst lazygit und oeffnet die Datei in DIESEM nvim, statt ein zweites
+  # nvim im Fenster zu starten (snacks setzt lazygits editPreset nvim-remote).
+  # Die Datei kommt dabei in einen neuen Tab (oben rechts 1 2), so macht es
+  # lazygits Vorgabe; zurueck mit gT, zu mit :tabclose.
+  # Von snacks ist sonst nichts an: seine Module sind einzeln einzuschalten,
+  # und hier ist keins eingeschaltet. Raus aus lazygit: q.
+  plugins.snacks.enable = true;
+
   keymaps = [
+    {
+      mode = "n";
+      key = "<leader>gg";
+      action.__raw = ''
+        function()
+          -- Ordner des Puffers: oil -> der angezeigte Ordner, eine Datei ->
+          -- ihr Ordner, Terminal, Startseite, neo-tree -> das Arbeitsverzeichnis.
+          -- Was auf einem Server liegt (oil-ssh://), hat hier kein Repo.
+          local name = vim.api.nvim_buf_get_name(0)
+          local dir
+          if vim.bo.filetype == "oil" then
+            dir = require("oil").get_current_dir()
+            if not dir then
+              return vim.notify("lazygit: der Ordner liegt nicht lokal", vim.log.levels.WARN)
+            end
+          elseif vim.bo.buftype ~= "" or name == "" then
+            dir = vim.fn.getcwd()
+          elseif name:match("^%a[%w+.-]*://") then
+            return vim.notify("lazygit: die Datei liegt nicht lokal", vim.log.levels.WARN)
+          else
+            dir = vim.fs.dirname(name)
+          end
+          if not vim.fs.root(dir, ".git") then
+            return vim.notify("lazygit: kein Git-Repo in " .. dir, vim.log.levels.WARN)
+          end
+          require("snacks").lazygit({ cwd = dir })
+        end
+      '';
+      options.desc = "lazygit (Repo der Datei)";
+    }
     {
       mode = "n";
       key = "<leader>s";

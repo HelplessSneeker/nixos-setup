@@ -305,8 +305,12 @@ in
   # ab nvim 0.11 ist virtual_text NICHT mehr Standard. Ohne diesen Block
   # bekaemst du zwar Zeichen am Rand, aber keinen Text neben der Zeile.
   diagnostic.settings = {
-    # Fehlertext direkt hinter der betroffenen Zeile.
-    virtual_text = true;
+    # Den Fehlertext neben der Zeile zeichnet seit 30.10.2026
+    # tiny-inline-diagnostic (unten), nicht mehr nvim selbst: der eingebaute
+    # virtual_text wird am Fensterrand abgeschnitten, bei langen Meldungen
+    # fehlte genau das Wichtige (bfn-Notiz 23.10.: "errors sind nicht line
+    # wrap"). Beide zugleich zeigten jede Meldung doppelt, deshalb hier aus.
+    virtual_text = false;
 
     # Zeichen in der Signspalte -- der Spalte, die Schicht 1 reserviert hat.
     signs = true;
@@ -318,6 +322,28 @@ in
     # Nicht waehrend des Tippens neu bewerten, sondern beim Verlassen des
     # Insert-Modus. Verhindert, dass eine halbfertige Zeile rot blinkt.
     update_in_insert = false;
+  };
+
+  # ---------------------------------------------------------------------------
+  # tiny-inline-diagnostic -- Fehlermeldungen, die umbrechen
+  # ---------------------------------------------------------------------------
+  # Jede Zeile mit Fehler zeigt ihre Meldung wie bisher rechts daneben, in
+  # einer Zeile -- so siehst du auf einen Blick, wo es hakt. Steht der Cursor
+  # auf der Zeile, kommt die Meldung ganz: am Fensterrand umgebrochen statt
+  # abgeschnitten, ueber mehrere Zeilen, die ueber dem Code darunter liegen,
+  # ohne ihn zu verschieben; bei mehreren Meldungen alle. Getestet 30.10.2026
+  # headless in tmux (90 Spalten, Meldung mit 130 Zeichen: vier Zeilen).
+  # Die volle Meldung samt Quelle bleibt auf <leader>cd und ]d / [d.
+  plugins.tiny-inline-diagnostic = {
+    enable = true;
+    settings.options = {
+      overflow.mode = "wrap";
+      multilines = {
+        enabled = true;
+        always_show = true;
+      };
+      show_all_diags_on_cursorline = true;
+    };
   };
 
   # ---------------------------------------------------------------------------
@@ -459,8 +485,6 @@ in
       action = "<cmd>lua vim.diagnostic.jump({ count = -1, float = true })<CR>";
       options.desc = "Voriger Fehler";
     }
-    # Die volle Meldung in einem Fenster -- fuer die Faelle, in denen der
-    # virtual_text rechts abgeschnitten ist.
     # Inlay-Hints an/aus, fuer alle Puffer. Bewusst global statt pro Puffer:
     # wer sie beim Lesen stoerend findet, findet sie es in der naechsten Datei
     # auch.
@@ -470,6 +494,8 @@ in
       action = "<cmd>lua vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())<CR>";
       options.desc = "Typen einblenden an/aus";
     }
+    # Die volle Meldung in einem eigenen Fenster, mit Quelle -- etwa zum
+    # Kopieren oder wenn mehrere Meldungen an einer Stelle haengen.
     {
       mode = "n";
       key = "<leader>cd";

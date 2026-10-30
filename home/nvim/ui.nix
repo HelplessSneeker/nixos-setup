@@ -203,6 +203,10 @@
           __unkeyed-1 = "<leader>h";
           group = "Git-Hunks";
         }
+        {
+          __unkeyed-1 = "<leader>g";
+          group = "Git";
+        }
       ];
     };
   };
