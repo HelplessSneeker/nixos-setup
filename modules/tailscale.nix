@@ -5,11 +5,15 @@
 #  - allowedUDPPorts  -> laesst eingehendes Tailscale-UDP am WAN-Interface rein
 #  - nftables-nativ    -> tailscale setzt seine eigenen Firewall-Regeln sauber
 #  - checkReversePath  -> rpfilter droppt sonst Wireguard-Inbound
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, pkgsUnstable, ... }:
 {
   services.tailscale = {
     enable = true;
     useRoutingFeatures = "client";
+    # Aus unstable seit 30.10.2026 (bfn im Aufraeumen KW 44): nixos-26.05 haengt
+    # auf 1.98.10, die Tailworm-Fixes (TS-2026-014 bis -017) kamen mit 1.104.4.
+    # Das Wochen-Update zieht nixpkgs-unstable mit, damit wandert Tailscale mit.
+    package = pkgsUnstable.tailscale;
   };
 
   networking.nftables.enable = true;
