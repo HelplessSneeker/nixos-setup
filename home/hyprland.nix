@@ -13,6 +13,10 @@
 let
   isLaptop = osConfig.networking.hostName == "fabricus-itinerans";
 
+  # Blur-Durchgaenge je Host (Optik-Runde 01.11.2026): die UHD 620 am Laptop
+  # bekommt einen weniger als die RTX 2060 am Desktop.
+  blurPasses = if isLaptop then 2 else 3;
+
   # Ablage fuer Screenshots (bfn 07.09.2026). grimblast legt das Verzeichnis
   # NICHT selbst an -- es baut den Dateinamen als "$DEFAULT_TARGET_DIR/<datum>.png"
   # und laesst grim darauf los; fehlt der Ordner, scheitert der Schuss.
@@ -374,9 +378,13 @@ in
 
     -- Look
     hl.config({
+        -- Optik-Runde 01.11.2026 (bfn): angelehnt an die verbreiteten
+        -- Material-3-Rices (end-4/illogical-impulse, caelestia), aber ohne
+        -- deren Fenster-Transparenz -- "clean & ruhig" bleibt. Etwas mehr Luft,
+        -- weichere Ecken, Schatten als Fokus-Hinweis, MD3-Kurven unten.
         general = {
-            gaps_in = 4,
-            gaps_out = 8,
+            gaps_in = 5,
+            gaps_out = 12,
             border_size = 2,
             col = {
                 active_border = { colors = { "rgba(89b4faee)", "rgba(cba6f7ee)" }, angle = 45 },
@@ -387,20 +395,40 @@ in
         },
 
         decoration = {
-            rounding = 10,
+            rounding = 12,
+            -- 2 = runde Ecke, hoeher = "Squircle" wie bei GNOME/macOS.
+            rounding_power = 2.5,
+            -- Bewusst keine Fenster-Transparenz (Lesbarkeit auf 4k).
             active_opacity = 1.0,
             inactive_opacity = 1.0,
+            -- Abdunkeln hinter dem Scratchpad (SUPER+S), damit es sich vom
+            -- Rest abhebt.
+            dim_special = 0.3,
             blur = {
                 enabled = true,
-                size = 4,
-                passes = 2,
-                vibrancy = 0.15,
+                size = 6,
+                -- Laptop (UHD 620) mit einem Durchgang weniger, der Blur
+                -- kostet pro Pass GPU-Zeit bei jedem Neuzeichnen.
+                passes = ${toString blurPasses},
+                -- Rauschen + etwas weniger Kontrast/Helligkeit: der Blur
+                -- wirkt wie Milchglas statt wie verwaschen (end-4-Werte).
+                noise = 0.01,
+                contrast = 0.9,
+                brightness = 0.85,
+                vibrancy = 0.17,
+                -- Popups (Kontextmenues) und Scratchpad mitblurren.
+                popups = true,
+                special = true,
+                xray = false,
             },
+            -- Weicher, breiter Schatten am aktiven Fenster, kaum einer an
+            -- inaktiven: der Fokus ist ohne Abdunkeln sofort erkennbar.
             shadow = {
                 enabled = true,
-                range = 12,
-                render_power = 2,
-                color = "rgba(11111baa)",
+                range = 24,
+                render_power = 3,
+                color = "rgba(11111bb0)",
+                color_inactive = "rgba(11111b40)",
             },
         },
 
@@ -444,12 +472,23 @@ in
         },
     })
 
-    hl.curve("easeOut", { type = "bezier", points = { { 0.16, 1 }, { 0.3, 1 } } })
-    hl.animation({ leaf = "windows",    enabled = true, speed = 3, bezier = "easeOut" })
-    hl.animation({ leaf = "windowsOut", enabled = true, speed = 3, bezier = "easeOut", style = "popin 80%" })
-    hl.animation({ leaf = "fade",       enabled = true, speed = 3, bezier = "easeOut" })
-    hl.animation({ leaf = "border",     enabled = true, speed = 5, bezier = "easeOut" })
-    hl.animation({ leaf = "workspaces", enabled = true, speed = 3, bezier = "easeOut", style = "slide" })
+    -- Kurven aus Material 3 (wie end-4 und caelestia): decel fuer alles,
+    -- was erscheint, accel fuer alles, was verschwindet, standard fuer
+    -- Bewegung. Geschwindigkeiten in Zehntelsekunden, bewusst eher kurz.
+    hl.curve("md3_standard", { type = "bezier", points = { { 0.2, 0 }, { 0, 1 } } })
+    hl.curve("md3_decel",    { type = "bezier", points = { { 0.05, 0.7 }, { 0.1, 1 } } })
+    hl.curve("md3_accel",    { type = "bezier", points = { { 0.3, 0 }, { 0.8, 0.15 } } })
+    hl.curve("menu_decel",   { type = "bezier", points = { { 0.1, 1 }, { 0, 1 } } })
+    hl.animation({ leaf = "windowsIn",        enabled = true, speed = 4,   bezier = "md3_decel",    style = "popin 80%" })
+    hl.animation({ leaf = "windowsOut",       enabled = true, speed = 2.5, bezier = "md3_accel",    style = "popin 80%" })
+    hl.animation({ leaf = "windowsMove",      enabled = true, speed = 4,   bezier = "md3_standard" })
+    hl.animation({ leaf = "fade",             enabled = true, speed = 3,   bezier = "md3_decel" })
+    hl.animation({ leaf = "border",           enabled = true, speed = 6,   bezier = "md3_standard" })
+    -- noctalia animiert seine Panels selbst; hier nur ein kurzes Einblenden,
+    -- sonst laufen zwei Animationen uebereinander.
+    hl.animation({ leaf = "layers",           enabled = true, speed = 2.5, bezier = "md3_decel",    style = "fade" })
+    hl.animation({ leaf = "workspaces",       enabled = true, speed = 4,   bezier = "menu_decel",   style = "slidefade 15%" })
+    hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 3,   bezier = "md3_decel",    style = "slidefadevert 15%" })
 ${gestureBlock}
     -- Adaptive Theming (noctalia). noctalia rendert seine Material-Palette
     -- nach ~/.config/hypr/noctalia.lua (sein Lua-Template, seit noctalia 5.x)
