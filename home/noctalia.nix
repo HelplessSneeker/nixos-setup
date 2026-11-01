@@ -76,6 +76,13 @@ in
       # aenderung ohne Anlass. Zum Nachjustieren: SUPER+SHIFT+E -> Einstellungen.
       shell.clipboard_enabled = true;
 
+      # Panels (Launcher, Control-Center, Clipboard, ...) als Milchglas statt
+      # deckend (Optik-Runde 01.11.2026). Werte laut Schema in noctalia v5.4.1
+      # (src/config/config_types.h): solid | soft | glass, Default solid.
+      # Den Blur dahinter fordert noctalia selbst per ext-background-effect-v1
+      # an, das Hyprland 0.57 anbietet -- keine Hyprland-Layer-Rule noetig.
+      shell.panel.transparency_mode = "glass";
+
       theme = {
         mode = "dark";
         source = "wallpaper";
@@ -107,6 +114,11 @@ in
       bar.default = {
         scale = barScale;
         thickness = barThickness;
+
+        # Leicht durchsichtige Bar mit Blur dahinter (Optik-Runde 01.11.2026).
+        # Default 1.0 = deckend. compositor_blur steht per Default auf true,
+        # der Blur kommt also von selbst, sobald die Bar nicht mehr deckt.
+        background_opacity = 0.8;
 
         # "wallpaper" ist am 22.09.2026 raus: der Knopf oeffnete den Wallpaper-
         # und Theme-Waehler, den bfn nie benutzt hat. An seiner Stelle jetzt die
