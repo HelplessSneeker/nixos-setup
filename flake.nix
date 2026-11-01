@@ -57,6 +57,26 @@
     # libsoup) bleiben bis dahin auf diesem Stand.
     nixpkgs-citrix.url = "github:NixOS/nixpkgs/104240a772428cc2e20d8fd86c9ddbb886bbaff2";
 
+    # Hyprland auf 0.56.1 festgehalten, seit 01.11.2026. 0.57.0 (kam mit dem
+    # Wochen-Update 31.10.) liest KEINE hyprland.conf mehr, nur noch
+    # hyprland.lua -- und legt beim ersten Start, wenn es keine findet, eine
+    # Beispiel-Config dort ab. Ergebnis: Hyprland startet, aber ohne bfns
+    # Binds, ohne exec-once (keine noctalia-Bar), ohne Monitor-Layout. Weil
+    # die erzeugte hyprland.lua im Home liegt und 0.56 eine vorhandene .lua
+    # der .conf vorzieht, halfen auch die alten Generationen im Bootmenue
+    # nicht mehr.
+    #
+    # Gleiche Rev wie nixpkgs-citrix (unstable vom 03.08.), damit genau die
+    # 0.56.1 samt Portal 1.4.1 zurueckkommt, die bis 31.10. lief und noch im
+    # Store liegt. Eigener Input trotzdem, weil die beiden Pins unabhaengig
+    # voneinander fallen.
+    #
+    # Weg hier raus: Config nach Lua migrieren (home/hyprland.nix erzeugt dann
+    # hyprland.lua), danach diesen Input streichen und programs.hyprland
+    # wieder auf pkgsUnstable stellen. Preis bis dahin: Hyprland bekommt keine
+    # Fixes aus unstable.
+    nixpkgs-hyprland.url = "github:NixOS/nixpkgs/104240a772428cc2e20d8fd86c9ddbb886bbaff2";
+
     # Hardware-Quirks fuer den ThinkPad T480 (nur vom Laptop-Host importiert).
     # Modulkette am 09.08.2026 gegen upstream gelesen, sie bringt:
     #   - services.throttled        gegen Lenovos BIOS-Power-Limit-Drosselung
@@ -121,11 +141,15 @@
         config.allowUnfree = true;
       };
 
+      # Nur fuer programs.hyprland (package + portalPackage), siehe Input
+      # nixpkgs-hyprland.
+      pkgsHyprland = import inputs.nixpkgs-hyprland { inherit system; };
+
       # Gemeinsamer Modul-Stack fuer jeden Host. Host-spezifisches
       # (NVIDIA, hardware-config, hostName) lebt im jeweiligen hostModule.
       mkHost = hostModule: nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = { inherit inputs pkgsUnstable; };
+        specialArgs = { inherit inputs pkgsUnstable pkgsHyprland; };
         modules = [
           hostModule
           ./modules/system-base.nix

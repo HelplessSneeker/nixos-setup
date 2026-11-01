@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, pkgsUnstable, ... }:
+{ config, pkgs, lib, inputs, pkgsUnstable, pkgsHyprland, ... }:
 {
   imports = [
     ./hardware-configuration.nix
@@ -58,10 +58,13 @@
   #
   # portalPackage MUSS mitgezogen werden -- ein 25.05-Portal neben einem
   # 0.56-Compositor bricht Screen-Sharing und Datei-Dialoge.
+  #
+  # Seit 01.11.2026 aus pkgsHyprland (0.56.1 festgehalten) statt pkgsUnstable:
+  # 0.57 liest keine hyprland.conf mehr. Begruendung am Input in flake.nix.
   programs.hyprland = {
     enable = true;
-    package = pkgsUnstable.hyprland;
-    portalPackage = pkgsUnstable.xdg-desktop-portal-hyprland;
+    package = pkgsHyprland.hyprland;
+    portalPackage = pkgsHyprland.xdg-desktop-portal-hyprland;
   };
   environment.sessionVariables = {
     LIBVA_DRIVER_NAME = "nvidia";
