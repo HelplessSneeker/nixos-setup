@@ -2,6 +2,13 @@
 #
 # AB 21.09.2026 SCHREIBT DIESE DATEI KEIN LAYOUT MEHR.
 #
+# NACHTRAG 01.11.2026 (Lua-Config, Hyprland 0.57): gelesen wird jetzt
+# ~/.config/hypr/monitors.lua per require("monitors"), nicht mehr die
+# monitors.conf. nwg-displays schreibt seit 0.4.3 beide Dateien beim "Apply".
+# Wo unten monitors.conf und `source` steht, gilt sinngemaess monitors.lua
+# und require. Die alte monitors.conf liegt noch herum und wird ignoriert;
+# einmal nwg-displays + "Apply" nach dem Umstieg erzeugt die Lua-Fassung.
+#
 # Das Layout lebt in ~/.config/hypr/monitors.conf, und diese Datei gehoert
 # jetzt **nwg-displays**, nicht home-manager. home/hyprland.nix zieht sie
 # unveraendert per `source` herein.

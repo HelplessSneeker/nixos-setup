@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, pkgsUnstable, pkgsHyprland, ... }:
+{ config, pkgs, lib, inputs, pkgsUnstable, ... }:
 # fabricus-itinerans -- der mobile Ableger von fabricus, auf cachus-rex-Hardware
 # (Kaby Lake-R, Intel UHD 620). Teilt sich den kompletten Modul-Stack aus
 # flake.nix mit dem Desktop; hier steht ausschliesslich, was sich zwischen den
@@ -105,8 +105,8 @@
   # Begruendung steht in hosts/fabricus/configuration.nix.
   programs.hyprland = {
     enable = true;
-    package = pkgsHyprland.hyprland;
-    portalPackage = pkgsHyprland.xdg-desktop-portal-hyprland;
+    package = pkgsUnstable.hyprland;
+    portalPackage = pkgsUnstable.xdg-desktop-portal-hyprland;
   };
 
   # --- Laptop-Energie --------------------------------------------------------
