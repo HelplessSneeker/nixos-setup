@@ -1,4 +1,4 @@
-{ config, lib, osConfig, ... }:
+{ config, lib, osConfig, pkgs, ... }:
 
 # noctalia: Shell-Theming + Bar-Layout.
 #
@@ -43,6 +43,32 @@ let
   # 1.0/34, die schlicht falsch gerechnet waren.
   barScale = if isLaptop then 1.45 else 1.3;
   barThickness = if isLaptop then 50 else 44;
+
+  # Hintergrundbild (bfn 02.11.2026): Blick von der Gerlitzen ueber den
+  # Ossiacher See im Nebel, Richtung Karawanken. Foto: Naturpuur, CC BY 4.0,
+  # https://commons.wikimedia.org/wiki/File:Blick_von_der_Gerlitzen_%C3%BCber_den_Ossiacher_See_im_Nebel,_K%C3%A4rnten_05.jpg
+  # 5000x3333, nach dem 16:9-Zuschnitt (fill_mode crop) also noch ueber 4k.
+  # Die Datei ist ein Sony-JPEG mit angehaengtem Vorschaubild (MPO); noctalia
+  # liest das Hauptbild, mit `noctalia theme <bild>` (5.4.1) gegengeprueft.
+  #
+  # Kommt per fetchurl aus Commons statt als Datei ins Repo. Laedt dort jemand
+  # eine neue Fassung hoch, liefert dieselbe URL andere Bytes und der Hash
+  # bricht den Rebuild; dann die alte Fassung ueber ihren Archiv-Link auf der
+  # Commons-Seite holen (Abschnitt "Dateiversionen").
+  #
+  # Eigener Ordner statt ~/Pictures/Wallpapers, weil die Automatik unten aus dem
+  # ganzen Ordner waehlt. Mit nur diesem Bild darin bleibt es fest; ein weiterer
+  # Listeneintrag hier, und es wird wieder alle 30 Minuten gewechselt.
+  wallpapers = pkgs.linkFarm "wallpapers" [
+    {
+      name = "ossiacher-see-nebel.jpg";
+      path = pkgs.fetchurl {
+        name = "ossiacher-see-nebel.jpg";
+        url = "https://upload.wikimedia.org/wikipedia/commons/c/ca/Blick_von_der_Gerlitzen_%C3%BCber_den_Ossiacher_See_im_Nebel%2C_K%C3%A4rnten_05.jpg";
+        hash = "sha256-aX8TV6dxr0a97OBIzZrBsjKTw/LrEaTgW+DYLfSlwB8=";
+      };
+    }
+  ];
 in
 {
   # --- Eigenes Plugin: Workspace-Uebersicht (22.09.2026) ---
@@ -98,8 +124,16 @@ in
 
       wallpaper = {
         enabled = true;
-        directory = "~/Pictures/Wallpapers";
+        # Nur der Ordner aus `wallpapers` oben (bis 02.11.2026 ~/Pictures/Wallpapers;
+        # die alten Bilder liegen dort weiter, sind aber aus der Rotation).
+        directory = "${wallpapers}";
         transition_on_startup = true;   # setzt Wallpaper beim Boot, nicht erst nach Intervall
+        # Automatik bleibt an, auch bei nur einem Bild: Sie setzt beim Start das
+        # Bild aus dem Ordner. Ohne sie bliebe das zuletzt gesetzte aus noctalias
+        # State stehen, also das alte. Ein Config-Reload waehlt nicht neu
+        # (Wallpaper::reload in src/shell/wallpaper/wallpaper.cpp); nach dem
+        # Rebuild kommt das neue Bild also erst beim naechsten Wechsel, sofort
+        # mit SUPER+ALT+W. Dasselbe Bild erneut zu setzen ist ein No-op.
         automation = {
           enabled = true;
           order = "random";
