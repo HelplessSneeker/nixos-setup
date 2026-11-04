@@ -334,6 +334,14 @@ in
     # unten -- nicht ein Downgrade des Servers.
     anki
 
+    # E-Books (04.11.2026). Foliate 3.3 (GTK4/libadwaita): EPUB, MOBI/AZW3,
+    # FB2, CBZ. Schriftgroesse, Rand und Theme stellt man im Leser selbst ein,
+    # Lesefortschritt und Markierungen merkt er sich pro Buch. Laeuft nativ
+    # unter Wayland. Calibre waere die Alternative mit Bibliotheksverwaltung,
+    # ist aber ein Qt-Paket von einigen hundert MB nur zum Lesen.
+    # Doppelklick auf eine .epub landet ueber xdg.mimeApps unten hier.
+    foliate
+
     # --- Office: docx/xlsx/pptx lesen und schreiben (22.09.2026) ---
     # `libreoffice` ist in 26.05 KEIN eigenes Paket, sondern ein Alias:
     # `libreoffice = hiPrio libreoffice-still` (nachgelesen in
@@ -582,6 +590,12 @@ in
       # startet wfica). Greift nur auf Hosts, die modules/citrix.nix
       # importieren -- ein Eintrag ohne passende .desktop-Datei ist folgenlos.
       "application/x-ica" = "wfica.desktop";
+
+      # E-Books in Foliate (Paket oben). Der Name der .desktop-Datei ist die
+      # App-ID aus dem Foliate-Quelltext (data/meson.build, Tag 3.3.0).
+      "application/epub+zip"           = "com.github.johnfactotum.Foliate.desktop";
+      "application/x-mobipocket-ebook" = "com.github.johnfactotum.Foliate.desktop";
+      "application/x-fictionbook+xml"  = "com.github.johnfactotum.Foliate.desktop";
     };
   };
 

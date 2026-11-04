@@ -6,7 +6,7 @@
 #
 # Eingehaengt von ./config.nix, gilt also fuer beide Wege (home-manager und
 # `nix run /etc/nixos#nvim`).
-{ config, ... }:
+{ config, pkgs, ... }:
 {
   # ---------------------------------------------------------------------------
   # Treesitter -- echtes Syntax-Highlighting
@@ -127,14 +127,42 @@
   # Ohne das Preset waere im Insert-Mode die ganze Datei roh.
   # Fuer eine Sitzung abschalten: `:RenderMarkdown toggle`.
   #
-  # Eine Grenze setzt nvim selbst, kein Plugin kommt drumherum: mit `wrap`
-  # (Schicht 1) bricht verdeckter Text an der alten Stelle um. Tabellen mit
-  # Links sehen dann zerrupft aus -- `:set nowrap` fuer die Sitzung hilft.
+  # Tabellen (04.11.2026): mit `wrap` (Schicht 1) bricht nvim eine breite
+  # Tabellenzeile am Fensterrand um, und zwar an der Stelle, an der sie OHNE
+  # verdeckte Link-Syntax umbrechen wuerde. Ergebnis waren zerrupfte Zeilen,
+  # deren Spalten nicht mehr untereinander standen. Kein Plugin kommt um
+  # diesen nvim-Mechanismus herum (render-markdown, doc/limitations.md).
+  # Ab 8.14.0 umgeht render-markdown ihn trotzdem: `pipe_table.wrap` ersetzt
+  # die ganze Tabelle durch virtuelle Zeilen und bricht den Text INNERHALB
+  # der Zellen um. Die Spalten bleiben gerade, die Tabelle passt ins Fenster.
+  # Die Zeile mit dem Cursor bleibt wie bisher roh, zum Bearbeiten.
   plugins.render-markdown = {
     enable = true;
 
+    # Version aus nixpkgs-unstable statt aus dem nixvim-Kanal. nixvim 26.05
+    # bringt 8.12.0-unstable-2026-05-07 mit, und die kennt `pipe_table.wrap`
+    # noch nicht (kam mit 8.14.0 vom 14.09.2026, "multiline table cell
+    # rendering"). Tag und Hash 1:1 aus nixpkgs-unstable (885ba4d0,
+    # generated.nix) uebernommen, nicht selbst gerechnet.
+    # Diesen Block loeschen, sobald nixvim 26.05 selbst >= 8.14 liefert --
+    # sonst haelt der Override das Plugin kuenftig auf 8.14 fest.
+    package = pkgs.vimPlugins.render-markdown-nvim.overrideAttrs {
+      version = "8.14.0";
+      src = pkgs.fetchFromGitHub {
+        owner = "MeanderingProgrammer";
+        repo = "render-markdown.nvim";
+        tag = "v8.14.0";
+        hash = "sha256-pG8lAo4qucIu+gAwrEaK79VkDFTLcuuPBYhq3sg951E=";
+      };
+    };
+
     settings = {
       preset = "obsidian";
+
+      # Breite Tabellen in den Zellen umbrechen statt am Fensterrand (s.o.).
+      # Ist in 8.14 schon der Default -- hier explizit, damit der Grund fuer
+      # das Paket oben nicht unsichtbar wird.
+      pipe_table.wrap = true;
 
       # Vorschlaege fuer Checkboxen (- [ ]) und Callouts (> [!...]) in der
       # blink-Liste aus Schicht 4. Laeuft als eingebauter Sprachserver, der
