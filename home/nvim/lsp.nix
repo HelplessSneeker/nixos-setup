@@ -161,6 +161,29 @@ in
     # proprietaeren Teile, die pyright an VS Code bindet.
     basedpyright.enable = true;
 
+    # Markdown (04.11.2026). Paket: marksman. Macht Links zwischen Dateien
+    # benutzbar: `gd` auf [[Notiz]], [[Notiz#Abschnitt]] oder [Text](datei.md)
+    # oeffnet das Ziel, <C-o> springt zurueck. `gr` auf einer Ueberschrift
+    # listet alle Stellen, die darauf verlinken (Backlinks). Dazu Vorschlaege
+    # beim Tippen von [[ und Warnungen bei Links ins Leere.
+    #
+    # Vorher fehlte schlicht ein Server mit Sprungfunktion. Am Markdown-Puffer
+    # hing nur der eingebaute Server von render-markdown (Checkbox-Vorschlaege,
+    # ui.nix), und der kann keine Definitionen -- `gd` lief ins Leere.
+    #
+    # Projektwurzel: marksman kennt die anderen Dateien nur, wenn er eine
+    # findet. Ohne Wurzel laeuft er im Einzeldatei-Modus, und dann geht `gd`
+    # nur innerhalb der Datei. lspconfig sucht .marksman.toml und .git; dazu
+    # kommt .obsidian, damit ein Obsidian-Vault ohne Git auch als Projekt gilt.
+    marksman = {
+      enable = true;
+      config.root_markers = [
+        ".marksman.toml"
+        ".git"
+        ".obsidian"
+      ];
+    };
+
     # Nix. Kein Zufall, dass der hier steht: du editierst diese Konfiguration
     # taeglich.
     #
