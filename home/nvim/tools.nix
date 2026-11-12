@@ -180,9 +180,9 @@ in
     # fester Pfad, also gleich auf beiden Rechnern, egal wohin das Repo
     # geklont ist.
     #
-    # Fehlt die Notiz, kommt der Inhalt aus Vorlagen/Journal.md in der
-    # Wissensdatenbank; jedes {{datum}} darin wird zum Datum (12.11.2026). Die
-    # Vorlage ist eine normale Notiz, aendern geht ohne Rebuild. Fehlt sie,
+    # Fehlt die Notiz, kommt der Inhalt aus Ressourcen/templates/Journal.md in
+    # der Wissensdatenbank; jedes {{datum}} darin wird zum Datum (12.11.2026).
+    # Die Vorlage ist eine normale Notiz, aendern geht ohne Rebuild. Fehlt sie,
     # steht nur die Ueberschrift da. Auf die Platte kommt die Notiz erst mit :w.
     #
     # :drop statt :edit, wegen confirm = true in ./config.nix: Drueckst du
@@ -206,12 +206,12 @@ in
           if vim.fn.filereadable(datei) == 1 or vim.bo.modified then
             return
           end
-          local vorlage = root .. "/Vorlagen/Journal.md"
+          local vorlage = "Ressourcen/templates/Journal.md"
           local zeilen = { "# {{datum}}" }
-          if vim.fn.filereadable(vorlage) == 1 then
-            zeilen = vim.fn.readfile(vorlage)
+          if vim.fn.filereadable(root .. "/" .. vorlage) == 1 then
+            zeilen = vim.fn.readfile(root .. "/" .. vorlage)
           else
-            vim.notify("Journal: keine Vorlage in Vorlagen/Journal.md, nur die Ueberschrift", vim.log.levels.WARN)
+            vim.notify("Journal: keine Vorlage in " .. vorlage .. ", nur die Ueberschrift", vim.log.levels.WARN)
           end
           for i, zeile in ipairs(zeilen) do
             zeilen[i] = zeile:gsub("{{datum}}", os.date("%d.%m.%Y", heute))
