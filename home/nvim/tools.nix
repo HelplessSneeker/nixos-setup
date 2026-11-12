@@ -1,8 +1,8 @@
 # nvim -- SCHICHT 7: Werkzeuge.
 #
 # Bis Schicht 6 ging es um den Editor selbst. Hier kommt dazu, wofuer du
-# sonst nvim verlassen wuerdest: eine Shell auf einem Server als Tab, oder
-# seine Dateien in oil.
+# sonst nvim verlassen wuerdest: eine Shell auf einem Server als Tab, seine
+# Dateien in oil, lazygit. Dazu die Tagesnotiz der Wissensdatenbank.
 #
 # Bewusst KEIN HTTP-Client im Editor. kulala (Postman als .http-Datei) war am
 # 22.10.2026 auf einem Test-Branch drin und flog wieder raus: curl im
@@ -164,6 +164,62 @@ in
       key = "<leader>S";
       action.__raw = sshPick ''vim.cmd.edit("oil-ssh://" .. host .. "/")'';
       options.desc = "SSH: Dateien (oil)";
+    }
+
+    # -------------------------------------------------------------------------
+    # Journal (12.11.2026, bfn)
+    # -------------------------------------------------------------------------
+    # <leader>j oeffnet die Notiz von heute in der Wissensdatenbank: am
+    # 12.11.2026 die Datei 2026-11-12.md im Root, Ueberschrift "# 12.11.2026".
+    # Die Tage liegen im Root, bis sie beim Wochen-Review nach
+    # Journal/<Jahr>/KW <NN>/ wandern -- das Journal ist das Archiv.
+    #
+    # Die Wissensdatenbank ist der naechste Ordner ueber der offenen Datei, in
+    # dem ein Ordner Journal liegt. In oil zaehlt der angezeigte Ordner, ohne
+    # Datei (Startbildschirm, leerer Puffer) das Arbeitsverzeichnis. Kein
+    # fester Pfad, also gleich auf beiden Rechnern, egal wohin das Repo
+    # geklont ist.
+    #
+    # Fehlt die Notiz, kommt der Inhalt aus Vorlagen/Journal.md in der
+    # Wissensdatenbank; jedes {{datum}} darin wird zum Datum (12.11.2026). Die
+    # Vorlage ist eine normale Notiz, aendern geht ohne Rebuild. Fehlt sie,
+    # steht nur die Ueberschrift da. Auf die Platte kommt die Notiz erst mit :w.
+    #
+    # :drop statt :edit, wegen confirm = true in ./config.nix: Drueckst du
+    # <leader>j in der Notiz selbst, solange sie ungespeichert ist, fragt :edit
+    # "Save changes?", und ein "No" verwirft das Getippte. :drop springt nur
+    # zu dem Fenster, das sie schon zeigt (auch in einem anderen Tab), und
+    # laesst den Inhalt stehen.
+    {
+      mode = "n";
+      key = "<leader>j";
+      action.__raw = ''
+        function()
+          local von = vim.bo.filetype == "oil" and require("oil").get_current_dir() or 0
+          local root = vim.fs.root(von, "Journal")
+          if not root then
+            return vim.notify("Journal: hier ist keine Wissensdatenbank (kein Ordner Journal)", vim.log.levels.WARN)
+          end
+          local heute = os.time()
+          local datei = root .. "/" .. os.date("%Y-%m-%d", heute) .. ".md"
+          vim.cmd.drop(vim.fn.fnameescape(datei))
+          if vim.fn.filereadable(datei) == 1 or vim.bo.modified then
+            return
+          end
+          local vorlage = root .. "/Vorlagen/Journal.md"
+          local zeilen = { "# {{datum}}" }
+          if vim.fn.filereadable(vorlage) == 1 then
+            zeilen = vim.fn.readfile(vorlage)
+          else
+            vim.notify("Journal: keine Vorlage in Vorlagen/Journal.md, nur die Ueberschrift", vim.log.levels.WARN)
+          end
+          for i, zeile in ipairs(zeilen) do
+            zeilen[i] = zeile:gsub("{{datum}}", os.date("%d.%m.%Y", heute))
+          end
+          vim.api.nvim_buf_set_lines(0, 0, -1, false, zeilen)
+        end
+      '';
+      options.desc = "Journal: heute";
     }
   ];
 }
