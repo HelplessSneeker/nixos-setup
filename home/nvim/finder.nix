@@ -182,6 +182,15 @@
       # bleibt beim Beenden eine leere Seitenleiste stehen.
       close_if_last_window = true;
 
+      # Space gehoert dem Leader, auch im Baum (12.11.2026). neo-tree legt per
+      # Default ein PUFFER-Mapping <space> = toggle_node an; das hat Vorrang
+      # vor dem globalen Leader -- im Baum kam kein which-key, nach timeoutlen
+      # klappte nur der Ordner auf/zu. Ordner auf/zu geht weiter mit <CR>.
+      # Gleiche Loesung wie LazyVim.
+      window.mappings = {
+        "<space>" = "none";
+      };
+
       filesystem = {
         # `nvim .` oder `nvim ~/projects/quant` oeffnet den Baum als
         # Seitenleiste links, rechts bleibt Platz fuer die erste Datei.
