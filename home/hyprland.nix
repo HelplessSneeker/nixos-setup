@@ -7,10 +7,15 @@
 # Der Monitor-Block wohnt seit 12.08.2026 NICHT mehr hier, sondern je Host in
 # hosts/<host>/monitors.nix -- die beiden Faelle haben gegensaetzliche
 # Anforderungen (Desktop statisch, Laptop je nach Dock/Beamer) und teilen sich
-# keine einzige Zeile mehr. Eingebunden wird das ueber `source` weiter unten.
+# keine einzige Zeile mehr. Eingebunden wird das ueber require("monitors")
+# weiter unten (seit 01.11.2026 Lua, vorher `source`).
 # Die isLaptop-Weiche bleibt, sie traegt noch die Trackpad-Gesten.
 let
   isLaptop = osConfig.networking.hostName == "fabricus-itinerans";
+
+  # Blur-Durchgaenge je Host (Optik-Runde 01.11.2026): die UHD 620 am Laptop
+  # bekommt einen weniger als die RTX 2060 am Desktop.
+  blurPasses = if isLaptop then 2 else 3;
 
   # Ablage fuer Screenshots (bfn 07.09.2026). grimblast legt das Verzeichnis
   # NICHT selbst an -- es baut den Dateinamen als "$DEFAULT_TARGET_DIR/<datum>.png"
@@ -47,25 +52,18 @@ let
 
   # Trackpad-Gesten -- nur der Laptop hat ueberhaupt ein Trackpad.
   #
-  # Syntax ist die NEUE aus Hyprland 0.51+ (hier laeuft 0.56.1, verifiziert:
-  # start-hyprland zeigt auf hyprland-0.56.1). Der alte Block
-  #   gestures { workspace_swipe = true; workspace_swipe_fingers = 3 }
-  # ist weg -- stattdessen:
-  #   gesture = <finger>, <richtung>, [mod:MOD], [scale:X], <aktion> [args]
-  # Richtungen: left/right/up/down/horizontal/vertical/swipe/pinch(in|out),
-  # Aktionen u.a. workspace, special, move, resize, close, fullscreen,
-  # float, cursorZoom, scrollMove, dispatcher, unset.
-  # Quelle: handleGesture() in src/config/legacy/ConfigManager.cpp des Tags.
+  # Seit 01.11.2026 Lua (hl.gesture), Felder laut hl.meta.lua aus dem
+  # 0.57-Paket: fingers, direction, action (+ mods, scale, ...). Richtungen
+  # wie zuvor left/right/up/down/horizontal/vertical/swipe/pinch.
   #
-  # `horizontal` deckt BEIDE Richtungen ab -- absichtlich keine zwei Zeilen
-  # fuer left und right: der Parser lehnt das zweite mit "Gesture will be
-  # overshadowed by a previous gesture" ab.
+  # `horizontal` deckt BEIDE Richtungen ab -- absichtlich keine zwei Gesten
+  # fuer left und right: die zweite wuerde von der ersten ueberschattet
+  # (so lehnte es der .conf-Parser bis 0.56 ab).
   gestureBlock =
     if isLaptop then ''
 
-      ### Trackpad ###
-      # 3 Finger horizontal = Workspace wechseln (kontinuierlich, mit Animation).
-      gesture = 3, horizontal, workspace
+      -- 3 Finger horizontal = Workspace wechseln (kontinuierlich, mit Animation).
+      hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
     '' else "";
 
   # Monitor-Anordnung als GUI -- nur am Laptop, weil nur dort die Schirme
@@ -79,26 +77,29 @@ let
   # festmachen koennte. Die lange Begruendung steht in
   # hosts/fabricus-itinerans/monitors.nix, die auch das Paket installiert.
   #
-  # nwg-displays schreibt sein Ergebnis nach ~/.config/hypr/monitors.conf --
-  # genau die Datei, die weiter unten per `source` hereinkommt.
+  # nwg-displays schreibt sein Ergebnis seit 0.4.3 zusaetzlich als
+  # ~/.config/hypr/monitors.lua (neben der alten monitors.conf) -- genau das
+  # Modul, das die hyprland.lua weiter unten per require("monitors") laedt.
+  # 26.05 hat 0.4.3, passt also.
   monitorToolBind =
     if isLaptop then ''
-      bind = $mainMod SHIFT, M, exec, nwg-displays  # "Monitore anordnen (Drag-and-drop, dann Apply)"
+      hl.bind(mainMod .. " + SHIFT + M", hl.dsp.exec_cmd("nwg-displays"), { description = "Monitore anordnen (Drag-and-drop, dann Apply)" })
     '' else "";
 
-  # Startinhalt fuer ~/.config/hypr/monitors.conf am Laptop, siehe
-  # home.activation.seedMonitorsConf weiter unten. Wird nur benutzt, wenn die
+  # Startinhalt fuer ~/.config/hypr/monitors.lua am Laptop, siehe
+  # home.activation.seedMonitorsLua weiter unten. Wird nur benutzt, wenn die
   # Datei fehlt -- nwg-displays ueberschreibt sie beim ersten "Apply".
-  monitorsSeed = pkgs.writeText "monitors-seed.conf" ''
-    # Notnagel-Layout, angelegt von home/hyprland.nix beim ersten Start.
-    # Ab dem ersten "Apply" in nwg-displays (SUPER+SHIFT+M) gehoert diese
-    # Datei dem Werkzeug -- hier steht dann nichts davon mehr drin.
-    #
-    # Bewusst ohne Connector-Namen: die aendern sich am Laptop mit Dock und
-    # Kabelport. auto-right haengt jeden unbekannten Schirm deterministisch
-    # rechts an, damit kann nichts uebereinander landen.
-    monitor = eDP-1, preferred, 0x0, 1
-    monitor = , preferred, auto-right, 1
+  monitorsSeed = pkgs.writeText "monitors-seed.lua" ''
+    -- Notnagel-Layout, angelegt von home/hyprland.nix beim ersten Start.
+    -- Ab dem ersten "Apply" in nwg-displays (SUPER+SHIFT+M) gehoert diese
+    -- Datei dem Werkzeug -- hier steht dann nichts davon mehr drin.
+    --
+    -- Bewusst ohne Connector-Namen fuer die externen Schirme: die aendern
+    -- sich am Laptop mit Dock und Kabelport. auto-right haengt jeden
+    -- unbekannten Schirm deterministisch rechts an, damit kann nichts
+    -- uebereinander landen.
+    hl.monitor({ output = "eDP-1", mode = "preferred", position = "0x0", scale = 1 })
+    hl.monitor({ output = "", mode = "preferred", position = "auto-right", scale = 1 })
   '';
 
   # Aufpasser fuer noctalia (30.09.2026). noctalia ist Bar UND Sperrbildschirm.
@@ -117,7 +118,7 @@ let
   # im entsperrten Zustand endet mit Sperrbildschirm -- bewusst, lieber einmal
   # zu viel entsperren als eine offene Session.
   #
-  # Keine systemd-User-Unit, Begruendung beim exec-once unten. Bremse: mehr als
+  # Keine systemd-User-Unit, Begruendung beim Autostart unten. Bremse: mehr als
   # 5 Neustarts in 60 s -> aufgeben, damit ein kaputtes noctalia nicht im
   # Sekundentakt das Journal flutet.
   noctaliaSupervisor = pkgs.writeShellScript "noctalia-supervisor" ''
@@ -158,19 +159,25 @@ let
     done
   '';
 
-  # Kommentarzeilen fliegen beim Bauen aus der hyprland.conf (09.10.2026).
-  # Grund ist das keybind-cheatsheet-Plugin: es parst die Datei beim noctalia-
-  # Start in EINEM Luau-Aufruf mit 100 ms CPU-Budget ('chunk', luau_host.cpp).
-  # Mit ~275 Kommentarzeilen von 449 riss es das Budget bei jedem Start seit
-  # mindestens 21.09. (Journal: "exceeded its CPU budget"), und das Panel zeigte
-  # still den Cache vom letzten Erfolg -- SUPER+plus und SUPER+U fehlten.
-  # Ohne Kommentare halbiert sich der Parse-Aufwand (gemessen: 1,31 -> 0,74 ms
-  # nativ, gleiche 80 Binds). Nebeneffekt: Datums-Kommentare wie "# 21.09. ..."
-  # las das Plugin als nummerierte Kategorie.
+  # Kommentarzeilen fliegen beim Bauen aus der hyprland.lua (seit 09.10.2026,
+  # damals noch fuer die .conf). Grund ist das keybind-cheatsheet-Plugin: es
+  # liest die Datei beim noctalia-Start in EINEM Luau-Aufruf mit 100 ms
+  # CPU-Budget ('chunk', luau_host.cpp). Mit ~275 Kommentarzeilen riss es das
+  # Budget bei jedem Start seit mindestens 21.09. (Journal: "exceeded its CPU
+  # budget"), und das Panel zeigte still den Cache vom letzten Erfolg.
+  # Im Lua-Modus holt das Plugin die Binds live per `hyprctl binds -j` und
+  # scannt die Datei nur noch nach Kategorien und `description`-Feldern --
+  # weniger Arbeit, aber dieselbe Budget-Falle, also bleibt das Strippen.
+  #
+  # Ausnahme: Zeilen der Form `-- 1. Name` bleiben stehen. Genau daraus baut
+  # das Plugin im Lua-Modus seine Kategorien (README des Plugins). Deshalb
+  # gilt umgekehrt: kein Doku-Kommentar in der Lua-Config darf mit
+  # `-- <Zahl>. ` anfangen, sonst wird er zur Kategorie.
   # Die Kommentare bleiben HIER die Doku; die erzeugte Datei liest niemand.
-  # Nur ganze Zeilen -- `# "Text"` am Bind-Ende bleibt, davon lebt das Panel.
   stripComments = text: lib.concatStringsSep "\n"
-    (builtins.filter (l: builtins.match "[[:space:]]*#.*" l == null)
+    (builtins.filter
+      (l: builtins.match "[[:space:]]*--.*" l == null
+        || builtins.match "[[:space:]]*-- [0-9]+\\. .*" l != null)
       (lib.splitString "\n" text));
 in
 {
@@ -181,15 +188,17 @@ in
     run mkdir -p ${lib.escapeShellArg screenshotDir}
   '';
 
-  # monitors.conf anlegen, falls sie fehlt -- NUR am Laptop, wo nwg-displays
+  # monitors.lua anlegen, falls sie fehlt -- NUR am Laptop, wo nwg-displays
   # die Datei besitzt und home-manager sie deshalb nicht mehr erzeugt.
   #
-  # WARUM DAS NOETIG IST (21.09.2026, auf die harte Tour gelernt): ein `source`
-  # auf eine nicht existierende Datei ist in Hyprland KEINE Warnung, sondern
-  # ein Config-Fehler --
-  #   "source= globbing error: found no match"
-  # als rote Leiste im Bild. Der Kommentar an der source-Zeile weiter unten
-  # hat bis heute das Gegenteil behauptet und ist mit korrigiert.
+  # Ein Fehler ist das Fehlen seit der Lua-Config nicht mehr: hyprland.lua
+  # laedt das Modul per pcall (siehe dort), anders als das `source` der
+  # .conf, das bei fehlender Datei als "source= globbing error" rot im Bild
+  # stand (21.09.2026). Ohne Datei faehrt Hyprland aber alle Schirme mit
+  # seinen Defaults hoch, und die koennen am Dock uebereinander liegen --
+  # deshalb trotzdem der Notnagel. Die alte monitors.conf von nwg-displays
+  # bleibt liegen und wird nicht mehr gelesen; der erste "Apply" nach dem
+  # Umstieg schreibt beide neu.
   #
   # Der Inhalt hier ist bewusst nur ein Notnagel fuer den allerersten Start:
   # internes Panel links, alles andere deterministisch rechts angehaengt, keine
@@ -201,26 +210,18 @@ in
   # Zeitpunkt dieser Aktivierung (writeBoundary liegt nach dem Verlinken) und
   # die Bedingung unten greift gar nicht erst. Eine mkIf-Weiche auf einem
   # DAG-Eintrag waere nur eine zusaetzliche Stelle, die brechen kann.
-  home.activation.seedMonitorsConf = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    if [ ! -e "$HOME/.config/hypr/monitors.conf" ]; then
+  home.activation.seedMonitorsLua = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    if [ ! -e "$HOME/.config/hypr/monitors.lua" ]; then
       run mkdir -p "$HOME/.config/hypr"
-      run cp ${monitorsSeed} "$HOME/.config/hypr/monitors.conf"
-      run chmod 644 "$HOME/.config/hypr/monitors.conf"
+      run cp ${monitorsSeed} "$HOME/.config/hypr/monitors.lua"
+      run chmod 644 "$HOME/.config/hypr/monitors.lua"
     fi
   '';
 
-  # noctalia.conf anlegen, falls sie fehlt -- dieselbe Glob-Falle wie oben bei
-  # monitors.conf, nur auf beiden Hosts: noctalia schreibt die Datei beim
-  # Start selbst, auf einem frisch aufgesetzten System fehlt sie beim
-  # allerersten Hyprland-Start aber noch, und das `source` weiter unten waere
-  # ein Config-Fehler. Eine leere Datei reicht; noctalia ueberschreibt sie.
-  # (25.09.2026, Skitarii-Befund vom 21.09.)
-  home.activation.seedNoctaliaConf = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    if [ ! -e "$HOME/.config/hypr/noctalia.conf" ]; then
-      run mkdir -p "$HOME/.config/hypr"
-      run touch "$HOME/.config/hypr/noctalia.conf"
-    fi
-  '';
+  # seedNoctaliaConf ist am 01.11.2026 entfallen: noctalias Theme kommt jetzt
+  # als noctalia.lua und wird per pcall geladen, eine fehlende Datei ist
+  # also kein Config-Fehler mehr. Die alte ~/.config/hypr/noctalia.conf
+  # bleibt liegen und wird nicht mehr gelesen.
 
   home.packages = with pkgs; [
     grimblast  # Screenshot-Wrapper (Print)
@@ -244,7 +245,9 @@ in
     (writeShellScriptBin "discord-web" ''
       if hyprctl -j clients \
            | ${jq}/bin/jq -e 'any(.[]; .title | test("Discord"))' >/dev/null; then
-        hyprctl dispatch focuswindow 'title:.*Discord.*'
+        # Dispatch-Syntax seit 0.57 ist ein Lua-Ausdruck; die alte Form
+        # `hyprctl dispatch focuswindow 'title:...'` gibt es nicht mehr.
+        hyprctl dispatch 'hl.dsp.focus({ window = "title:.*Discord.*" })'
       else
         firefox --new-window https://discord.com/app
       fi
@@ -300,450 +303,336 @@ in
     # Der selbstgebaute hypr-cheatsheet ist am 09.08.2026 rausgeflogen. Ersetzt
     # durch das noctalia-Plugin kenn/keybind-cheatsheet -- gleiche Idee (Binds
     # live statt aus einer Doku-Kopie), aber im noctalia-Design statt in fuzzel.
-    # Das Plugin liest hyprland.conf direkt (Einstellung hyprland_parser=conf),
-    # es braucht also weder Lua noch hyprctl-Parsing von Hand. Mit dem Ausbau
+    # Seit der Lua-Config (01.11.2026) liest das Plugin die Binds live ueber
+    # `hyprctl binds -j` (Parser-Modus auto/lua) samt `description`-Feld und
+    # holt sich die Kategorien aus `-- 1. Name`-Zeilen der hyprland.lua.
+    # Bis dahin las es die hyprland.conf als Text. Mit dem Ausbau
     # verliert fuzzel seinen letzten Nutzer und fliegt ebenfalls raus.
   ];
 
-  xdg.configFile."hypr/hyprland.conf".text = stripComments ''
-    # Managed by home-manager (nixos-prep/home/hyprland.nix)
-    # Catppuccin Mocha - clean & ruhig
+  # Seit 01.11.2026 Lua statt hyprland.conf. Hyprland 0.57 liest KEINE .conf
+  # mehr (ab 0.56 nur noch mit Deprecation-Leiste) und legt beim ersten Start
+  # ohne hyprland.lua eine Beispiel-Config an -- genau das hat am 01.11. die
+  # Session zerlegt (Runbook in Skitariis Memory, 2026-11-01). Die Uebersetzung
+  # ist 1:1, Verhalten soll sich nicht aendern. Quelle fuer die API:
+  # share/hypr/stubs/hl.meta.lua im 0.57-Paket (Typen aller Optionen) und die
+  # Dispatcher-Seite des Wikis fuer v0.57.0.
+  #
+  # Rueckweg: alte NixOS-Generation booten. Die hyprland.lua ist ein
+  # home-manager-Symlink, die alte Generation raeumt ihn beim Aktivieren also
+  # selbst weg -- anders als die Beispiel-Config vom 01.11., die als echte
+  # Datei im Home lag und jeden Rollback ueberlebt hat.
+  xdg.configFile."hypr/hyprland.lua".text = stripComments ''
+    -- Managed by home-manager (home/hyprland.nix)
+    -- Catppuccin Mocha - clean & ruhig
 
-    ### Monitor ###
-    # Diese Datei ist der EINZIGE Ort mit monitor=-Regeln -- hier steht bewusst
-    # keine, auch kein Catch-all, sonst gewinnt je nach Reihenfolge mal die
-    # eine, mal die andere.
-    #
-    # ACHTUNG, hier stand bis 21.09.2026 das Gegenteil: "Fehlt die Datei, warnt
-    # Hyprland nur." DAS IST FALSCH. Ein source= auf eine nicht existierende
-    # Datei ist ein Config-Fehler und erscheint als rote Leiste im Bild:
-    #   "source= globbing error: found no match"
-    # Hyprland behandelt source-Pfade als Glob, und ein Glob ohne Treffer ist
-    # ein Fehler. Deshalb legt home.activation.seedMonitorsConf die Datei am
-    # Laptop an, falls sie fehlt. Dasselbe gilt fuer noctalia.conf weiter
-    # unten -- die schreibt noctalia beim Start selbst, auf einem frisch
-    # aufgesetzten System ist sie beim allerersten Hyprland-Start aber noch
-    # nicht da.
-    #
-    # WER SIE SCHREIBT, IST SEIT 21.09.2026 JE HOST VERSCHIEDEN:
-    #   fabricus            -> hosts/fabricus/monitors.nix, deklarativ ueber
-    #                          home-manager (Store-Symlink, read-only). Zwei
-    #                          feste Schirme an festen Ports.
-    #   fabricus-itinerans  -> nwg-displays, per Hand (SUPER+SHIFT+M). Eine
-    #                          echte, veraenderliche Datei. Am Laptop wechseln
-    #                          Schirme und Connector-Namen staendig; Begruendung
-    #                          in hosts/fabricus-itinerans/monitors.nix.
-    source = ~/.config/hypr/monitors.conf
+    -- Monitore: aus ~/.config/hypr/monitors.lua. Wer sie schreibt, ist je Host
+    -- verschieden:
+    --   fabricus            -> hosts/fabricus/monitors.nix, deklarativ ueber
+    --                          home-manager (Store-Symlink, read-only).
+    --   fabricus-itinerans  -> nwg-displays, per Hand (SUPER+SHIFT+M). Eine
+    --                          echte, veraenderliche Datei; Begruendung in
+    --                          hosts/fabricus-itinerans/monitors.nix.
+    -- Hier steht bewusst keine hl.monitor-Regel, auch kein Catch-all.
+    --
+    -- pcall, weil require auf ein fehlendes Modul in Lua ein echter Fehler
+    -- ist und den Rest dieser Datei abbrechen wuerde. So fehlt im
+    -- schlimmsten Fall nur das Layout, nicht die ganze Config.
+    local ok_monitors, err_monitors = pcall(require, "monitors")
+    if not ok_monitors then
+        hl.notification.create({ text = "monitors.lua fehlt oder ist kaputt: " .. tostring(err_monitors), timeout = 10000 })
+    end
 
-    ### Programme ###
-    $terminal    = kitty
-    # Suche/Launcher ist ab 08.08.2026 noctalias Panel statt fuzzel -- ein Stack
-    # fuer alles, was aufklappt. Seit 09.08.2026 ist fuzzel auch als Paket weg,
-    # weil die Hilfe auf das noctalia-Plugin umgezogen ist (war der letzte Nutzer).
-    $menu        = noctalia msg panel-toggle launcher
-    $browser     = firefox
-    $mail        = thunderbird
-    # --override=confirm_os_window_close=0: kitty fragt sonst beim Schliessen
-    # (SUPER+W) nach, weil im Fenster noch yazi laeuft. Bewusst nur hier und
-    # nicht global -- bei einem Terminal mit laufendem Build will man die Frage.
-    $fileManager = kitty --override=confirm_os_window_close=0 -e yazi
-    $mainMod     = SUPER
+    -- Programme
+    local terminal    = "kitty"
+    -- Suche/Launcher ist noctalias Panel (seit 08.08.2026, fuzzel ist weg).
+    local menu        = "noctalia msg panel-toggle launcher"
+    local browser     = "firefox"
+    local mail        = "thunderbird"
+    -- --override=confirm_os_window_close=0: kitty fragt sonst beim Schliessen
+    -- (SUPER+W) nach, weil im Fenster noch yazi laeuft. Bewusst nur hier und
+    -- nicht global -- bei einem Terminal mit laufendem Build will man die Frage.
+    local fileManager = "kitty --override=confirm_os_window_close=0 -e yazi"
+    local mainMod     = "SUPER"
 
-    ### Autostart ###
-    #exec-once = waybar
-    #exec-once = mako
-    # noctalia durch systemd-cat, damit seine Ausgabe ins Journal geht statt in
-    # eine tmpfs-Datei (21.09.2026).
-    #
-    # VORHER: `exec-once = noctalia`. Hyprland leitet die Ausgabe seiner Kinder
-    # in $XDG_RUNTIME_DIR/hypr/<instance>/hyprland.log um -- tmpfs, also weg bei
-    # Logout und Reboot, ohne Rotation und ohne Historie. Als noctalia am
-    # 21.09. nach einem Resume-Hotplug ausgestiegen ist, war die Meldung nach
-    # dem Neustart unwiederbringlich verloren; gemessen hatte
-    # `journalctl -b -1 -u greetd.service` fuer den ganzen Boot 7 Zeilen, keine
-    # davon von Hyprland oder noctalia.
-    #
-    # WARUM KEINE systemd-User-Unit: aus demselben Grund wie bei soteria weiter
-    # unten -- graphical-session.target wird in dieser Session nie erreicht
-    # (nachgezaehlt: 0 Treffer im User-Journal), eine daran haengende Unit
-    # wuerde also nie starten, und der User-Manager kennt WAYLAND_DISPLAY hier
-    # nicht. systemd-cat loest genau das Log-Problem und laesst Startreihenfolge
-    # und Umgebungsvererbung unveraendert: es exec't noctalia direkt, nur mit
-    # stdout/stderr am Journal.
-    #
-    # Lesen:  journalctl --user -t noctalia -b        (als bfn)
-    #         journalctl _UID=1000 -t noctalia -b     (als Agent, der auf
-    #                                                  /home/bfn keinen Zugriff hat)
-    #
-    # Seit 30.09.2026 laeuft das Ganze im noctaliaSupervisor (let-Block oben),
-    # der noctalia nach einem Absturz neu startet und wieder sperrt.
-    exec-once = ${noctaliaSupervisor}
-    exec-once = 1password --silent
-    # polkit-Authentication-Agent. Ohne ihn lehnt polkitd jede Anfrage sofort
-    # ab -- kein Dialog, keine Fehlermeldung. Betrifft jede polkit-Aktion der
-    # Session; aufgefallen ist es an 1Passwords Unlock per Systemauth, der
-    # deshalb nie funktioniert hat. Hintergrund und Messung in home/apps.nix.
-    #
-    # soteria statt hyprpolkitagent (09.09.2026, Optik). Der erste Anlauf lief
-    # funktional einwandfrei, sah aber ungethemt aus -- und das hat einen
-    # nachvollziehbaren Grund: hyprpolkitagent ist Qt/QML. home/theme.nix
-    # koppelt Qt per `qt.platformTheme.name = "gtk3"` ans GTK-Theme, aber das
-    # greift nur fuer QWidget-Apps (qbittorrent, VLC). QtQuick-Controls laufen
-    # nicht ueber QStyle und ignorieren die Kopplung, der Dialog blieb also
-    # hell. soteria ist GTK -- es nimmt Adwaita-dark aus home/theme.nix direkt.
-    #
-    # exec-once statt der systemd-User-Unit des home-manager-Moduls: die
-    # haengt an graphical-session.target, das diese Session nie erreicht. Als
-    # exec-once-Kind von Hyprland erbt der Agent ausserdem WAYLAND_DISPLAY &
-    # Co. garantiert -- der User-Manager kennt diese Variablen hier nicht.
-    #
-    # Voller Store-Pfad wie bei den Nachbarn oben: haelt die Zeile unabhaengig
-    # davon, ob das Paket je in home.packages landet.
-    exec-once = ${pkgs.soteria}/bin/soteria
-    # cliphist-Mitschnitt hier entfernt (08.08.2026): noctalia bringt eine
-    # EIGENE Clipboard-History mit und nutzt cliphist nachweislich nicht (im
-    # noctalia-5.0.0-Binary kommt weder `cliphist` noch `wl-paste` vor). Beides
-    # parallel hiess: zwei unabhaengige Historien mit unterschiedlichem Inhalt,
-    # je nachdem ob man die Bar oder SUPER+V benutzt hat.
+    -- Autostart. Seit 0.57 kein exec-once mehr, sondern das Event
+    -- hyprland.start -- feuert genau einmal pro Compositor-Start, nicht bei
+    -- jedem Reload.
+    hl.on("hyprland.start", function()
+        -- noctalia im Aufpasser (noctaliaSupervisor, let-Block oben): startet
+        -- es nach Absturz neu, sperrt dann wieder, und haengt es per
+        -- systemd-cat ans Journal statt an das tmpfs-Log von Hyprland
+        -- (21.09.2026). Lesen: journalctl --user -t noctalia -b (als bfn)
+        -- bzw. journalctl _UID=1000 -t noctalia -b (als Agent).
+        --
+        -- Keine systemd-User-Unit: graphical-session.target wird in dieser
+        -- Session nie erreicht, und der User-Manager kennt WAYLAND_DISPLAY
+        -- hier nicht. Als Kind von Hyprland erbt alles hier die Umgebung.
+        hl.exec_cmd("${noctaliaSupervisor}")
+        hl.exec_cmd("1password --silent")
+        -- polkit-Agent. Ohne ihn lehnt polkitd jede Anfrage sofort ab, ohne
+        -- Dialog (aufgefallen am 1Password-Unlock per Systemauth). soteria
+        -- statt hyprpolkitagent, weil GTK und damit gethemt (09.09.2026).
+        hl.exec_cmd("${pkgs.soteria}/bin/soteria")
+    end)
 
-    ### Look ###
-    general {
-        gaps_in = 4
-        gaps_out = 8
-        border_size = 2
-        col.active_border = rgba(89b4faee) rgba(cba6f7ee) 45deg
-        col.inactive_border = rgba(45475aaa)
-        layout = dwindle
-        resize_on_border = true
-    }
+    -- Look
+    hl.config({
+        -- Optik-Runde 01.11.2026 (bfn): angelehnt an die verbreiteten
+        -- Material-3-Rices (end-4/illogical-impulse, caelestia), aber ohne
+        -- deren Fenster-Transparenz -- "clean & ruhig" bleibt. Etwas mehr Luft,
+        -- weichere Ecken, Schatten als Fokus-Hinweis, MD3-Kurven unten.
+        general = {
+            gaps_in = 5,
+            gaps_out = 12,
+            border_size = 2,
+            col = {
+                active_border = { colors = { "rgba(89b4faee)", "rgba(cba6f7ee)" }, angle = 45 },
+                inactive_border = "rgba(45475aaa)",
+            },
+            layout = "dwindle",
+            resize_on_border = true,
+        },
 
-    decoration {
-        rounding = 10
-        active_opacity = 1.0
-        inactive_opacity = 1.0
-        blur {
-            enabled = true
-            size = 4
-            passes = 2
-            vibrancy = 0.15
-        }
-        shadow {
-            enabled = true
-            range = 12
-            render_power = 2
-            color = rgba(11111baa)
-        }
-    }
+        decoration = {
+            rounding = 12,
+            -- 2 = runde Ecke, hoeher = "Squircle" wie bei GNOME/macOS.
+            rounding_power = 2.5,
+            -- Bewusst keine Fenster-Transparenz (Lesbarkeit auf 4k).
+            active_opacity = 1.0,
+            inactive_opacity = 1.0,
+            -- Abdunkeln hinter dem Scratchpad (SUPER+S), damit es sich vom
+            -- Rest abhebt.
+            dim_special = 0.3,
+            blur = {
+                enabled = true,
+                size = 6,
+                -- Laptop (UHD 620) mit einem Durchgang weniger, der Blur
+                -- kostet pro Pass GPU-Zeit bei jedem Neuzeichnen.
+                passes = ${toString blurPasses},
+                -- Rauschen + etwas weniger Kontrast/Helligkeit: der Blur
+                -- wirkt wie Milchglas statt wie verwaschen (end-4-Werte).
+                noise = 0.01,
+                contrast = 0.9,
+                brightness = 0.85,
+                vibrancy = 0.17,
+                -- Popups (Kontextmenues) und Scratchpad mitblurren.
+                popups = true,
+                special = true,
+                xray = false,
+            },
+            -- Weicher, breiter Schatten am aktiven Fenster, kaum einer an
+            -- inaktiven: der Fokus ist ohne Abdunkeln sofort erkennbar.
+            shadow = {
+                enabled = true,
+                range = 24,
+                render_power = 3,
+                color = "rgba(11111bb0)",
+                color_inactive = "rgba(11111b40)",
+            },
+        },
 
-    animations {
-        enabled = true
-        bezier = easeOut, 0.16, 1, 0.3, 1
-        animation = windows,    1, 3, easeOut
-        animation = windowsOut, 1, 3, easeOut, popin 80%
-        animation = fade,       1, 3, easeOut
-        animation = border,     1, 5, easeOut
-        animation = workspaces, 1, 3, easeOut, slide
-    }
+        animations = {
+            enabled = true,
+        },
 
-    dwindle {
-        # pseudotile: in Hyprland 0.56 als Config-Option entfernt (weder unter
-        # dwindle:, general: noch misc: -- per --verify-config geprueft).
-        # Pseudotiling gibt es weiter als Dispatcher `pseudo`, siehe Keybinds.
-        preserve_split = true
-    }
+        dwindle = {
+            -- pseudotile gibt es als Option seit 0.56 nicht mehr, nur noch als
+            -- Dispatcher (SUPER+SHIFT+P unten).
+            preserve_split = true,
+        },
 
-    misc {
-        disable_hyprland_logo = true
-        disable_splash_rendering = true
-        # Ein neuer Lock-Client darf eine verwaiste Sperre uebernehmen, statt
-        # dass nur noch tty2 + Reboot bleiben (30.09.2026, siehe
-        # noctaliaSupervisor). Notweg von tty2, falls auch der scheitert:
-        #   hyprctl --instance 0 dispatch exec hyprlock
-        allow_session_lock_restore = true
-    }
+        misc = {
+            disable_hyprland_logo = true,
+            disable_splash_rendering = true,
+            -- Ein neuer Lock-Client darf eine verwaiste Sperre uebernehmen,
+            -- statt dass nur noch tty2 + Reboot bleiben (30.09.2026, siehe
+            -- noctaliaSupervisor). Notweg von tty2, falls auch der scheitert:
+            --   hyprctl --instance 0 dispatch 'hl.dsp.exec_cmd("hyprlock")'
+            allow_session_lock_restore = true,
+        },
 
-    input {
-        kb_layout = de
-        follow_mouse = 1
-        sensitivity = 0
-        touchpad {
-            natural_scroll = true
-        }
-    }
+        input = {
+            kb_layout = "de",
+            follow_mouse = 1,
+            sensitivity = 0,
+            touchpad = {
+                natural_scroll = true,
+            },
+        },
+
+        -- wp-color-management-v1 auf Version 1 begrenzen (06.08.2026).
+        -- Hyprland bietet v2 an, Firefox 146 kannte nur v1 und wurde bei
+        -- Opcode 2 hart gekillt ("wp_image_description_v1 has no event 2").
+        -- Color Management bleibt an, nur die Protokoll-Version ist
+        -- gedeckelt. Greift nur nach Compositor-Neustart. Ob Firefox 159 das
+        -- noch braucht, ist ungeprueft -- solange es nicht stoert, bleibt es.
+        experimental = {
+            wp_cm_1_2 = false,
+        },
+    })
+
+    -- Kurven aus Material 3 (wie end-4 und caelestia): decel fuer alles,
+    -- was erscheint, accel fuer alles, was verschwindet, standard fuer
+    -- Bewegung. Geschwindigkeiten in Zehntelsekunden, bewusst eher kurz.
+    hl.curve("md3_standard", { type = "bezier", points = { { 0.2, 0 }, { 0, 1 } } })
+    hl.curve("md3_decel",    { type = "bezier", points = { { 0.05, 0.7 }, { 0.1, 1 } } })
+    hl.curve("md3_accel",    { type = "bezier", points = { { 0.3, 0 }, { 0.8, 0.15 } } })
+    hl.curve("menu_decel",   { type = "bezier", points = { { 0.1, 1 }, { 0, 1 } } })
+    hl.animation({ leaf = "windowsIn",        enabled = true, speed = 4,   bezier = "md3_decel",    style = "popin 80%" })
+    hl.animation({ leaf = "windowsOut",       enabled = true, speed = 2.5, bezier = "md3_accel",    style = "popin 80%" })
+    hl.animation({ leaf = "windowsMove",      enabled = true, speed = 4,   bezier = "md3_standard" })
+    hl.animation({ leaf = "fade",             enabled = true, speed = 3,   bezier = "md3_decel" })
+    hl.animation({ leaf = "border",           enabled = true, speed = 6,   bezier = "md3_standard" })
+    -- noctalia animiert seine Panels selbst; hier nur ein kurzes Einblenden,
+    -- sonst laufen zwei Animationen uebereinander.
+    hl.animation({ leaf = "layers",           enabled = true, speed = 2.5, bezier = "md3_decel",    style = "fade" })
+    hl.animation({ leaf = "workspaces",       enabled = true, speed = 4,   bezier = "menu_decel",   style = "slidefade 15%" })
+    hl.animation({ leaf = "specialWorkspace", enabled = true, speed = 3,   bezier = "md3_decel",    style = "slidefadevert 15%" })
 ${gestureBlock}
-    ### Color Management: wp-cm-v1 auf Version 1 begrenzen ###
-    # Hyprland 0.56 bietet wp-color-management-v1 in Version 2 an. Firefox 146
-    # implementiert nur v1 -- dort hat wp_image_description_v1 exakt zwei Events
-    # (failed, ready). Hyprland schickt ein v2-Event, Firefox kennt Opcode 2 nicht
-    # -> "Wayland protocol error: interface 'wp_image_description_v1' has no
-    # event 2" -> Wayland killt den Client hart (rc=11, Minidump).
-    # Verifiziert 06.08.2026: unter Wayland rc=11 reproduzierbar (auch mit frischem
-    # Profil), mit MOZ_ENABLE_WAYLAND=0 rc=0. Also compositor-seitig, nicht Firefox.
-    # Diese Option laesst Color Management AN, deckelt nur die Protokoll-Version.
-    # Greift NUR nach Compositor-Neustart (Globals werden beim Start advertised) --
-    # `hyprctl keyword` reicht nicht.
-    experimental {
-        wp_cm_1_2 = false
-    }
-    # Fallback, falls das nicht reicht: Color Management ganz aus (kostet HDR).
-    # render {
-    #     cm_enabled = false
-    # }
+    -- Adaptive Theming (noctalia). noctalia rendert seine Material-Palette
+    -- nach ~/.config/hypr/noctalia.lua (sein Lua-Template, seit noctalia 5.x)
+    -- und ueberschreibt mit apply_theme() die Border-Farben von oben. Ihr
+    -- eigener Weg waere, `require("noctalia").apply_theme()` an diese Datei
+    -- anzuhaengen -- das scheitert am read-only Store-Symlink (gleiche Lage
+    -- wie bei der kitty.conf), deshalb steht der Aufruf hier selbst.
+    -- pcall, weil die Datei auf einem frischen System beim ersten Start noch
+    -- fehlt; dann bleiben die Catppuccin-Werte. Live-Recolor beim
+    -- Wallpaper-Wechsel braucht ggf. ein `hyprctl reload`.
+    -- Der Aufruf steht absichtlich als woertliches `require("noctalia")` da:
+    -- noctalias apply.sh sucht genau diesen Text (grep -F) und versucht sonst
+    -- bei jedem Theme-Wechsel, ihn an die read-only Datei anzuhaengen.
+    local ok_noctalia, noctalia_theme = pcall(function() return require("noctalia") end)
+    if ok_noctalia and type(noctalia_theme) == "table" and noctalia_theme.apply_theme then
+        noctalia_theme.apply_theme()
+    end
 
-    ### Adaptive Theming (noctalia) ###
-    # noctalia rendert seine Material-Palette nach ~/.config/hypr/noctalia.conf und
-    # ueberschreibt damit die statischen Border-Farben aus general{} oben (source =
-    # last-wins). Fehlt die Datei, ist das ein Config-Fehler, keine Warnung --
-    # home.activation.seedNoctaliaConf legt sie deshalb leer an; solange sie
-    # leer ist, bleiben die Catppuccin-Werte. Live-Recolor beim Wallpaper-Wechsel braucht
-    # ggf. ein `hyprctl reload`, weil noctalias apply.sh die read-only HM-conf nicht
-    # selbst nachladen kann.
-    source = ~/.config/hypr/noctalia.conf
+    -- Keybindings.
+    --
+    -- Jeder Bind traegt ein `description`-Feld. Davon lebt das
+    -- keybind-cheatsheet-Plugin: es holt die Binds live per `hyprctl binds -j`
+    -- und zeigt die Beschreibung statt des rohen Dispatchers. Die
+    -- `-- N. Name`-Zeilen sind seine Kategorien und ueberleben als einzige
+    -- Kommentare das stripComments (let-Block oben).
+    --
+    -- Doppelt belegte Tasten: Hyprland nimmt kommentarlos den ERSTEN Treffer
+    -- (08.08.2026 SUPER+P, 11.09.2026 SUPER+SHIFT+R). Vor jedem neuen Bind
+    -- nach der Taste suchen.
 
-    ### Keybindings ###
-    #
-    # Jeder Bind traegt einen Klartext-Kommentar am Zeilenende. Das ist kein
-    # Schmuck: das keybind-cheatsheet-Plugin liest genau dieses Muster --
-    # `# "Text"` am Zeilenende, Zeile MUSS auf das Anfuehrungszeichen enden
-    # (service.luau, extractTrailingDescription). Ohne den Kommentar landet der
-    # Bind im Panel unter "without description" und zeigt nur den rohen
-    # Dispatcher, also z.B. "Launch $menu" statt "Anwendungen suchen".
-    #
-    # NICHT `bindd` verwenden, obwohl Hyprland das koennte: der Parser des
-    # Plugins splittet Bind-Zeilen auf 4 Felder, `bindd` hat 5 -- die
-    # Beschreibung landet dann im Dispatcher-Feld und die Anzeige ist kaputt.
-    #
-    # Fenster & Session
-    bind = $mainMod, Return, exec, ${terminalHere}  # "Terminal öffnen (im Ordner des aktiven Terminals)"
-    bind = $mainMod, Space, exec, $menu  # "Anwendungen suchen und starten"
-    bind = $mainMod, W, killactive  # "Aktives Fenster schließen"
-    bind = $mainMod SHIFT, Q, exit  # "Hyprland beenden (abmelden)"
-    bind = $mainMod, F, fullscreen  # "Vollbild an/aus"
-    # V-Paar am 27.08.2026 getauscht (bfn): der Zwischenablage-Verlauf ist der
-    # haeufigere Griff und sitzt jetzt auf dem ungeshifteten SUPER+V (unten im
-    # System-Block), togglefloating rueckt auf SHIFT.
-    bind = $mainMod SHIFT, V, togglefloating  # "Fenster schweben lassen / einrasten"
-    # togglesplit ist seit 0.56 kein eigener Dispatcher mehr, sondern eine
-    # Layout-Message. SHIFT+P = pseudotile, ersetzt die weggefallene dwindle-Option.
-    #
-    # Pseudotile lag bis 08.08.2026 auf SUPER+P und kollidierte dort mit dem
-    # 1Password-Bind weiter unten. Hyprland nimmt bei doppelt belegter Taste den
-    # ERSTEN Treffer -- der 1Password-Bind war damit wirkungslos, ohne dass es
-    # eine Fehlermeldung gegeben haette. Pseudotile ist der deutlich seltenere
-    # Griff und zieht deshalb um; P bleibt bei Password.
-    bind = $mainMod, T, layoutmsg, togglesplit  # "Teilung drehen: nebeneinander <-> übereinander"
-    bind = $mainMod SHIFT, P, pseudo  # "Pseudo-Kachelung an/aus"
+    -- 1. Fenster & Session
+    hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd("${terminalHere}"), { description = "Terminal öffnen (im Ordner des aktiven Terminals)" })
+    hl.bind(mainMod .. " + Space", hl.dsp.exec_cmd(menu), { description = "Anwendungen suchen und starten" })
+    hl.bind(mainMod .. " + W", hl.dsp.window.close(), { description = "Aktives Fenster schließen" })
+    hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.exit(), { description = "Hyprland beenden (abmelden)" })
+    hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen(), { description = "Vollbild an/aus" })
+    -- V-Paar am 27.08.2026 getauscht (bfn): Zwischenablage auf SUPER+V (System),
+    -- schweben lassen auf SHIFT.
+    hl.bind(mainMod .. " + SHIFT + V", hl.dsp.window.float({ action = "toggle" }), { description = "Fenster schweben lassen / einrasten" })
+    -- togglesplit ist eine Layout-Message. Pseudotile auf SHIFT+P, weil P
+    -- 1Password gehoert (08.08.2026).
+    hl.bind(mainMod .. " + T", hl.dsp.layout("togglesplit"), { description = "Teilung drehen: nebeneinander <-> übereinander" })
+    hl.bind(mainMod .. " + SHIFT + P", hl.dsp.window.pseudo(), { description = "Pseudo-Kachelung an/aus" })
 
-    # Fokus (vim HJKL)
-    bind = $mainMod, H, movefocus, l  # "Fokus nach links"
-    bind = $mainMod, J, movefocus, d  # "Fokus nach unten"
-    bind = $mainMod, K, movefocus, u  # "Fokus nach oben"
-    bind = $mainMod, L, movefocus, r  # "Fokus nach rechts"
+    -- 2. Fokus & Verschieben
+    hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "left" }), { description = "Fokus nach links" })
+    hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "down" }), { description = "Fokus nach unten" })
+    hl.bind(mainMod .. " + K", hl.dsp.focus({ direction = "up" }), { description = "Fokus nach oben" })
+    hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "right" }), { description = "Fokus nach rechts" })
+    hl.bind(mainMod .. " + SHIFT + H", hl.dsp.window.move({ direction = "left" }), { description = "Fenster nach links verschieben" })
+    hl.bind(mainMod .. " + SHIFT + J", hl.dsp.window.move({ direction = "down" }), { description = "Fenster nach unten verschieben" })
+    hl.bind(mainMod .. " + SHIFT + K", hl.dsp.window.move({ direction = "up" }), { description = "Fenster nach oben verschieben" })
+    hl.bind(mainMod .. " + SHIFT + L", hl.dsp.window.move({ direction = "right" }), { description = "Fenster nach rechts verschieben" })
 
-    # Fenster verschieben -- jetzt symmetrisch zum Fokus-Block darueber.
-    # SHIFT+H war bis 08.08.2026 fuer das Help-Menue reserviert, nach links
-    # verschieben ging deshalb nur per Maus-Drag. Help sitzt jetzt auf SUPER+?.
-    bind = $mainMod SHIFT, H, movewindow, l  # "Fenster nach links verschieben"
-    bind = $mainMod SHIFT, J, movewindow, d  # "Fenster nach unten verschieben"
-    bind = $mainMod SHIFT, K, movewindow, u  # "Fenster nach oben verschieben"
-    bind = $mainMod SHIFT, L, movewindow, r  # "Fenster nach rechts verschieben"
+    -- 3. Programme
+    hl.bind(mainMod .. " + B", hl.dsp.exec_cmd(browser), { description = "Browser (Firefox)" })
+    hl.bind(mainMod .. " + M", hl.dsp.exec_cmd(mail), { description = "Mail (Thunderbird)" })
+    hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager), { description = "Dateimanager (yazi im Terminal)" })
+    hl.bind(mainMod .. " + O", hl.dsp.exec_cmd("obsidian"), { description = "Obsidian (Notizen)" })
+    hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("1password"), { description = "1Password" })
+    hl.bind(mainMod .. " + D", hl.dsp.exec_cmd("discord-web"), { description = "Discord (Website in Firefox)" })
+    -- nvim bewusst OHNE confirm_os_window_close=0: die Rueckfrage ist hier die
+    -- letzte Warnung vor ungespeicherten Puffern.
+    hl.bind(mainMod .. " + N", hl.dsp.exec_cmd(terminal .. " -e nvim"), { description = "Neovim (Editor im Terminal)" })
 
-    # Apps
-    bind = $mainMod, B, exec, $browser  # "Browser (Firefox)"
-    bind = $mainMod, M, exec, $mail  # "Mail (Thunderbird)"
-    bind = $mainMod, E, exec, $fileManager  # "Dateimanager (yazi im Terminal)"
-    bind = $mainMod, O, exec, obsidian  # "Obsidian (Notizen)"
-    bind = $mainMod, P, exec, 1password  # "1Password"
-    bind = $mainMod, D, exec, discord-web  # "Discord (Website in Firefox)"
-    # Editor im Terminal. Bewusst OHNE das --override=confirm_os_window_close=0
-    # aus $fileManager: bei yazi ist die Rueckfrage beim Schliessen laestig, bei
-    # nvim ist sie die letzte Warnung vor ungespeicherten Puffern.
-    bind = $mainMod, N, exec, $terminal -e nvim  # "Neovim (Editor im Terminal)"
-    # SUPER+G (lazygit) gab es am 27.08.2026 fuer ein paar Stunden und ist
-    # wieder weg -- Begruendung bei der `lg`-Abbreviation in home/fish.nix.
-    # Kurzform: ein Bind startet ein Fenster ohne Kontext und muss sich das
-    # Repo aus einer Notiz holen; die Shell hat den Kontext schon.
-
-    # System
-    # Prozess-Uebersicht: btop (Paket in home/bfn.nix). Ersetzt am 09.10.2026
-    # das selbstgebaute `procs` (Momentaufnahme-Skript) -- bfn will die
-    # interaktive Live-Ansicht. Kein `--hold`: btop laeuft, bis man es mit q
-    # beendet, und dann soll das Fenster auch zugehen.
-    # --override=confirm_os_window_close=0 wie bei yazi ($fileManager): sonst
-    # fragt kitty beim Schliessen per SUPER+W nach, weil btop noch laeuft.
-    #
-    # Kein Komma im Befehl: Hyprland splittet die bind-Zeile an Kommas, und das
-    # keybind-cheatsheet-Plugin erwartet genau vier Felder (siehe Kommentar am
-    # Anfang dieses Blocks).
-    bind = $mainMod, U, exec, $terminal --override=confirm_os_window_close=0 -e btop  # "Prozess-Übersicht (btop)"
-    bind = $mainMod SHIFT, Escape, exec, hyprlock  # "Bildschirm sperren"
-    # Hilfe auf SUPER+ss. Voraus gingen zwei tote Varianten: `SHIFT, question`
-    # und `SHIFT, ssharp`. Gelernt (verifiziert im Test 09.08.2026): auf
-    # de-Layout ist ? = Shift+ss, aber Hyprland matcht hier den Keysym der
-    # BASIS-Ebene -- also `ssharp` OHNE SHIFT im Modifier-Feld. Ein Bind auf den
-    # geshifteten Keysym feuert nie, und zwar kommentarlos.
-    #
-    # Die Panel-ID ist voll qualifiziert (<plugin-id>:<panel-id>) -- ein blosses
-    # `cheatsheet` quittiert noctalia mit `unknown panel`.
-    bind = $mainMod, ssharp, exec, noctalia msg panel-toggle kenn/keybind-cheatsheet:cheatsheet  # "Diese Tastenkürzel-Übersicht"
-    # Screenshots landen seit 07.09.2026 in ~/Pictures/screenshots statt lose
-    # im Bilder-Ordner. Der Weg ist DEFAULT_TARGET_DIR und nicht die Session-
-    # Variable XDG_SCREENSHOTS_DIR: grimblast prueft DEFAULT_TARGET_DIR ZUERST
-    # und ueberspringt dann das Einlesen von user-dirs.dirs komplett -- damit
-    # haengt das Ziel an keiner Datei, die ich nicht kontrolliere, und wirkt
-    # sofort nach `hyprctl reload` statt erst nach dem naechsten Login (env =
-    # wird nur beim Compositor-Start gesetzt). Die Zuweisung vor dem Befehl
-    # traegt Hyprland, weil es exec ueber `/bin/sh -c` startet.
-    bind = $mainMod, C, exec, DEFAULT_TARGET_DIR=${screenshotDir} grimblast --notify copysave area  # "Screenshot: Bereich auswählen"
-    bind = $mainMod CTRL, C, exec, DEFAULT_TARGET_DIR=${screenshotDir} grimblast --notify copysave screen  # "Screenshot: ganzer Bildschirm"
-    bind = $mainMod SHIFT, C, exec, hyprpicker -a  # "Farbe vom Bildschirm aufnehmen"
-    # Clipboard-History: noctalias Panel statt cliphist+fuzzel (siehe Autostart).
-    # Panel-ID `clipboard` ist seit 09.08.2026 bestaetigt -- noctalia listet bei
-    # einer falschen ID alle gueltigen auf, das ist der billigste Weg sie zu
-    # pruefen (`noctalia msg panel-toggle bloedsinn`).
-    # Liegt seit 27.08.2026 auf SUPER+V statt SUPER+SHIFT+V, siehe Tausch oben.
-    bind = $mainMod, V, exec, noctalia msg panel-toggle clipboard  # "Zwischenablage-Verlauf"
-    # Benachrichtigungen. Es gibt in noctalia 5.0.0 KEIN eigenstaendiges
-    # Notification-Panel -- die Historie ist ein TAB des Control-Centers. Der
-    # Aufruf nimmt deshalb zwei Argumente: Panel, dann Tab. Verifiziert gegen
-    # das gepinnte Binary: die vordefinierten Widget-Aktionen enthalten exakt
-    # `panel-toggle control-center notifications` (daneben home, calendar,
-    # audio, network, bluetooth, weather, system, monitor, power).
-    bind = $mainMod SHIFT, N, exec, noctalia msg panel-toggle control-center notifications  # "Benachrichtigungen"
-    bind = $mainMod SHIFT, E, exec, noctalia msg settings-toggle  # "noctalia-Einstellungen"
-    # Notbremse, falls noctalia weg ist (bfn 29.09.2026). Hyprland wirft es
-    # selten raus, wenn der Deckel angedockt zugeht und die Monitore mitten im
-    # Lock verschwinden. Der Prozessname ist der des Nix-Wrappers
-    # (.noctalia-wrapped, auf 15 Zeichen gekuerzt) -- `pkill -x noctalia`
-    # trifft ihn NICHT. Keine Kommas im Befehl, siehe Parser-Hinweis oben.
-    # Seit 30.09.2026 nur noch pkill: den Neustart macht der
-    # noctaliaSupervisor, ein eigenes `noctalia` hier gaebe zwei Instanzen.
-    # Ist noctalia schon weg, startet der Aufpasser es ohnehin von selbst.
-    bind = SUPER ALT, N, exec, pkill -x .noctalia-wrapp  # "noctalia neu starten (Bar weg)"
-    # hyprctl reload ist am 11.09.2026 von SUPER+SHIFT+R auf SUPER ALT+R
-    # umgezogen -- SUPER+SHIFT+R ist jetzt der Rebuild (unten). Die beiden
-    # haetten sich sonst still gegenseitig verschluckt: bei doppelt belegter
-    # Taste nimmt Hyprland kommentarlos den ERSTEN Treffer (dieselbe Falle wie
-    # 08.08.2026 bei SUPER+P/pseudo). SUPER ALT ist als Modifier hier schon in
-    # Gebrauch (Wallpaper, ganz unten).
-    bind = SUPER ALT, R, exec, hyprctl reload  # "Hyprland-Konfiguration neu laden"
-
-    # NixOS neu bauen, ohne ins Terminal zu wechseln (bfn 11.09.2026).
-    # Beide Binds oeffnen bewusst ein eigenes kitty-Fenster: sudo fragt nach
-    # dem Passwort, und der Build-Output ist das Einzige, woran man sieht, ob
-    # der switch durch ist. Was das Skript genau tut, steht bei nixos-switch
-    # weiter oben in dieser Datei.
-    bind = $mainMod, R, exec, $terminal --title "nixos-rebuild switch" -e nixos-switch  # "NixOS neu bauen (nixos-rebuild switch)"
-    bind = $mainMod SHIFT, R, exec, $terminal --title "git pull + nixos-rebuild switch" -e nixos-switch --pull  # "NixOS: erst git pull, dann neu bauen"
-    # Fremdes WLAN mit Anmeldeseite. Ohne das Skript kommt die Seite nie hoch:
-    # Tailscale haelt den DNS auf 100.100.100.100, das Portal kann seinen
-    # Redirect also gar nicht ausliefern. Begruendung im Kopf von
-    # modules/captive-portal.nix.
-    bind = $mainMod SHIFT, W, exec, wifi-portal  # "WLAN-Anmeldeseite öffnen (Hotel, Café, Bahn)"
+    -- 4. System
+    -- btop statt des alten `procs` (09.10.2026); ohne Rueckfrage beim Schliessen.
+    hl.bind(mainMod .. " + U", hl.dsp.exec_cmd(terminal .. " --override=confirm_os_window_close=0 -e btop"), { description = "Prozess-Übersicht (btop)" })
+    hl.bind(mainMod .. " + SHIFT + Escape", hl.dsp.exec_cmd("hyprlock"), { description = "Bildschirm sperren" })
+    -- Hilfe auf SUPER+ss: auf dem de-Layout ist ? = Shift+ss, gematcht wird
+    -- aber der Keysym der BASIS-Ebene -- also `ssharp` ohne SHIFT (09.08.2026).
+    -- Panel-ID voll qualifiziert, ein blosses `cheatsheet` kennt noctalia nicht.
+    hl.bind(mainMod .. " + ssharp", hl.dsp.exec_cmd("noctalia msg panel-toggle kenn/keybind-cheatsheet:cheatsheet"), { description = "Diese Tastenkürzel-Übersicht" })
+    -- Screenshots nach ~/Pictures/screenshots. DEFAULT_TARGET_DIR statt
+    -- XDG_SCREENSHOTS_DIR, weil grimblast es zuerst prueft (07.09.2026);
+    -- traegt, weil exec_cmd ueber `sh -c` startet.
+    hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("DEFAULT_TARGET_DIR=${screenshotDir} grimblast --notify copysave area"), { description = "Screenshot: Bereich auswählen" })
+    hl.bind(mainMod .. " + CTRL + C", hl.dsp.exec_cmd("DEFAULT_TARGET_DIR=${screenshotDir} grimblast --notify copysave screen"), { description = "Screenshot: ganzer Bildschirm" })
+    hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("hyprpicker -a"), { description = "Farbe vom Bildschirm aufnehmen" })
+    -- noctalias Clipboard-History (cliphist ist seit 08.08.2026 raus).
+    hl.bind(mainMod .. " + V", hl.dsp.exec_cmd("noctalia msg panel-toggle clipboard"), { description = "Zwischenablage-Verlauf" })
+    -- Benachrichtigungen sind ein TAB des Control-Centers: Panel, dann Tab.
+    hl.bind(mainMod .. " + SHIFT + N", hl.dsp.exec_cmd("noctalia msg panel-toggle control-center notifications"), { description = "Benachrichtigungen" })
+    hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exec_cmd("noctalia msg settings-toggle"), { description = "noctalia-Einstellungen" })
+    -- Notbremse, falls noctalia haengt (29.09.2026). Prozessname ist der des
+    -- Nix-Wrappers, auf 15 Zeichen gekuerzt. Nur pkill: neu startet der
+    -- noctaliaSupervisor, ein eigenes `noctalia` hier gaebe zwei Instanzen.
+    hl.bind("SUPER + ALT + N", hl.dsp.exec_cmd("pkill -x .noctalia-wrapp"), { description = "noctalia neu starten (Bar weg)" })
+    hl.bind("SUPER + ALT + R", hl.dsp.reload_config(), { description = "Hyprland-Konfiguration neu laden" })
+    -- Rebuild per Taste (11.09.2026): eigenes kitty-Fenster, weil sudo fragt
+    -- und der Build-Output das Einzige ist, woran man den Erfolg sieht.
+    hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(terminal .. ' --title "nixos-rebuild switch" -e nixos-switch'), { description = "NixOS neu bauen (nixos-rebuild switch)" })
+    hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd(terminal .. ' --title "git pull + nixos-rebuild switch" -e nixos-switch --pull'), { description = "NixOS: erst git pull, dann neu bauen" })
+    -- Captive-Portal-WLAN, Begruendung in modules/captive-portal.nix.
+    hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("wifi-portal"), { description = "WLAN-Anmeldeseite öffnen (Hotel, Café, Bahn)" })
 ${monitorToolBind}
-    # Workspaces
-    bind = $mainMod, 1, workspace, 1  # "Zu Workspace 1"
-    bind = $mainMod, 2, workspace, 2  # "Zu Workspace 2"
-    bind = $mainMod, 3, workspace, 3  # "Zu Workspace 3"
-    bind = $mainMod, 4, workspace, 4  # "Zu Workspace 4"
-    bind = $mainMod, 5, workspace, 5  # "Zu Workspace 5"
-    bind = $mainMod, 6, workspace, 6  # "Zu Workspace 6"
-    bind = $mainMod, 7, workspace, 7  # "Zu Workspace 7"
-    bind = $mainMod, 8, workspace, 8  # "Zu Workspace 8"
-    bind = $mainMod, 9, workspace, 9  # "Zu Workspace 9"
-    bind = $mainMod, 0, workspace, 10  # "Zu Workspace 10"
+    -- 5. Workspaces
+    -- SUPER+1..0 -> Workspace 1..10, mit SHIFT nimmt das Fenster mit.
+    -- follow = true entspricht dem alten movetoworkspace (nicht ...silent):
+    -- man landet beim Fenster.
+    for i = 1, 10 do
+        local key = i % 10
+        hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }), { description = "Zu Workspace " .. i })
+        hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i, follow = true }), { description = "Fenster auf Workspace " .. i })
+    end
 
-    bind = $mainMod SHIFT, 1, movetoworkspace, 1  # "Fenster auf Workspace 1"
-    bind = $mainMod SHIFT, 2, movetoworkspace, 2  # "Fenster auf Workspace 2"
-    bind = $mainMod SHIFT, 3, movetoworkspace, 3  # "Fenster auf Workspace 3"
-    bind = $mainMod SHIFT, 4, movetoworkspace, 4  # "Fenster auf Workspace 4"
-    bind = $mainMod SHIFT, 5, movetoworkspace, 5  # "Fenster auf Workspace 5"
-    bind = $mainMod SHIFT, 6, movetoworkspace, 6  # "Fenster auf Workspace 6"
-    bind = $mainMod SHIFT, 7, movetoworkspace, 7  # "Fenster auf Workspace 7"
-    bind = $mainMod SHIFT, 8, movetoworkspace, 8  # "Fenster auf Workspace 8"
-    bind = $mainMod SHIFT, 9, movetoworkspace, 9  # "Fenster auf Workspace 9"
-    bind = $mainMod SHIFT, 0, movetoworkspace, 10  # "Fenster auf Workspace 10"
+    hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "e+1" }), { description = "Nächster Workspace (Mausrad)" })
+    hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }), { description = "Voriger Workspace (Mausrad)" })
 
-    bind = $mainMod, mouse_down, workspace, e+1  # "Nächster Workspace (Mausrad)"
-    bind = $mainMod, mouse_up, workspace, e-1  # "Voriger Workspace (Mausrad)"
+    -- Tastatur-Aequivalent zum 3-Finger-Wisch, monitor-lokal (`m` statt `e`,
+    -- 11.09.2026): bleibt auf dem fokussierten Bildschirm. Springt nur auf
+    -- bestehende Workspaces und wickelt am Ende um.
+    hl.bind(mainMod .. " + left", hl.dsp.focus({ workspace = "m-1" }), { description = "Voriger Workspace (auf diesem Bildschirm)" })
+    hl.bind(mainMod .. " + right", hl.dsp.focus({ workspace = "m+1" }), { description = "Nächster Workspace (auf diesem Bildschirm)" })
+    hl.bind(mainMod .. " + SHIFT + left", hl.dsp.window.move({ workspace = "m-1", follow = true }), { description = "Fenster einen Workspace nach links" })
+    hl.bind(mainMod .. " + SHIFT + right", hl.dsp.window.move({ workspace = "m+1", follow = true }), { description = "Fenster einen Workspace nach rechts" })
 
-    # Tastatur-Aequivalent zum 3-Finger-Wisch (bfn 07.09.2026), seit
-    # 11.09.2026 monitor-lokal: `m±1` statt `e±1`.
-    #
-    # Der Unterschied zaehlt erst mit zwei Bildschirmen. Beide Formen laufen
-    # durch denselben Parser, aber `e` setzt onAllMonitors -- die Liste der
-    # Sprungziele sind dann die Workspaces ALLER Monitore, und wer dort landet,
-    # nimmt den Fokus auf den Nachbarmonitor mit. `m` filtert auf
-    # `ws->m_monitor == focusState()->monitor()`, bleibt also auf dem
-    # fokussierten Bildschirm -- und ist exakt das, was der Wisch tut:
-    # CUnifiedWorkspaceSwipeGesture holt seine Ziele als "m-1"/"m+1" (mit
-    # gestures:workspace_swipe_use_r waeren es "r±1", Default ist aus).
-    # Geprueft im Quelltext des laufenden Tags v0.56.1, nicht in der Doku:
-    # src/helpers/MiscFunctions.cpp (getWorkspaceIDNameFromString) und
-    # src/managers/input/UnifiedWorkspaceSwipeGesture.cpp.
-    #
-    # Zwei Eigenheiten, die dabei aufgefallen sind:
-    #   * `m±1` springt NUR auf bestehende Workspaces, legt also nie einen
-    #     neuen an. Ein neuer kommt per SUPER++ (unten).
-    #   * Es WICKELT am Ende der Liste um (currentItem % validWSes.size()).
-    #     Der Kommentar, der hier bis 11.09.2026 stand ("kein Wrap-around"),
-    #     war falsch -- `e±1` laeuft durch denselben Modulo und wickelt
-    #     genauso. Der Wisch legt an dieser Stelle stattdessen einen neuen
-    #     Workspace an (gestures:workspace_swipe_create_new, Default an); das
-    #     ist der eine Punkt, in dem Tastatur und Trackpad sich unterscheiden.
-    bind = $mainMod, left, workspace, m-1  # "Voriger Workspace (auf diesem Bildschirm)"
-    bind = $mainMod, right, workspace, m+1  # "Nächster Workspace (auf diesem Bildschirm)"
+    -- Neuer leerer Workspace hinter dem aktuellen, auf diesem Bildschirm
+    -- (`emptynm`, 11.09.2026). `plus` liegt auf dem de-Layout auf der
+    -- Basis-Ebene, also ohne SHIFT (gleiche Regel wie ssharp).
+    hl.bind(mainMod .. " + plus", hl.dsp.focus({ workspace = "emptynm" }), { description = "Neuer leerer Workspace auf diesem Bildschirm" })
 
-    # Dasselbe mit Fenster im Schlepptau (bfn 07.09.2026). `movetoworkspace`
-    # (nicht ...silent) nimmt den Fokus mit -- man landet beim Fenster, wie bei
-    # SUPER+SHIFT+1..0 darueber. `m±1` aus demselben Grund wie eine Zeile
-    # darueber: das Fenster bleibt auf dem Bildschirm, auf dem es war.
-    bind = $mainMod SHIFT, left, movetoworkspace, m-1  # "Fenster einen Workspace nach links"
-    bind = $mainMod SHIFT, right, movetoworkspace, m+1  # "Fenster einen Workspace nach rechts"
+    -- noctalias Fenster-Switcher. SUPER+SHIFT+Tab bleibt bewusst frei: dort
+    -- blaettert der offene Switcher rueckwaerts (09.08.2026).
+    hl.bind(mainMod .. " + Tab", hl.dsp.exec_cmd("noctalia msg window-switcher"), { description = "Fenster-Umschalter (alle offenen Fenster)" })
 
-    # Neuer leerer Workspace auf dem fokussierten Bildschirm (bfn 11.09.2026).
-    # `emptynm` liest der Parser buchstabenweise: n = der naechste freie HINTER
-    # dem aktuellen (ohne n waere es die niedrigste freie Nummer ueberhaupt,
-    # also eine Luecke weiter vorn), m = keine Nummer, die per workspace-Regel
-    # an einen anderen Monitor gebunden ist. Damit fuehlt es sich an wie der
-    # Wisch nach rechts ueber das Ende hinaus.
-    #
-    # Taste: auf dem de-Layout liegt `+` auf der BASIS-Ebene, der Bind heisst
-    # deshalb `plus` -- dieselbe Regel wie bei `ssharp` weiter oben, und aus
-    # demselben Grund steht SHIFT hier nicht im Modifier-Feld.
-    bind = $mainMod, plus, workspace, emptynm  # "Neuer leerer Workspace auf diesem Bildschirm"
+    -- Scratchpad. toggle_special nimmt den Namen OHNE `special:`, window.move
+    -- braucht ihn MIT (Wiki 0.57, Dispatchers).
+    hl.bind(mainMod .. " + S", hl.dsp.workspace.toggle_special("magic"), { description = "Scratchpad ein-/ausblenden" })
+    hl.bind(mainMod .. " + SHIFT + S", hl.dsp.window.move({ workspace = "special:magic", follow = true }), { description = "Fenster ins Scratchpad legen" })
 
-    # SUPER+Tab oeffnet noctalias Fenster-Switcher statt blind einen Workspace
-    # weiterzuschalten (bfn 09.08.2026: getestet, reicht ihm -- damit ist
-    # hyprshell vom Tisch und wir sparen uns einen dritten UI-Stack mit eigenem
-    # Launcher und eigener Clipboard-History).
-    #
-    # SUPER+SHIFT+Tab ist bewusst WEG statt auf `workspace, e-1` zu bleiben:
-    # bei offenem Switcher ist Shift+Tab das Rueckwaertsblaettern IM Switcher,
-    # ein Hyprland-Bind wuerde dort dazwischenfunken. Workspace-Blaettern per
-    # Tastatur geht weiter ueber SUPER+1..0, per Maus ueber SUPER+Scroll.
-    bind = $mainMod, Tab, exec, noctalia msg window-switcher  # "Fenster-Umschalter (alle offenen Fenster)"
-
-    # Scratchpad
-    bind = $mainMod, S, togglespecialworkspace, magic  # "Scratchpad ein-/ausblenden"
-    bind = $mainMod SHIFT, S, movetoworkspace, special:magic  # "Fenster ins Scratchpad legen"
-
-    # Maus: move/resize per Drag
-    bindm = $mainMod, mouse:272, movewindow  # "Fenster ziehen (linke Maustaste)"
-    bindm = $mainMod, mouse:273, resizewindow  # "Fenstergröße ziehen (rechte Maustaste)"
-
-    # Media & Helligkeit
-    # SPACE stand hier im Modifier-Feld, ist aber kein Modifier -- der Bind war
-    # damit ungueltig und hat nie ausgeloest. 08.08.2026 auf SUPER ALT korrigiert.
-    bind = SUPER ALT, W, exec, noctalia msg wallpaper-next  # "Nächstes Hintergrundbild"
-    bindel = ,XF86AudioRaiseVolume,  exec, wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+  # "Lautstärke +5%"
-    bindel = ,XF86AudioLowerVolume,  exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-  # "Lautstärke -5%"
-    bindel = ,XF86AudioMute,         exec, wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle  # "Stumm an/aus"
-    bindel = ,XF86MonBrightnessUp,   exec, brightnessctl -e4 -n2 set 5%+  # "Helligkeit +5%"
-    bindel = ,XF86MonBrightnessDown, exec, brightnessctl -e4 -n2 set 5%-  # "Helligkeit -5%"
-    bindl  = ,XF86AudioNext,  exec, playerctl next  # "Nächster Titel"
-    bindl  = ,XF86AudioPause, exec, playerctl play-pause  # "Wiedergabe pausieren/fortsetzen"
-    bindl  = ,XF86AudioPlay,  exec, playerctl play-pause  # "Wiedergabe pausieren/fortsetzen"
-    bindl  = ,XF86AudioPrev,  exec, playerctl previous  # "Voriger Titel"
+    -- 6. Maus & Medien
+    hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true, description = "Fenster ziehen (linke Maustaste)" })
+    hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true, description = "Fenstergröße ziehen (rechte Maustaste)" })
+    hl.bind("SUPER + ALT + W", hl.dsp.exec_cmd("noctalia msg wallpaper-next"), { description = "Nächstes Hintergrundbild" })
+    -- bindel = locked + repeating, bindl = locked.
+    hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), { locked = true, repeating = true, description = "Lautstärke +5%" })
+    hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), { locked = true, repeating = true, description = "Lautstärke -5%" })
+    hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), { locked = true, repeating = true, description = "Stumm an/aus" })
+    hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"), { locked = true, repeating = true, description = "Helligkeit +5%" })
+    hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"), { locked = true, repeating = true, description = "Helligkeit -5%" })
+    hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), { locked = true, description = "Nächster Titel" })
+    hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, description = "Wiedergabe pausieren/fortsetzen" })
+    hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), { locked = true, description = "Wiedergabe pausieren/fortsetzen" })
+    hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), { locked = true, description = "Voriger Titel" })
   '';
 }

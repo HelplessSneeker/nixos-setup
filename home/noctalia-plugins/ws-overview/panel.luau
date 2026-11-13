@@ -46,7 +46,9 @@ local function switchTo(workspaceId)
   -- `workspace <id>` holt den Workspace auf den Monitor, dem er gehoert, und
   -- fokussiert ihn. Bei mehreren Monitoren wandert damit der Fokus mit -- genau
   -- das will man beim Klick auf eine Kachel.
-  noctalia.runAsync("hyprctl dispatch workspace " .. tostring(workspaceId))
+  -- Seit Hyprland 0.57 nimmt `hyprctl dispatch` einen Lua-Ausdruck statt der
+  -- alten Form `dispatch workspace <id>` (01.11.2026).
+  noctalia.runAsync("hyprctl dispatch 'hl.dsp.focus({ workspace = " .. tostring(workspaceId) .. " })'")
   panel.close()
 end
 
